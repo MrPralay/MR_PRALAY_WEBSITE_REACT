@@ -2,32 +2,29 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaNeon } from '@prisma/adapter-neon';
 import { Pool } from '@neondatabase/serverless';
 
-// In Cloudflare Workers, we must be careful with global state.
-// We'll create a function that returns a client, and we'll handle
-// the lifecycle in server.js to prevent "Cross-Request I/O" errors.
-
-export const createPrismaClient = (databaseUrl) => {
+/**
+ * Cloudflare Workers Isolation Fix:
+ * We create a NEW Prisma instance for every request.
+ * While slightly more overhead, this prevents the "Cannot perform I/O 
+ * on behalf of a different request" error which happens when a 
+ * global client tries to reuse a connection from a finished request.
+ */
+const getPrisma = (databaseUrl) => {
     if (!databaseUrl) {
-        throw new Error("DATABASE_URL binding is missing.");
+        throw new Error("DATABASE_URL is missing.");
     }
 
-    const pool = new Pool({ connectionString: databaseUrl });
-    const adapter = new PrismaNeon(pool);
-    return new PrismaClient({
-        adapter,
-        log: ['error']
-    });
-};
-
-// We will also use a cache, but tied to the environment object
-// to avoid the "Different Request" conflict.
-let cachedPrisma;
-
-const getPrisma = (databaseUrl) => {
-    if (cachedPrisma) return cachedPrisma;
-
-    cachedPrisma = createPrismaClient(databaseUrl);
-    return cachedPrisma;
+    try {
+        const pool = new Pool({ connectionString: databaseUrl });
+        const adapter = new PrismaNeon(pool);
+        return new PrismaClient({
+            adapter,
+            log: ['error']
+        });
+    } catch (err) {
+        console.error("Prisma Connection Factory Error:", err);
+        throw err;
+    }
 };
 
 export default getPrisma;
