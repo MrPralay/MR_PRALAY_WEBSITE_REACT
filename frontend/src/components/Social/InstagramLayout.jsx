@@ -29,8 +29,7 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                     method: 'GET',
                     headers: {
                         ...(token && { 'Authorization': `Bearer ${token}` })
-                    },
-                    credentials: 'include'
+                    }
                 };
 
                 if (view === 'feed') {

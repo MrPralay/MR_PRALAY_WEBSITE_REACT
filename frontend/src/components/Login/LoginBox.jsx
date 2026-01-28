@@ -56,7 +56,6 @@ const LoginBox = ({ onSwitch, onBack, onLoginSuccess, onForgot }) => {
             const response = await fetch(`${apiUrl}/api/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
                 body: JSON.stringify({
                     email: formData.email,
                     password: formData.password,

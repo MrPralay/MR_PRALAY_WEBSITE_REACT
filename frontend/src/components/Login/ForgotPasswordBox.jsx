@@ -24,7 +24,6 @@ const ForgotPasswordBox = ({ onBack, onSuccess }) => {
             const response = await fetch(`${apiUrl}/api/auth/forgot-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
                 body: JSON.stringify({ email })
             });
 
@@ -71,7 +70,6 @@ const ForgotPasswordBox = ({ onBack, onSuccess }) => {
             const response = await fetch(`${apiUrl}/api/auth/reset-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
                 body: JSON.stringify({
                     email,
                     otp: otp.join(''),
