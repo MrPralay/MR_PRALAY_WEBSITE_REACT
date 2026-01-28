@@ -1,8 +1,9 @@
 import jwt from 'jsonwebtoken';
+import { getCookie } from 'hono/cookie';
 
 const authenticateToken = async (c, next) => {
     // 1. Try Cookie first (Professional way)
-    const cookieToken = c.req.cookie('synapse_token');
+    const cookieToken = getCookie(c, 'synapse_token');
 
     // 2. Fallback to Authorization Header (Backup way)
     const authHeader = c.req.header('authorization');
