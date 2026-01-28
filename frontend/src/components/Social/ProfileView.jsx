@@ -8,11 +8,11 @@ const ProfileView = ({ user, currentUser, posts: parentPosts = [], onOpenCreateP
     const [tabData, setTabData] = useState([]);
     const [loading, setLoading] = useState(false);
 
+    // String matching to ensure IDs connect regardless of type (Number vs String)
     const isOwnProfile = String(currentUser?.id) === String(user.id);
     const apiUrl = "https://synapse-backend.pralayd140.workers.dev";
     const token = Cookies.get('synapse_token');
 
-    // Restoration: Unified Data Logic
     useEffect(() => {
         const loadContent = async () => {
             if (activeTab === 'saved') {
@@ -28,10 +28,11 @@ const ProfileView = ({ user, currentUser, posts: parentPosts = [], onOpenCreateP
                 } finally {
                     setLoading(false);
                 }
+            } else if (activeTab === 'tagged') {
+                setTabData([]); // Tagged feature is logically empty for now
             } else {
-                // Filter logic for Posts/Reels with legacy support
+                // Filter logic for Posts/Reels
                 const filtered = parentPosts.filter(post => {
-                    // Default to IMAGE if type is missing (legacy support)
                     const postType = post.type || 'IMAGE';
                     if (activeTab === 'posts') return postType === 'IMAGE';
                     if (activeTab === 'reels') return postType === 'VIDEO';
@@ -48,6 +49,7 @@ const ProfileView = ({ user, currentUser, posts: parentPosts = [], onOpenCreateP
         { id: 'posts', label: 'Synapses', icon: <Grid size={16} /> },
         { id: 'reels', label: 'Neural Reels', icon: <Play size={16} /> },
         { id: 'saved', label: 'Registry', icon: <Bookmark size={16} /> },
+        { id: 'tagged', label: 'Tagged', icon: <UserIcon size={16} /> },
     ];
 
     return (
@@ -95,7 +97,7 @@ const ProfileView = ({ user, currentUser, posts: parentPosts = [], onOpenCreateP
                     <div className="flex justify-center md:justify-start gap-16 mb-10 border-y border-white/5 py-8 md:border-none md:py-0">
                         <div className="text-center md:text-left group cursor-pointer">
                             <span className="text-2xl font-bold text-white block mb-1 group-hover:text-emerald-500 transition-colors">
-                                {parentPosts.length || user._count?.posts || 0}
+                                {user._count?.posts || parentPosts.length || 0}
                             </span>
                             <span className="text-[9px] text-gray-500 uppercase tracking-[0.3em] font-bold">Synapses</span>
                         </div>
@@ -118,7 +120,7 @@ const ProfileView = ({ user, currentUser, posts: parentPosts = [], onOpenCreateP
                 </div>
             </div>
 
-            {/* Tabs Navigation */}
+            {/* Tabs Navigation (Restored Tagged Section) */}
             <div className="border-t border-white/5 flex justify-center gap-12 text-[9px] font-bold uppercase tracking-[0.4em] text-gray-600 mb-12 relative">
                 {tabs.map((tab) => (
                     <button
@@ -183,7 +185,7 @@ const ProfileView = ({ user, currentUser, posts: parentPosts = [], onOpenCreateP
                             ) : (
                                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="col-span-full py-40 text-center flex flex-col items-center">
                                     <div className="w-24 h-24 bg-white/5 rounded-[2rem] flex items-center justify-center mb-8 border border-white/5">
-                                        {activeTab === 'posts' ? <Grid size={32} className="text-gray-700" /> : activeTab === 'reels' ? <Play size={32} className="text-gray-700" /> : <Bookmark size={32} className="text-gray-700" />}
+                                        {activeTab === 'posts' ? <Grid size={32} className="text-gray-700" /> : activeTab === 'reels' ? <Play size={32} className="text-gray-700" /> : activeTab === 'saved' ? <Bookmark size={32} className="text-gray-700" /> : <UserIcon size={32} className="text-gray-700" />}
                                     </div>
                                     <h3 className="text-white text-2xl font-bold mb-2 tracking-tight uppercase">Segment Empty</h3>
                                     <p className="text-gray-600 text-xs font-bold tracking-[0.2em] mb-10 uppercase">Initiate your broadcast for this area.</p>

@@ -121,7 +121,8 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                             <ProfileView
                                 user={userProfile}
                                 currentUser={currentUser}
-                                posts={posts.filter(p => String(p.userId) === String(currentUser.id))}
+                                posts={posts}
+                                onOpenCreatePost={() => setIsPostModalOpen(true)}
                             />
                         </motion.div>
                     )}
