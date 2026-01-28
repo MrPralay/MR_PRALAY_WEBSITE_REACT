@@ -2,24 +2,32 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaNeon } from '@prisma/adapter-neon';
 import { Pool } from '@neondatabase/serverless';
 
-let prisma;
+// In Cloudflare Workers, we must be careful with global state.
+// We'll create a function that returns a client, and we'll handle
+// the lifecycle in server.js to prevent "Cross-Request I/O" errors.
+
+export const createPrismaClient = (databaseUrl) => {
+    if (!databaseUrl) {
+        throw new Error("DATABASE_URL binding is missing.");
+    }
+
+    const pool = new Pool({ connectionString: databaseUrl });
+    const adapter = new PrismaNeon(pool);
+    return new PrismaClient({
+        adapter,
+        log: ['error']
+    });
+};
+
+// We will also use a cache, but tied to the environment object
+// to avoid the "Different Request" conflict.
+let cachedPrisma;
 
 const getPrisma = (databaseUrl) => {
-    if (!databaseUrl) {
-        throw new Error("DATABASE_URL is missing in the environment bindings!");
-    }
+    if (cachedPrisma) return cachedPrisma;
 
-    if (!prisma) {
-        try {
-            const pool = new Pool({ connectionString: databaseUrl });
-            const adapter = new PrismaNeon(pool);
-            prisma = new PrismaClient({ adapter });
-        } catch (err) {
-            console.error("Prisma Sync Error:", err);
-            throw new Error(`Neural Link Offline: Database failed to initialize. Error: ${err.message}`);
-        }
-    }
-    return prisma;
+    cachedPrisma = createPrismaClient(databaseUrl);
+    return cachedPrisma;
 };
 
 export default getPrisma;
