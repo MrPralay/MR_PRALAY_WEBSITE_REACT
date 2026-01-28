@@ -18,7 +18,7 @@ export const getFeed = async (c) => {
         return c.json(posts);
     } catch (error) {
         console.error("Feed Error:", error);
-        return c.json({ success: false, error: "Feed generation failure" }, 500);
+        return c.json({ success: false, error: `Feed failure: ${error.message}` }, 500);
     }
 };
 

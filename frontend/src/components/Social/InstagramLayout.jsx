@@ -28,7 +28,6 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                 const fetchOptions = {
                     method: 'GET',
                     headers: {
-                        'Content-Type': 'application/json',
                         ...(token && { 'Authorization': `Bearer ${token}` })
                     },
                     credentials: 'include'

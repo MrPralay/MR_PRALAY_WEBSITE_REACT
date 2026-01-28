@@ -13,25 +13,23 @@ import adminRoutes from './routes/adminRoutes.js';
 const app = new Hono();
 
 // Global Middleware
-app.use('*', logger());
-app.use('*', prettyJSON());
-app.use('*', secureHeaders());
 app.use('*', cors({
-    origin: (origin) => origin, // Dynamically allow the requesting origin to support cookies
+    origin: (origin) => {
+        // Log origin for debugging if needed (Cloudflare logs)
+        return origin || '*';
+    },
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-    exposeHeaders: ['Content-Length'],
-    maxAge: 600,
+    allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+    exposeHeaders: ['Content-Length', 'X-Synapse-Debug'],
+    maxAge: 86400,
     credentials: true,
 }));
 
-// Fallback for some browsers to ensure credentials are sent
-app.use('*', async (c, next) => {
-    await next();
-    if (c.req.header('Origin')) {
-        c.header('Access-Control-Allow-Credentials', 'true');
-    }
-});
+app.use('*', logger());
+app.use('*', prettyJSON());
+app.use('*', secureHeaders());
+
+
 
 // Professional Error Handling
 app.onError((err, c) => {

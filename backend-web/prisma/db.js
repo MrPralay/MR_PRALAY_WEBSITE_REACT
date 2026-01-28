@@ -15,8 +15,8 @@ const getPrisma = (databaseUrl) => {
             const adapter = new PrismaNeon(pool);
             prisma = new PrismaClient({ adapter });
         } catch (err) {
-            console.error("Failed to initialize Prisma with Neon adapter:", err);
-            throw new Error(`Database Initialization Error: ${err.message}`);
+            console.error("Prisma Sync Error:", err);
+            throw new Error(`Neural Link Offline: Database failed to initialize. Error: ${err.message}`);
         }
     }
     return prisma;
