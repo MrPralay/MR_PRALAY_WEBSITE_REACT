@@ -12,6 +12,7 @@ const CreatePostModal = ({ isOpen, onClose, onSubmit, user }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [dragActive, setDragActive] = useState(false);
     const [isOptimizing, setIsOptimizing] = useState(false);
+    const [uploadPreview, setUploadPreview] = useState(null);
     const [rawMedia, setRawMedia] = useState(null); // Actual File object for cloud upload
 
     const fileInputRef = useRef(null);
