@@ -37,6 +37,14 @@ app.use('*', async (c, next) => {
 app.onError((err, c) => {
     console.error(`[Error]: ${err.message}`);
     const status = err.status || 500;
+
+    // Ensure CORS headers are present even on error
+    const origin = c.req.header('Origin');
+    if (origin) {
+        c.header('Access-Control-Allow-Origin', origin);
+        c.header('Access-Control-Allow-Credentials', 'true');
+    }
+
     return c.json({
         success: false,
         error: {

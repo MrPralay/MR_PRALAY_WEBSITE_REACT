@@ -4,6 +4,7 @@ import FeedView from './FeedView';
 import ProfileView from './ProfileView';
 import RightSidebar from './RightSidebar';
 import { AnimatePresence, motion } from 'framer-motion';
+import Cookies from 'js-cookie';
 
 const InstagramLayout = ({ currentUser, onLogout }) => {
     const [view, setView] = useState(() => localStorage.getItem('synapse_social_tab') || 'feed'); // feed, profile, explore, etc.
@@ -22,14 +23,24 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
             setLoading(true);
             try {
                 const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+                const token = Cookies.get('synapse_token');
+
+                const fetchOptions = {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(token && { 'Authorization': `Bearer ${token}` })
+                    },
+                    credentials: 'include'
+                };
+
                 if (view === 'feed') {
-                    const res = await fetch(`${apiUrl}/api/social/feed`);
+                    const res = await fetch(`${apiUrl}/api/social/feed`, fetchOptions);
                     const data = await res.json();
                     setPosts(Array.isArray(data) ? data : []);
                 } else if (view === 'profile') {
-                    const res = await fetch(`${apiUrl}/api/user/profile/${currentUser.username}`);
+                    const res = await fetch(`${apiUrl}/api/user/profile/${encodeURIComponent(currentUser.username)}`, fetchOptions);
                     const data = await res.json();
-                    // data might be { success: true, data: profile } or just profile
                     const profileData = data.data || data;
                     setUserProfile(profileData);
                     setPosts(profileData.posts || []);
