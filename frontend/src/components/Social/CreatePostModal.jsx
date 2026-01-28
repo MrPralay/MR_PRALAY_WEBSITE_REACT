@@ -11,13 +11,13 @@ const CreatePostModal = ({ isOpen, onClose, onSubmit, user }) => {
     const [isProtected, setIsProtected] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [dragActive, setDragActive] = useState(false);
-    const [uploadPreview, setUploadPreview] = useState(null);
     const [isOptimizing, setIsOptimizing] = useState(false);
+    const [rawMedia, setRawMedia] = useState(null); // Actual File object for cloud upload
 
     const fileInputRef = useRef(null);
 
     // Neural Compressor: Shrinks images properly to fit Cloudflare's 1MB limit
-    const compressImage = (file) => {
+    const compressImage = async (file) => {
         return new Promise((resolve) => {
             const reader = new FileReader();
             reader.readAsDataURL(file);
@@ -47,8 +47,16 @@ const CreatePostModal = ({ isOpen, onClose, onSubmit, user }) => {
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
 
-                    // Professional compression at 0.8 quality
-                    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                    // Iterative compression to ensure < 1MB
+                    let quality = 0.8;
+                    let compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+
+                    // While size > 0.9MB (approx), reduce quality
+                    while ((compressedDataUrl.length * 0.75) > 900000 && quality > 0.1) {
+                        quality -= 0.1;
+                        compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+                    }
+
                     resolve(compressedDataUrl);
                 };
             };
@@ -63,6 +71,7 @@ const CreatePostModal = ({ isOpen, onClose, onSubmit, user }) => {
         setIsOptimizing(true);
 
         try {
+            setRawMedia(file);
             if (isVideo) {
                 const reader = new FileReader();
                 reader.onload = (e) => {
@@ -106,7 +115,8 @@ const CreatePostModal = ({ isOpen, onClose, onSubmit, user }) => {
                 caption,
                 mediaUrl,
                 type,
-                postPassword: isProtected ? postPassword : null
+                postPassword: isProtected ? postPassword : null,
+                rawFile: rawMedia // Pass raw file for cloud storage processing
             });
 
             if (success) {

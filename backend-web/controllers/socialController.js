@@ -1,4 +1,6 @@
 import getPrisma from '../prisma/db.js';
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 export const getFeed = async (c) => {
     try {
@@ -48,6 +50,50 @@ export const getFeed = async (c) => {
     } catch (error) {
         console.error("Neural Feed Sync Error:", error);
         return c.json({ success: false, error: "Feed synchronization failed" }, 500);
+    }
+};
+
+export const getUploadUrl = async (c) => {
+    try {
+        const { fileName, fileType } = await c.req.json();
+        const user = c.get('user');
+
+        // Check for Supabase configuration
+        if (!c.env.SUPABASE_STORAGE_URL || !c.env.SUPABASE_ACCESS_KEY_ID || !c.env.SUPABASE_SECRET_ACCESS_KEY || !c.env.SUPABASE_BUCKET_NAME) {
+            return c.json({
+                success: false,
+                error: "Infrastructure Saturated: Supabase Storage not configured. Please add keys to Cloudflare Secrets."
+            }, 503);
+        }
+
+        const s3 = new S3Client({
+            region: c.env.SUPABASE_REGION || "ap-northeast-1",
+            endpoint: c.env.SUPABASE_STORAGE_URL,
+            credentials: {
+                accessKeyId: c.env.SUPABASE_ACCESS_KEY_ID,
+                secretAccessKey: c.env.SUPABASE_SECRET_ACCESS_KEY,
+            },
+            forcePathStyle: true, // Required for Supabase S3
+        });
+
+        const key = `${user.userId}/${Date.now()}-${fileName}`;
+        const command = new PutObjectCommand({
+            Bucket: c.env.SUPABASE_BUCKET_NAME,
+            Key: key,
+            ContentType: fileType,
+        });
+
+        const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 3600 });
+
+        // Supabase Public URL Structure:
+        // https://[PROJECT_ID].supabase.co/storage/v1/object/public/[BUCKET_NAME]/[KEY]
+        const projectUrl = c.env.SUPABASE_STORAGE_URL.split('/storage')[0];
+        const publicUrl = `${projectUrl}/storage/v1/object/public/${c.env.SUPABASE_BUCKET_NAME}/${key}`;
+
+        return c.json({ success: true, uploadUrl, publicUrl });
+    } catch (error) {
+        console.error("Neural Storage Sync Error:", error);
+        return c.json({ success: false, error: "Supabase connection severed" }, 500);
     }
 };
 

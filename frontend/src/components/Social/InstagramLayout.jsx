@@ -59,6 +59,48 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
         try {
             const apiUrl = "https://synapse-backend.pralayd140.workers.dev";
             const token = Cookies.get('synapse_token');
+            let finalMediaUrl = postData.mediaUrl;
+
+            // Neural Core Storage Logic: Check if we need Cloud Storage Uplink
+            if (postData.rawFile) {
+                const fileSize = postData.rawFile.size;
+                const isVideo = postData.type === 'VIDEO';
+
+                // If it's a video OR > 0.8MB, use Cloud Storage to bypass 1MB Worker limit
+                if (isVideo || fileSize > 800000) {
+                    try {
+                        const uploadUrlRes = await fetch(`${apiUrl}/api/social/upload-url`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({
+                                fileName: postData.rawFile.name,
+                                fileType: postData.rawFile.type
+                            })
+                        });
+
+                        if (uploadUrlRes.ok) {
+                            const { uploadUrl, publicUrl } = await uploadUrlRes.json();
+
+                            // Direct Broadcast to Cloud Storage (Exactly what Instagram do)
+                            const storageRes = await fetch(uploadUrl, {
+                                method: 'PUT',
+                                body: postData.rawFile,
+                                headers: { 'Content-Type': postData.rawFile.type }
+                            });
+
+                            if (storageRes.ok) {
+                                finalMediaUrl = publicUrl;
+                            }
+                        }
+                    } catch (err) {
+                        console.error("Cloud Storage Uplink Failed:", err);
+                        // Continuing with Base64 as fallback, though it may hit 1MB limit
+                    }
+                }
+            }
 
             const res = await fetch(`${apiUrl}/api/social/posts`, {
                 method: 'POST',
@@ -66,11 +108,15 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                     'Content-Type': 'application/json',
                     ...(token && { 'Authorization': `Bearer ${token}` })
                 },
-                body: JSON.stringify(postData)
+                body: JSON.stringify({
+                    caption: postData.caption,
+                    mediaUrl: finalMediaUrl,
+                    type: postData.type,
+                    postPassword: postData.postPassword
+                })
             });
 
             if (res.ok) {
-                // Trigger a refresh of the feed/profile
                 setRefreshTrigger(prev => prev + 1);
                 return true;
             }

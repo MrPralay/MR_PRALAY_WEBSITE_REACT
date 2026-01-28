@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import {
     getFeed,
     createPost,
+    getUploadUrl,
     toggleLike,
     addComment,
     toggleSave,
@@ -13,6 +14,7 @@ const social = new Hono();
 
 // Public/Semi-public Feed
 social.get('/feed', getFeed);
+social.post('/upload-url', authenticateToken, getUploadUrl);
 
 // Protected Interaction Routes
 social.post('/posts', authenticateToken, createPost);
