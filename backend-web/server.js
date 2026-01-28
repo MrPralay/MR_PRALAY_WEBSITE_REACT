@@ -9,42 +9,67 @@ import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import socialRoutes from './routes/socialRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
+import getPrisma from './prisma/db.js';
 
 const app = new Hono();
 
-// 1. CORS MUST BE FIRST
-// This ensures headers are set before any other middleware or routes run
-app.use('*', cors({
-    origin: (origin) => {
-        // Automatically allows the requesting origin or defaults to '*'
-        return origin || '*';
-    },
-    allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
-    exposeHeaders: ['Content-Length', 'X-Synapse-Debug'],
-    maxAge: 86400,
-    credentials: true,
-}));
+// 1. MANUALLY SET CORS FOR EVERY SINGLE REQUEST (Maximum Priority)
+app.use('*', async (c, next) => {
+    const origin = c.req.header('Origin');
+    if (origin) {
+        c.header('Access-Control-Allow-Origin', origin);
+        c.header('Access-Control-Allow-Credentials', 'true');
+        c.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+        c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+    }
 
-// 2. Global Middleware
+    // Handle Preflight (OPTIONS)
+    if (c.req.method === 'OPTIONS') {
+        return c.text('', 204);
+    }
+
+    await next();
+});
+
 app.use('*', logger());
 app.use('*', prettyJSON());
 
-// 3. Adjusted Secure Headers 
-// We disable Cross-Origin-Resource-Policy so it doesn't conflict with CORS
+// 2. DEBUG ROUTE: Test if Database URL exists
+app.get('/api/debug-env', (c) => {
+    return c.json({
+        success: true,
+        hasDatabaseUrl: !!c.env.DATABASE_URL,
+        databaseUrlLength: c.env.DATABASE_URL ? c.env.DATABASE_URL.length : 0,
+        envKeys: Object.keys(c.env),
+        message: "Neural Environment Check Complete"
+    });
+});
+
+// 3. DEBUG ROUTE: Test direct DB connection
+app.get('/api/test-db', async (c) => {
+    try {
+        const prisma = getPrisma(c.env.DATABASE_URL);
+        const userCount = await prisma.user.count();
+        return c.json({ success: true, message: "Connection Established", userCount });
+    } catch (err) {
+        return c.json({ success: false, error: err.message, stack: err.stack }, 500);
+    }
+});
+
+// Adjusted Secure Headers 
 app.use('*', secureHeaders({
     crossOriginResourcePolicy: false,
     crossOriginOpenerPolicy: false,
     crossOriginEmbedderPolicy: false,
+    contentSecurityPolicy: false, // Disable for debug
 }));
 
 // Professional Error Handling
 app.onError((err, c) => {
     console.error(`[Error]: ${err.message}`);
-    const status = err.status || 500;
-
-    // Manual header fallback for errors to prevent CORS blocking error messages
     const origin = c.req.header('Origin');
+
+    // Force CORS headers even on crash
     if (origin) {
         c.header('Access-Control-Allow-Origin', origin);
         c.header('Access-Control-Allow-Credentials', 'true');
@@ -54,21 +79,10 @@ app.onError((err, c) => {
         success: false,
         error: {
             message: err.message || 'Internal Server Error',
-            code: err.code || 'INTERNAL_ERROR',
-            ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
+            stack: err.stack,
+            code: 'NEURAL_CRASH'
         }
-    }, status);
-});
-
-// 404 Not Found
-app.notFound((c) => {
-    return c.json({
-        success: false,
-        error: {
-            message: 'Resource not found',
-            code: 'NOT_FOUND'
-        }
-    }, 404);
+    }, 500);
 });
 
 // Main Route
