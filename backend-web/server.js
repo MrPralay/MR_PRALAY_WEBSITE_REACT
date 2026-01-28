@@ -12,10 +12,11 @@ import adminRoutes from './routes/adminRoutes.js';
 
 const app = new Hono();
 
-// Global Middleware
+// 1. CORS MUST BE FIRST
+// This ensures headers are set before any other middleware or routes run
 app.use('*', cors({
     origin: (origin) => {
-        // Log origin for debugging if needed (Cloudflare logs)
+        // Automatically allows the requesting origin or defaults to '*'
         return origin || '*';
     },
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -25,18 +26,24 @@ app.use('*', cors({
     credentials: true,
 }));
 
+// 2. Global Middleware
 app.use('*', logger());
 app.use('*', prettyJSON());
-app.use('*', secureHeaders());
 
-
+// 3. Adjusted Secure Headers 
+// We disable Cross-Origin-Resource-Policy so it doesn't conflict with CORS
+app.use('*', secureHeaders({
+    crossOriginResourcePolicy: false,
+    crossOriginOpenerPolicy: false,
+    crossOriginEmbedderPolicy: false,
+}));
 
 // Professional Error Handling
 app.onError((err, c) => {
     console.error(`[Error]: ${err.message}`);
     const status = err.status || 500;
 
-    // Ensure CORS headers are present even on error
+    // Manual header fallback for errors to prevent CORS blocking error messages
     const origin = c.req.header('Origin');
     if (origin) {
         c.header('Access-Control-Allow-Origin', origin);
