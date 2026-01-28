@@ -66,38 +66,29 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                 const fileSize = postData.rawFile.size;
                 const isVideo = postData.type === 'VIDEO';
 
-                // If it's a video OR > 0.8MB, use Cloud Storage to bypass 1MB Worker limit
+                // Use Cloud Uplink Proxy to bypass 1MB Worker limit + Avoid Browser CORS
                 if (isVideo || fileSize > 800000) {
                     try {
-                        const uploadUrlRes = await fetch(`${apiUrl}/api/social/upload-url`, {
+                        const uploadRes = await fetch(`${apiUrl}/api/social/upload`, {
                             method: 'POST',
                             headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${token}`
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': postData.rawFile.type,
+                                'x-filename': postData.rawFile.name
                             },
-                            body: JSON.stringify({
-                                fileName: postData.rawFile.name,
-                                fileType: postData.rawFile.type
-                            })
+                            body: postData.rawFile // Send raw file as binary stream
                         });
 
-                        if (uploadUrlRes.ok) {
-                            const { uploadUrl, publicUrl } = await uploadUrlRes.json();
-
-                            // Direct Broadcast to Cloud Storage (Exactly what Instagram do)
-                            const storageRes = await fetch(uploadUrl, {
-                                method: 'PUT',
-                                body: postData.rawFile,
-                                headers: { 'Content-Type': postData.rawFile.type }
-                            });
-
-                            if (storageRes.ok) {
-                                finalMediaUrl = publicUrl;
-                            }
+                        if (uploadRes.ok) {
+                            const { publicUrl } = await uploadRes.json();
+                            finalMediaUrl = publicUrl;
+                        } else {
+                            console.error("Neural Uplink Rejected. Status:", uploadRes.status);
+                            if (isVideo || fileSize > 800000) return false;
                         }
                     } catch (err) {
-                        console.error("Cloud Storage Uplink Failed:", err);
-                        // Continuing with Base64 as fallback, though it may hit 1MB limit
+                        console.error("Neural Uplink Connection Severed:", err);
+                        if (isVideo || fileSize > 800000) return false;
                     }
                 }
             }

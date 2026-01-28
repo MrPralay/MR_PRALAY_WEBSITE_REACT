@@ -53,17 +53,15 @@ export const getFeed = async (c) => {
     }
 };
 
-export const getUploadUrl = async (c) => {
+export const uploadMedia = async (c) => {
     try {
-        const { fileName, fileType } = await c.req.json();
         const user = c.get('user');
+        const fileName = c.req.header('x-filename') || `upload-${Date.now()}`;
+        const fileType = c.req.header('content-type') || 'image/jpeg';
 
         // Check for Supabase configuration
         if (!c.env.SUPABASE_STORAGE_URL || !c.env.SUPABASE_ACCESS_KEY_ID || !c.env.SUPABASE_SECRET_ACCESS_KEY || !c.env.SUPABASE_BUCKET_NAME) {
-            return c.json({
-                success: false,
-                error: "Infrastructure Saturated: Supabase Storage not configured. Please add keys to Cloudflare Secrets."
-            }, 503);
+            return c.json({ success: false, error: "Cloud Uplink Configuration Missing" }, 503);
         }
 
         const s3 = new S3Client({
@@ -73,27 +71,30 @@ export const getUploadUrl = async (c) => {
                 accessKeyId: c.env.SUPABASE_ACCESS_KEY_ID,
                 secretAccessKey: c.env.SUPABASE_SECRET_ACCESS_KEY,
             },
-            forcePathStyle: true, // Required for Supabase S3
+            forcePathStyle: true,
         });
 
         const key = `${user.userId}/${Date.now()}-${fileName}`;
+
+        // Get the raw body as a promise
+        const body = await c.req.arrayBuffer();
+
         const command = new PutObjectCommand({
             Bucket: c.env.SUPABASE_BUCKET_NAME,
             Key: key,
             ContentType: fileType,
+            Body: new Uint8Array(body)
         });
 
-        const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 3600 });
+        await s3.send(command);
 
-        // Supabase Public URL Structure:
-        // https://[PROJECT_ID].supabase.co/storage/v1/object/public/[BUCKET_NAME]/[KEY]
-        const projectUrl = c.env.SUPABASE_STORAGE_URL.split('/storage')[0];
+        const projectUrl = c.env.SUPABASE_STORAGE_URL.split('/storage')[0].replace('.storage', '');
         const publicUrl = `${projectUrl}/storage/v1/object/public/${c.env.SUPABASE_BUCKET_NAME}/${key}`;
 
-        return c.json({ success: true, uploadUrl, publicUrl });
+        return c.json({ success: true, publicUrl });
     } catch (error) {
-        console.error("Neural Storage Sync Error:", error);
-        return c.json({ success: false, error: "Supabase connection severed" }, 500);
+        console.error("Neural Proxy Error:", error);
+        return c.json({ success: false, error: "Uplink Failed" }, 500);
     }
 };
 
