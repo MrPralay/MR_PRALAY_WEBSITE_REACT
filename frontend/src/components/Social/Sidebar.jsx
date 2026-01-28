@@ -2,7 +2,7 @@ import React from 'react';
 import { Home, Compass, Heart, MessageSquare, Monitor, BarChart2, Settings, LogOut, PlusSquare } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-const Sidebar = ({ user, activeView, setView, onLogout }) => {
+const Sidebar = ({ user, activeView, setView, onLogout, onOpenCreatePost }) => {
     const navItems = [
         { id: 'feed', label: 'Feed', icon: <Home size={22} /> },
         { id: 'explore', label: 'Explore', icon: <Compass size={22} /> },
@@ -59,7 +59,10 @@ const Sidebar = ({ user, activeView, setView, onLogout }) => {
                 ))}
 
                 {/* Create Post Button (Custom) */}
-                <div className="sidebar-link group text-emerald-400">
+                <div
+                    onClick={onOpenCreatePost}
+                    className="sidebar-link group text-emerald-400"
+                >
                     <PlusSquare size={22} />
                     <span className="text-sm font-bold">New Post</span>
                 </div>

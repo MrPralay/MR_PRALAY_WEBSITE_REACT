@@ -2,7 +2,7 @@ import React from 'react';
 import { Plus, ChevronRight } from 'lucide-react';
 import PostCard from './PostCard';
 
-const FeedView = ({ posts, stories = [] }) => {
+const FeedView = ({ posts, stories = [], onCreateClick }) => {
     return (
         <div className="flex-1 max-w-2xl mx-auto py-8 px-4">
             {/* Stories Section */}
@@ -15,7 +15,10 @@ const FeedView = ({ posts, stories = [] }) => {
                 </div>
                 <div className="flex gap-6 overflow-x-auto hide-scrollbar py-2">
                     {/* Add Story Button */}
-                    <div className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer group">
+                    <div
+                        onClick={onCreateClick}
+                        className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer group"
+                    >
                         <div className="w-16 h-16 rounded-full border-2 border-dashed border-gray-700 flex items-center justify-center group-hover:border-emerald-500 transition-colors">
                             <Plus size={24} className="text-gray-500 group-hover:text-emerald-500 transition-colors" />
                         </div>
@@ -76,7 +79,10 @@ const FeedView = ({ posts, stories = [] }) => {
                         </div>
                         <h3 className="text-white text-xl font-bold mb-2">No posts yet</h3>
                         <p className="text-gray-500 text-sm max-w-xs mx-auto">The neural network is quiet. Be the first to synchronize your thoughts.</p>
-                        <button className="mt-8 px-8 py-3 bg-emerald-500 text-black font-bold rounded-xl hover:bg-emerald-400 transition-colors">
+                        <button
+                            onClick={onCreateClick}
+                            className="mt-8 px-8 py-3 bg-emerald-500 text-black font-bold rounded-xl hover:bg-emerald-400 transition-colors"
+                        >
                             Initiate Upload
                         </button>
                     </div>

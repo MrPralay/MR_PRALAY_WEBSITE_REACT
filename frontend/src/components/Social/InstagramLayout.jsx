@@ -3,6 +3,7 @@ import Sidebar from './Sidebar';
 import FeedView from './FeedView';
 import ProfileView from './ProfileView';
 import RightSidebar from './RightSidebar';
+import CreatePostModal from './CreatePostModal';
 import { AnimatePresence, motion } from 'framer-motion';
 import Cookies from 'js-cookie';
 
@@ -11,6 +12,8 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
     const [posts, setPosts] = useState([]);
     const [userProfile, setUserProfile] = useState(currentUser);
     const [loading, setLoading] = useState(false);
+    const [isPostModalOpen, setIsPostModalOpen] = useState(false);
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
 
     // Persist social tab to localStorage
     useEffect(() => {
@@ -50,7 +53,33 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
             }
         };
         fetchData();
-    }, [view, currentUser]);
+    }, [view, currentUser, refreshTrigger]);
+
+    const handleCreatePost = async (postData) => {
+        try {
+            const apiUrl = "https://synapse-backend.pralayd140.workers.dev";
+            const token = Cookies.get('synapse_token');
+
+            const res = await fetch(`${apiUrl}/api/social/posts`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` })
+                },
+                body: JSON.stringify(postData)
+            });
+
+            if (res.ok) {
+                // Trigger a refresh of the feed/profile
+                setRefreshTrigger(prev => prev + 1);
+                return true;
+            }
+            return false;
+        } catch (err) {
+            console.error("Neural Broadcast Error:", err);
+            return false;
+        }
+    };
 
     return (
         <div className="flex bg-[#050505] min-h-screen">
@@ -60,6 +89,7 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                 activeView={view}
                 setView={setView}
                 onLogout={onLogout}
+                onOpenCreatePost={() => setIsPostModalOpen(true)}
             />
 
             {/* Main Content Area */}
@@ -73,7 +103,10 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                             exit={{ opacity: 0 }}
                             transition={{ duration: 0.3 }}
                         >
-                            <FeedView posts={posts} />
+                            <FeedView
+                                posts={posts}
+                                onCreateClick={() => setIsPostModalOpen(true)}
+                            />
                         </motion.div>
                     )}
 
@@ -106,6 +139,14 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
 
             {/* Right Sidebar (Hidden on small screens) */}
             <RightSidebar />
+
+            {/* Global Create Post Modal */}
+            <CreatePostModal
+                isOpen={isPostModalOpen}
+                onClose={() => setIsPostModalOpen(false)}
+                onSubmit={handleCreatePost}
+                user={currentUser}
+            />
         </div>
     );
 };
