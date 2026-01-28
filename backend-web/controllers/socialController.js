@@ -119,7 +119,12 @@ export const createPost = async (c) => {
         return c.json({ success: true, data: post }, 201);
     } catch (error) {
         console.error("Neural Post Broadcast Error:", error);
-        return c.json({ success: false, error: "Post transmission failed" }, 500);
+        return c.json({
+            success: false,
+            error: "Post transmission failed",
+            details: error.message,
+            stack: error.stack
+        }, 500);
     }
 };
 
