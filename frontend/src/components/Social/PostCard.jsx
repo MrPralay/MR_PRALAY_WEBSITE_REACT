@@ -1,77 +1,270 @@
-import React from 'react';
-import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal } from 'lucide-react';
-import { motion } from 'framer-motion';
+import React, { useState } from 'react';
+import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Download, Lock, Unlock, Play, Volume2, ShieldCheck, Share2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import Cookies from 'js-cookie';
 
-const PostCard = ({ post }) => {
+const PostCard = ({ post, onInteraction }) => {
+    const [isLiked, setIsLiked] = useState(post.isLiked || false);
+    const [isSaved, setIsSaved] = useState(post.isSaved || false);
+    const [likesCount, setLikesCount] = useState(post._count?.likes || 0);
+    const [isUnlocked, setIsUnlocked] = useState(!post.postPassword);
+    const [inputPassword, setInputPassword] = useState('');
+    const [showComments, setShowComments] = useState(false);
+    const [commentText, setCommentText] = useState('');
+
+    const apiUrl = "https://synapse-backend.pralayd140.workers.dev";
+    const token = Cookies.get('synapse_token');
+
+    const handleLike = async () => {
+        setIsLiked(!isLiked);
+        setLikesCount(prev => isLiked ? prev - 1 : prev + 1);
+        try {
+            await fetch(`${apiUrl}/api/social/posts/${post.id}/like`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+        } catch (err) { console.error(err); }
+    };
+
+    const handleSave = async () => {
+        setIsSaved(!isSaved);
+        try {
+            await fetch(`${apiUrl}/api/social/posts/${post.id}/save`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+        } catch (err) { console.error(err); }
+    };
+
+    const handleUnlock = () => {
+        if (inputPassword === post.postPassword) {
+            setIsUnlocked(true);
+        } else {
+            alert("Neural Key Mismatch. Access Denied.");
+            setInputPassword('');
+        }
+    };
+
+    const handleDownload = () => {
+        const link = document.createElement('a');
+        link.href = post.mediaUrl;
+        link.download = `synapse_${post.id}.${post.type === 'VIDEO' ? 'mp4' : 'jpg'}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const handleShare = () => {
+        if (navigator.share) {
+            navigator.share({
+                title: 'SynapseX Broadcast',
+                text: post.caption,
+                url: window.location.href,
+            });
+        } else {
+            navigator.clipboard.writeText(window.location.href);
+            alert("Broadcast link copied to neural clipboard.");
+        }
+    };
+
     return (
         <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            className="post-card"
+            className="group relative bg-white/[0.02] border border-white/5 rounded-[2.5rem] overflow-hidden mb-12 hover:border-emerald-500/20 transition-all duration-500 hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)]"
         >
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 px-6">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full border border-emerald-500/30 p-[1px]">
-                        <img
-                            src={post.user?.profileImage || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg"}
-                            className="w-full h-full rounded-full object-cover"
-                            alt={post.user?.username}
-                        />
+            {/* Post Header */}
+            <div className="flex items-center justify-between p-6 px-8">
+                <div className="flex items-center gap-4">
+                    <div className="relative">
+                        <div className="w-12 h-12 rounded-full border-2 border-emerald-500/30 p-[2px] transition-transform group-hover:rotate-12">
+                            <img
+                                src={post.user?.profileImage || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg"}
+                                className="w-full h-full rounded-full object-cover border-2 border-black"
+                                alt={post.user?.username}
+                            />
+                        </div>
+                        <div className="absolute -bottom-1 -right-1 bg-emerald-500 w-4 h-4 rounded-full border-2 border-black flex items-center justify-center">
+                            <ShieldCheck size={8} className="text-black" />
+                        </div>
                     </div>
                     <div>
-                        <h4 className="text-white text-sm font-bold leading-tight">{post.user?.name || post.user?.username}</h4>
-                        <p className="text-gray-500 text-[10px] uppercase tracking-tighter">Bremen, Germany</p>
+                        <h4 className="text-white text-[13px] font-bold tracking-tight">{post.user?.name || post.user?.username}</h4>
+                        <p className="text-gray-500 text-[9px] font-bold uppercase tracking-widest flex items-center gap-1">
+                            Neural Link Active <span className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse"></span>
+                        </p>
                     </div>
                 </div>
-                <button className="text-gray-400 hover:text-white transition-colors">
+                <button className="p-3 bg-white/5 rounded-2xl text-gray-500 hover:text-white transition-all hover:bg-white/10">
                     <MoreHorizontal size={20} />
                 </button>
             </div>
 
-            {/* Media */}
-            <div className="aspect-[4/3] bg-black/40 overflow-hidden">
-                <img
-                    src={post.imageUrl}
-                    className="w-full h-full object-cover"
-                    alt="Post Media"
-                    onError={(e) => {
-                        e.target.src = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&q=80";
-                    }}
-                />
+            {/* Media Canvas */}
+            <div className="relative aspect-square md:aspect-[16/10] bg-black/60 overflow-hidden flex items-center justify-center">
+                {!isUnlocked ? (
+                    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/40 backdrop-blur-3xl p-8 text-center group">
+                        <div className="p-6 bg-amber-500/10 rounded-[2rem] mb-6 mb-8 group-hover:scale-110 transition-transform">
+                            <Lock size={48} className="text-amber-500" />
+                        </div>
+                        <h3 className="text-white text-xl font-bold mb-2">Segment Encrypted</h3>
+                        <p className="text-gray-500 text-[10px] uppercase font-bold tracking-[0.3em] mb-8">Access Key Required</p>
+
+                        <div className="w-full max-w-xs relative">
+                            <input
+                                type="password"
+                                value={inputPassword}
+                                onChange={(e) => setInputPassword(e.target.value)}
+                                placeholder="Neural Key..."
+                                className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500/50 transition-all font-mono tracking-widest text-center"
+                            />
+                            <button
+                                onClick={handleUnlock}
+                                className="mt-4 w-full py-4 bg-emerald-500 text-black font-bold text-xs uppercase tracking-widest rounded-2xl hover:bg-emerald-400 transition-all"
+                            >
+                                Decrypt Access
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <>
+                        {post.type === 'VIDEO' ? (
+                            <div className="relative w-full h-full group/video">
+                                <video
+                                    src={post.mediaUrl}
+                                    className="w-full h-full object-cover"
+                                    loop
+                                    muted
+                                    autoPlay
+                                    playsInline
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover/video:opacity-100 transition-opacity flex flex-col justify-end p-8">
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-3 bg-white/10 backdrop-blur-md rounded-full text-white cursor-pointer">
+                                            <Play size={20} fill="white" />
+                                        </div>
+                                        <div className="p-3 bg-white/10 backdrop-blur-md rounded-full text-white cursor-pointer">
+                                            <Volume2 size={20} />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <img
+                                src={post.mediaUrl}
+                                className="w-full h-full object-cover transition-transform duration-[2s] hover:scale-105"
+                                alt="Neural Visual"
+                                onError={(e) => {
+                                    e.target.src = "https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?w=800&q=80";
+                                }}
+                            />
+                        )}
+                        {/* Download Overlay */}
+                        <button
+                            onClick={handleDownload}
+                            className="absolute top-6 right-6 p-4 bg-white/10 backdrop-blur-xl rounded-full text-white border border-white/10 opacity-0 group-hover:opacity-100 transition-all hover:scale-110"
+                        >
+                            <Download size={20} />
+                        </button>
+                    </>
+                )}
             </div>
 
-            {/* Actions */}
-            <div className="p-4 px-6">
-                <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-6">
-                        <button className="flex items-center gap-2 group">
-                            <Heart size={22} className="text-gray-400 group-hover:text-red-500 transition-colors" />
-                            <span className="text-[11px] font-bold text-gray-500">{post._count?.likes || 0}k Like</span>
+            {/* Neural Meta / Actions */}
+            <div className="p-8 px-10">
+                <div className="flex items-center justify-between mb-8">
+                    <div className="flex items-center gap-8">
+                        <button
+                            onClick={handleLike}
+                            className="flex flex-col items-center gap-1.5 group/btn"
+                        >
+                            <div className={`p-4 rounded-[1.2rem] transition-all flex items-center justify-center ${isLiked ? 'bg-red-500/10 text-red-500 shadow-[0_10px_20px_rgba(239,68,68,0.2)]' : 'bg-white/5 text-gray-400 group-hover/btn:bg-white/10 group-hover/btn:text-red-400'}`}>
+                                <Heart size={20} fill={isLiked ? "currentColor" : "none"} />
+                            </div>
+                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{likesCount} Liked</span>
                         </button>
-                        <button className="flex items-center gap-2 group">
-                            <MessageCircle size={22} className="text-gray-400 group-hover:text-emerald-400 transition-colors" />
-                            <span className="text-[11px] font-bold text-gray-500">{post._count?.comments || 0} Comment</span>
+
+                        <button
+                            onClick={() => setShowComments(!showComments)}
+                            className="flex flex-col items-center gap-1.5 group/btn"
+                        >
+                            <div className={`p-4 rounded-[1.2rem] transition-all flex items-center justify-center ${showComments ? 'bg-emerald-500/10 text-emerald-500' : 'bg-white/5 text-gray-400 group-hover/btn:bg-white/10 group-hover/btn:text-emerald-400'}`}>
+                                <MessageCircle size={20} />
+                            </div>
+                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{post._count?.comments || 0} Synapse</span>
                         </button>
-                        <button className="flex items-center gap-2 group">
-                            <Send size={22} className="text-gray-400 group-hover:text-blue-400 transition-colors" />
-                            <span className="text-[11px] font-bold text-gray-500">Share</span>
+
+                        <button
+                            onClick={handleShare}
+                            className="flex flex-col items-center gap-1.5 group/btn"
+                        >
+                            <div className="p-4 bg-white/5 rounded-[1.2rem] text-gray-400 transition-all group-hover/btn:bg-white/10 group-hover/btn:text-blue-400 flex items-center justify-center">
+                                <Share2 size={20} />
+                            </div>
+                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Share</span>
                         </button>
                     </div>
-                    <button className="flex items-center gap-2 group">
-                        <Bookmark size={22} className="text-gray-400 group-hover:text-amber-400 transition-colors" />
-                        <span className="text-[11px] font-bold text-gray-500">Saved</span>
+
+                    <button
+                        onClick={handleSave}
+                        className="flex flex-col items-center gap-1.5 group/btn"
+                    >
+                        <div className={`p-4 rounded-[1.2rem] transition-all flex items-center justify-center ${isSaved ? 'bg-amber-500/10 text-amber-500 shadow-[0_10px_20px_rgba(245,158,11,0.2)]' : 'bg-white/5 text-gray-400 group-hover/btn:bg-white/10 group-hover/btn:text-amber-400'}`}>
+                            <Bookmark size={20} fill={isSaved ? "currentColor" : "none"} />
+                        </div>
+                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Registry</span>
                     </button>
                 </div>
 
-                {/* Caption */}
-                <div className="space-y-1">
-                    <p className="text-xs text-gray-300 leading-relaxed overflow-hidden text-ellipsis">
+                {/* Caption / Content */}
+                <div className="space-y-4">
+                    <p className="text-sm text-gray-300 leading-relaxed font-medium">
+                        <span className="text-white font-bold mr-3">{post.user?.username}</span>
                         {post.caption}
+                    </p>
+                    <p className="text-[10px] text-gray-600 font-bold uppercase tracking-[0.2em]">
+                        {new Date(post.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                     </p>
                 </div>
             </div>
+
+            {/* Expansion: Comments Section (Mini-interface) */}
+            <AnimatePresence>
+                {showComments && (
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="border-t border-white/5 overflow-hidden bg-white/[0.01]"
+                    >
+                        <div className="p-8">
+                            <div className="flex items-center gap-4 mb-8">
+                                <img
+                                    src={Cookies.get('synapse_user_image') || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg"}
+                                    className="w-8 h-8 rounded-full border border-white/10"
+                                    alt="self"
+                                />
+                                <div className="flex-1 relative">
+                                    <input
+                                        type="text"
+                                        value={commentText}
+                                        onChange={(e) => setCommentText(e.target.value)}
+                                        placeholder="Add to the neural thread..."
+                                        className="w-full bg-black/40 border border-white/5 rounded-xl py-3 px-5 text-xs text-white focus:outline-none focus:border-emerald-500/50 transition-all"
+                                    />
+                                    <button className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-500 font-bold text-[10px] uppercase tracking-widest hover:text-emerald-400">Post</button>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col gap-6">
+                                {/* Placeholder for real comments */}
+                                <p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest text-center py-4">Synchronizing recent threads...</p>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </motion.div>
     );
 };
