@@ -55,15 +55,21 @@ const CreatePostModal = ({ isOpen, onClose, onSubmit, user }) => {
 
         setIsSubmitting(true);
         try {
-            await onSubmit({
+            const success = await onSubmit({
                 caption,
                 mediaUrl,
                 type,
                 postPassword: isProtected ? postPassword : null
             });
-            resetForm();
-            onClose();
+
+            if (success) {
+                resetForm();
+                onClose();
+            } else {
+                alert("Neural Broadcast Rejected. Image might be too large for the current link (Cloudflare limit). Please try a smaller file or a URL.");
+            }
         } catch (err) {
+            alert("Broadcast interruption detected.");
             console.error("Neural Broadcast Failed:", err);
         } finally {
             setIsSubmitting(false);
@@ -124,8 +130,8 @@ const CreatePostModal = ({ isOpen, onClose, onSubmit, user }) => {
                                     type="button"
                                     onClick={() => setType('IMAGE')}
                                     className={`flex-1 py-4 rounded-2xl border transition-all flex items-center justify-center gap-3 font-bold text-xs uppercase tracking-[0.2em] ${type === 'IMAGE'
-                                            ? 'bg-emerald-500 border-emerald-500 text-black shadow-[0_0_20px_rgba(16,185,129,0.3)]'
-                                            : 'bg-white/5 border-white/10 text-gray-500 hover:border-white/20'
+                                        ? 'bg-emerald-500 border-emerald-500 text-black shadow-[0_0_20px_rgba(16,185,129,0.3)]'
+                                        : 'bg-white/5 border-white/10 text-gray-500 hover:border-white/20'
                                         }`}
                                 >
                                     <ImageIcon size={18} /> Image
@@ -134,8 +140,8 @@ const CreatePostModal = ({ isOpen, onClose, onSubmit, user }) => {
                                     type="button"
                                     onClick={() => setType('VIDEO')}
                                     className={`flex-1 py-4 rounded-2xl border transition-all flex items-center justify-center gap-3 font-bold text-xs uppercase tracking-[0.2em] ${type === 'VIDEO'
-                                            ? 'bg-emerald-500 border-emerald-500 text-black shadow-[0_0_20px_rgba(16,185,129,0.3)]'
-                                            : 'bg-white/5 border-white/10 text-gray-500 hover:border-white/20'
+                                        ? 'bg-emerald-500 border-emerald-500 text-black shadow-[0_0_20px_rgba(16,185,129,0.3)]'
+                                        : 'bg-white/5 border-white/10 text-gray-500 hover:border-white/20'
                                         }`}
                                 >
                                     <Video size={18} /> Video/Reel
@@ -151,8 +157,8 @@ const CreatePostModal = ({ isOpen, onClose, onSubmit, user }) => {
                                     onDrop={handleDrop}
                                     onClick={() => fileInputRef.current.click()}
                                     className={`relative mb-8 aspect-video rounded-3xl border-2 border-dashed transition-all flex flex-col items-center justify-center cursor-pointer group ${dragActive
-                                            ? 'border-emerald-500 bg-emerald-500/5'
-                                            : 'border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]'
+                                        ? 'border-emerald-500 bg-emerald-500/5'
+                                        : 'border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]'
                                         }`}
                                 >
                                     <input
@@ -251,8 +257,8 @@ const CreatePostModal = ({ isOpen, onClose, onSubmit, user }) => {
                                 type="submit"
                                 disabled={isSubmitting || !mediaUrl}
                                 className={`w-full py-5 rounded-[1.5rem] font-bold text-sm uppercase tracking-[0.3em] flex items-center justify-center gap-3 transition-all ${isSubmitting || !mediaUrl
-                                        ? 'bg-gray-900 text-gray-600 cursor-not-allowed border border-white/5'
-                                        : 'bg-emerald-500 text-black hover:bg-emerald-400 shadow-[0_0_40px_rgba(16,185,129,0.4)] hover:scale-[1.02] active:scale-[0.98]'
+                                    ? 'bg-gray-900 text-gray-600 cursor-not-allowed border border-white/5'
+                                    : 'bg-emerald-500 text-black hover:bg-emerald-400 shadow-[0_0_40px_rgba(16,185,129,0.4)] hover:scale-[1.02] active:scale-[0.98]'
                                     }`}
                             >
                                 {isSubmitting ? (
