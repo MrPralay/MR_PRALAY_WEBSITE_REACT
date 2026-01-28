@@ -20,7 +20,7 @@ const ForgotPasswordBox = ({ onBack, onSuccess }) => {
         setStatus({ type: 'loading', message: 'Searching Neural Database...' });
 
         try {
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+            const apiUrl = "https://synapse-backend.pralayd140.workers.dev";
             const response = await fetch(`${apiUrl}/api/auth/forgot-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -67,7 +67,7 @@ const ForgotPasswordBox = ({ onBack, onSuccess }) => {
         setStatus({ type: 'loading', message: 'Recalibrating Neural Key...' });
 
         try {
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+            const apiUrl = "https://synapse-backend.pralayd140.workers.dev";
             const response = await fetch(`${apiUrl}/api/auth/reset-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

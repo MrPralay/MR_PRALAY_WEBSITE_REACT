@@ -19,7 +19,7 @@ const SignUpBox = ({ onSwitch, onBack, onSuccess }) => {
         setStatus({ type: 'loading', message: 'Syncing with Neural Network...' });
 
         try {
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+            const apiUrl = "https://synapse-backend.pralayd140.workers.dev";
             const response = await fetch(`${apiUrl}/api/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
