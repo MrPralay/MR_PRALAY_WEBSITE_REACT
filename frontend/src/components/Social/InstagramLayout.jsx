@@ -66,29 +66,43 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                 const fileSize = postData.rawFile.size;
                 const isVideo = postData.type === 'VIDEO';
 
-                // Use Cloud Uplink Proxy to bypass 1MB Worker limit + Avoid Browser CORS
+                // Use Direct Cloud Uplink to bypass Cloudflare 1MB Gateway Gate
                 if (isVideo || fileSize > 800000) {
                     try {
-                        const uploadRes = await fetch(`${apiUrl}/api/social/upload`, {
+                        const uploadUrlRes = await fetch(`${apiUrl}/api/social/upload-url`, {
                             method: 'POST',
                             headers: {
-                                'Authorization': `Bearer ${token}`,
-                                'Content-Type': postData.rawFile.type,
-                                'x-filename': postData.rawFile.name
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
                             },
-                            body: postData.rawFile // Send raw file as binary stream
+                            body: JSON.stringify({
+                                fileName: postData.rawFile.name,
+                                fileType: postData.rawFile.type
+                            })
                         });
 
-                        if (uploadRes.ok) {
-                            const { publicUrl } = await uploadRes.json();
-                            finalMediaUrl = publicUrl;
-                        } else {
-                            console.error("Neural Uplink Rejected. Status:", uploadRes.status);
-                            if (isVideo || fileSize > 800000) return false;
+                        if (uploadUrlRes.ok) {
+                            const { uploadUrl, publicUrl } = await uploadUrlRes.json();
+
+                            // Direct Broadcast to Cloud Storage (Exactly what Instagram do)
+                            // This goes FROM BROWSER -> SUPABASE (Bypasses Cloudflare 1MB limit!)
+                            const storageRes = await fetch(uploadUrl, {
+                                method: 'PUT',
+                                body: postData.rawFile,
+                                headers: { 'Content-Type': postData.rawFile.type }
+                            });
+
+                            if (storageRes.ok) {
+                                finalMediaUrl = publicUrl;
+                            } else {
+                                console.error("Neural Storage Uplink Rejected. Status:", storageRes.status);
+                                // If cloud fails, we must stop here or it will hit 1MB limit on next call
+                                return false;
+                            }
                         }
                     } catch (err) {
-                        console.error("Neural Uplink Connection Severed:", err);
-                        if (isVideo || fileSize > 800000) return false;
+                        console.error("Neural Storage Uplink Connection Severed:", err);
+                        return false;
                     }
                 }
             }

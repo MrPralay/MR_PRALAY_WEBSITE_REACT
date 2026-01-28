@@ -53,15 +53,13 @@ export const getFeed = async (c) => {
     }
 };
 
-export const uploadMedia = async (c) => {
+export const getUploadUrl = async (c) => {
     try {
+        const { fileName, fileType } = await c.req.json();
         const user = c.get('user');
-        const fileName = c.req.header('x-filename') || `upload-${Date.now()}`;
-        const fileType = c.req.header('content-type') || 'image/jpeg';
 
-        // Check for Supabase configuration
         if (!c.env.SUPABASE_STORAGE_URL || !c.env.SUPABASE_ACCESS_KEY_ID || !c.env.SUPABASE_SECRET_ACCESS_KEY || !c.env.SUPABASE_BUCKET_NAME) {
-            return c.json({ success: false, error: "Cloud Uplink Configuration Missing" }, 503);
+            return c.json({ success: false, error: "Cloud Config Missing" }, 503);
         }
 
         const s3 = new S3Client({
@@ -75,26 +73,20 @@ export const uploadMedia = async (c) => {
         });
 
         const key = `${user.userId}/${Date.now()}-${fileName}`;
-
-        // Get the raw body as a promise
-        const body = await c.req.arrayBuffer();
-
         const command = new PutObjectCommand({
             Bucket: c.env.SUPABASE_BUCKET_NAME,
             Key: key,
             ContentType: fileType,
-            Body: new Uint8Array(body)
         });
 
-        await s3.send(command);
-
+        const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 3600 });
         const projectUrl = c.env.SUPABASE_STORAGE_URL.split('/storage')[0].replace('.storage', '');
         const publicUrl = `${projectUrl}/storage/v1/object/public/${c.env.SUPABASE_BUCKET_NAME}/${key}`;
 
-        return c.json({ success: true, publicUrl });
+        return c.json({ success: true, uploadUrl, publicUrl });
     } catch (error) {
-        console.error("Neural Proxy Error:", error);
-        return c.json({ success: false, error: "Uplink Failed" }, 500);
+        console.error("Neural Keys Error:", error);
+        return c.json({ success: false, error: "Failed to generate uplink keys" }, 500);
     }
 };
 
