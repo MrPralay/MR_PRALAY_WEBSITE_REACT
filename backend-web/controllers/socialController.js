@@ -96,9 +96,8 @@ export const createPost = async (c) => {
         const user = c.get('user');
         const prisma = getPrisma(c.env.DATABASE_URL);
 
-        if (!mediaUrl) {
-            return c.json({ success: false, error: "Media resource required" }, 400);
-        }
+        if (!user) return c.json({ success: false, error: "Identity missing" }, 401);
+        if (!mediaUrl) return c.json({ success: false, error: "Media resource required" }, 400);
 
         const post = await prisma.post.create({
             data: {
@@ -107,7 +106,7 @@ export const createPost = async (c) => {
                 type: type || 'IMAGE', // IMAGE or VIDEO
                 postPassword: postPassword || null,
                 thumbnailUrl: thumbnailUrl || null,
-                userId: user.userId
+                userId: user.id || user.userId
             },
             include: {
                 user: {
