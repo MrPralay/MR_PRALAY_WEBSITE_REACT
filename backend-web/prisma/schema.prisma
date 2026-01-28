@@ -40,17 +40,25 @@ model User {
   updatedAt     DateTime      @updatedAt
 }
 
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+
 model Post {
-  id          Int         @id @default(autoincrement())
-  caption     String?
-  imageUrl    String
-  userId      Int
-  user        User        @relation(fields: [userId], references: [id])
-  likes       Like[]
-  comments    Comment[]
-  savedBy     SavedPost[]
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id            Int         @id @default(autoincrement())
+  caption       String?
+  mediaUrl      String      // Generic URL for both image and video
+  thumbnailUrl  String?     // For video previews
+  type          MediaType   @default(IMAGE)
+  postPassword  String?     // Password protection for specific posts
+  userId        Int
+  user          User        @relation(fields: [userId], references: [id])
+  likes         Like[]
+  comments      Comment[]
+  savedBy       SavedPost[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 }
 
 model Follow {

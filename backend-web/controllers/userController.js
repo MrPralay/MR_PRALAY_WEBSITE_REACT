@@ -32,13 +32,42 @@ export const getProfile = async (c) => {
                 }
             }
         });
+
         if (!user) {
             return c.json({ success: false, error: "Identity not found" }, 404);
         }
+
         return c.json({ success: true, data: user });
     } catch (error) {
         console.error("Profile Error:", error);
         return c.json({ success: false, error: "Search failed" }, 500);
+    }
+};
+
+export const getSavedItems = async (c) => {
+    try {
+        const user = c.get('user');
+        const prisma = getPrisma(c.env.DATABASE_URL);
+
+        const saved = await prisma.savedPost.findMany({
+            where: { userId: user.userId },
+            include: {
+                post: {
+                    include: {
+                        user: { select: { username: true, profileImage: true } },
+                        _count: { select: { likes: true, comments: true } }
+                    }
+                }
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        return c.json({
+            success: true,
+            data: saved.map(s => s.post)
+        });
+    } catch (error) {
+        return c.json({ success: false, error: "Archived content retrieval failed" }, 500);
     }
 };
 
