@@ -221,7 +221,7 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[1000] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-4 md:p-12"
+                        className="fixed inset-0 z-[1000] bg-black flex items-center justify-center overflow-hidden"
                         onClick={() => setCinemaPost(null)}
                     >
                         {/* Close Button / Terminate Link */}
