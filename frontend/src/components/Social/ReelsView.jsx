@@ -88,14 +88,24 @@ const ReelItem = ({ post }) => {
         }
     };
 
-    const handleDownload = () => {
-        const link = document.createElement('a');
-        link.href = post.mediaUrl;
-        link.download = `synapse_reel_${post.id}.mp4`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+    const handleDownload = async () => {
         setShowMenu(false);
+        try {
+            const response = await fetch(post.mediaUrl);
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `synapse_reel_${post.id}.mp4`);
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error("Neural Download Interrupted:", error);
+            // Fallback for cross-origin if absolute fetch fails
+            window.open(post.mediaUrl, '_blank');
+        }
     };
 
     const handleCopyLink = () => {
