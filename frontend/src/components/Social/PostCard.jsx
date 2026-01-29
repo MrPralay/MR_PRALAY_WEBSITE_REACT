@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Download, Lock, Unlock, Play, Volume2, ShieldCheck, Share2 } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Download, Lock, Unlock, Play, Pause, Volume2, VolumeX, ShieldCheck, Share2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Cookies from 'js-cookie';
 
@@ -11,6 +11,59 @@ const PostCard = ({ post, onInteraction }) => {
     const [inputPassword, setInputPassword] = useState('');
     const [showComments, setShowComments] = useState(false);
     const [commentText, setCommentText] = useState('');
+    const [isPlaying, setIsPlaying] = useState(true);
+    const [isMuted, setIsMuted] = useState(true);
+    const videoRef = useRef(null);
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach(entry => {
+                    if (videoRef.current) {
+                        if (entry.isIntersecting) {
+                            videoRef.current.play().catch(() => {
+                                // Autoplay might be blocked if not muted
+                                console.warn("Autoplay block detected");
+                            });
+                            setIsPlaying(true);
+                        } else {
+                            videoRef.current.pause();
+                            setIsPlaying(false);
+                        }
+                    }
+                });
+            },
+            { threshold: 0.6 } // Play when 60% of the video is visible
+        );
+
+        if (videoRef.current) {
+            observer.observe(videoRef.current);
+        }
+
+        return () => {
+            if (videoRef.current) observer.unobserve(videoRef.current);
+        };
+    }, []);
+
+    const togglePlay = (e) => {
+        e.stopPropagation();
+        if (videoRef.current) {
+            if (isPlaying) {
+                videoRef.current.pause();
+            } else {
+                videoRef.current.play();
+            }
+            setIsPlaying(!isPlaying);
+        }
+    };
+
+    const toggleMute = (e) => {
+        e.stopPropagation();
+        if (videoRef.current) {
+            videoRef.current.muted = !isMuted;
+            setIsMuted(!isMuted);
+        }
+    };
 
     const apiUrl = "https://synapse-backend.pralayd140.workers.dev";
     const token = Cookies.get('synapse_token');
@@ -130,22 +183,28 @@ const PostCard = ({ post, onInteraction }) => {
                 ) : (
                     <>
                         {post.type === 'VIDEO' ? (
-                            <div className="relative w-full h-full group/video">
+                            <div className="relative w-full h-full group/video cursor-pointer" onClick={togglePlay}>
                                 <video
+                                    ref={videoRef}
                                     src={post.mediaUrl}
                                     className="w-full h-full object-cover"
                                     loop
-                                    muted
-                                    autoPlay
+                                    muted={isMuted}
                                     playsInline
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover/video:opacity-100 transition-opacity flex flex-col justify-end p-8">
                                     <div className="flex items-center gap-4">
-                                        <div className="p-3 bg-white/10 backdrop-blur-md rounded-full text-white cursor-pointer">
-                                            <Play size={20} fill="white" />
+                                        <div
+                                            onClick={togglePlay}
+                                            className="p-3 bg-white/10 backdrop-blur-md rounded-full text-white cursor-pointer hover:bg-white/20 transition-all"
+                                        >
+                                            {isPlaying ? <Pause size={20} fill="white" /> : <Play size={20} fill="white" />}
                                         </div>
-                                        <div className="p-3 bg-white/10 backdrop-blur-md rounded-full text-white cursor-pointer">
-                                            <Volume2 size={20} />
+                                        <div
+                                            onClick={toggleMute}
+                                            className="p-3 bg-white/10 backdrop-blur-md rounded-full text-white cursor-pointer hover:bg-white/20 transition-all"
+                                        >
+                                            {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
                                         </div>
                                     </div>
                                 </div>
