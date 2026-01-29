@@ -23,6 +23,7 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
     // Data loading from API
     useEffect(() => {
         const fetchData = async () => {
+            setPosts([]); // Clear previous posts to prevent flickering/glitches when switching views
             setLoading(true);
             try {
                 const apiUrl = "https://synapse-backend.pralayd140.workers.dev";
@@ -40,6 +41,7 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                     const data = await res.json();
                     setPosts(Array.isArray(data) ? data : []);
                 } else if (view === 'profile') {
+                    setUserProfile(currentUser); // Reset to current user initially while loading fresh data
                     const res = await fetch(`${apiUrl}/api/user/profile/${encodeURIComponent(currentUser.username)}`, fetchOptions);
                     const data = await res.json();
                     const profileData = data.data || data;
