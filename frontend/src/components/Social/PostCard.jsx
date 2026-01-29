@@ -174,7 +174,7 @@ const PostCard = ({ post, onInteraction, onCinemaMode }) => {
             </div>
 
             {/* Media Canvas */}
-            <div className="relative aspect-square md:aspect-[16/11] bg-black/60 overflow-hidden flex items-center justify-center">
+            <div className="relative aspect-square md:aspect-[16/10] bg-black/60 overflow-hidden flex items-center justify-center">
                 {!isUnlocked ? (
                     <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/40 backdrop-blur-3xl p-8 text-center group">
                         <div className="p-6 bg-amber-500/10 rounded-[2rem] mb-6 mb-8 group-hover:scale-110 transition-transform">
