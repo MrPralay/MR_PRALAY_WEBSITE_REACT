@@ -3,6 +3,37 @@ import { Plus, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import PostCard from './PostCard';
 
+const PostSkeleton = () => (
+    <div className="bg-white/[0.02] border border-white/5 rounded-[2.5rem] overflow-hidden mb-8">
+        <div className="p-6 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-white/5 animate-pulse" />
+            <div className="space-y-2">
+                <div className="w-32 h-3 bg-white/5 rounded-full animate-pulse" />
+                <div className="w-20 h-2 bg-white/5 rounded-full animate-pulse" />
+            </div>
+        </div>
+        <div className="aspect-square bg-white/5 relative overflow-hidden">
+            <motion.div
+                initial={{ x: '-100%' }}
+                animate={{ x: '100%' }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.03] to-transparent"
+            />
+        </div>
+        <div className="p-6 space-y-4">
+            <div className="flex gap-4">
+                <div className="w-6 h-6 rounded-full bg-white/5 animate-pulse" />
+                <div className="w-6 h-6 rounded-full bg-white/5 animate-pulse" />
+                <div className="w-6 h-6 rounded-full bg-white/5 animate-pulse" />
+            </div>
+            <div className="space-y-2">
+                <div className="w-full h-2 bg-white/5 rounded-full animate-pulse" />
+                <div className="w-2/3 h-2 bg-white/5 rounded-full animate-pulse" />
+            </div>
+        </div>
+    </div>
+);
+
 const FeedView = ({ posts, stories = [], onCreateClick, loading }) => {
     return (
         <div className="flex-1 max-w-2xl mx-auto py-8 px-4">
@@ -66,20 +97,13 @@ const FeedView = ({ posts, stories = [], onCreateClick, loading }) => {
                 </div>
             </div>
 
-            {/* Posts Area with Precision Loader */}
-            <div className="space-y-4 flex flex-col min-h-[500px]">
+            {/* Posts Area with Professional Skeleton Loader */}
+            <div className="space-y-4">
                 {loading ? (
-                    <div className="flex-1 flex flex-col items-center justify-center gap-6">
-                        <div className="relative">
-                            <motion.div
-                                animate={{ rotate: 360 }}
-                                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                                className="w-12 h-12 border-2 border-emerald-500/10 border-t-emerald-500 rounded-full"
-                            />
-                            <div className="absolute inset-0 bg-emerald-500/10 blur-xl rounded-full" />
-                        </div>
-                        <p className="text-emerald-500 font-bold text-[10px] uppercase tracking-[0.4em] animate-pulse">Synchronizing Neural Feed...</p>
-                    </div>
+                    <>
+                        <PostSkeleton />
+                        <PostSkeleton />
+                    </>
                 ) : posts.length > 0 ? (
                     posts.map((post) => (
                         <PostCard key={post.id} post={post} />
