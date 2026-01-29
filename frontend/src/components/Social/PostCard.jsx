@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Download, Lock, Unlock, Play, Pause, Volume2, VolumeX, ShieldCheck, Share2 } from 'lucide-react';
+import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Download, Lock, Unlock, Play, Pause, Volume2, VolumeX, ShieldCheck, Share2, Maximize2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Cookies from 'js-cookie';
 
-const PostCard = ({ post, onInteraction }) => {
+const PostCard = ({ post, onInteraction, onCinemaMode }) => {
     const [isLiked, setIsLiked] = useState(post.isLiked || false);
     const [isSaved, setIsSaved] = useState(post.isSaved || false);
     const [likesCount, setLikesCount] = useState(post._count?.likes || 0);
@@ -183,7 +183,11 @@ const PostCard = ({ post, onInteraction }) => {
                 ) : (
                     <>
                         {post.type === 'VIDEO' ? (
-                            <div className="relative w-full h-full group/video cursor-pointer" onClick={togglePlay}>
+                            <div
+                                className="relative w-full h-full group/video cursor-pointer"
+                                onClick={togglePlay}
+                                onDoubleClick={() => onCinemaMode(post)}
+                            >
                                 <video
                                     ref={videoRef}
                                     src={post.mediaUrl}
@@ -207,25 +211,45 @@ const PostCard = ({ post, onInteraction }) => {
                                             {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
                                         </div>
                                     </div>
+
+                                    {/* Cinema Mode Toggle */}
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); onCinemaMode(post); }}
+                                        className="p-3 bg-white/10 backdrop-blur-md rounded-full text-white cursor-pointer hover:bg-emerald-500 hover:text-black transition-all"
+                                        title="Initiate Cinema Broadcast"
+                                    >
+                                        <Maximize2 size={20} />
+                                    </button>
                                 </div>
                             </div>
                         ) : (
                             <img
                                 src={post.mediaUrl}
-                                className="w-full h-full object-cover transition-transform duration-[2s] hover:scale-105"
+                                className="w-full h-full object-cover transition-transform duration-[2s] hover:scale-105 cursor-zoom-in"
                                 alt="Neural Visual"
+                                onDoubleClick={() => onCinemaMode(post)}
                                 onError={(e) => {
                                     e.target.src = "https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?w=800&q=80";
                                 }}
                             />
                         )}
                         {/* Download Overlay */}
-                        <button
-                            onClick={handleDownload}
-                            className="absolute top-6 right-6 p-4 bg-white/10 backdrop-blur-xl rounded-full text-white border border-white/10 opacity-0 group-hover:opacity-100 transition-all hover:scale-110"
-                        >
-                            <Download size={20} />
-                        </button>
+                        <div className="absolute top-6 right-6 flex flex-col gap-3 opacity-0 group-hover:opacity-100 transition-all">
+                            <button
+                                onClick={handleDownload}
+                                className="p-4 bg-white/10 backdrop-blur-xl rounded-full text-white border border-white/10 hover:scale-110 hover:bg-emerald-500 hover:text-black transition-all"
+                                title="Download Synchronized Data"
+                            >
+                                <Download size={20} />
+                            </button>
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onCinemaMode(post); }}
+                                className="p-4 bg-white/10 backdrop-blur-xl rounded-full text-white border border-white/10 hover:scale-110 hover:bg-emerald-500 hover:text-black transition-all md:hidden"
+                                title="Enter Cinema Mode"
+                            >
+                                <Maximize2 size={20} />
+                            </button>
+                        </div>
                     </>
                 )}
             </div>

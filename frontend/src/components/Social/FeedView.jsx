@@ -56,7 +56,7 @@ const PostSkeleton = () => (
     </div>
 );
 
-const FeedView = ({ posts, stories = [], onCreateClick, loading }) => {
+const FeedView = ({ posts, stories = [], onCreateClick, loading, onCinemaMode }) => {
     return (
         <div className="flex-1 max-w-2xl mx-auto py-8 px-4">
             {/* Stories Section */}
@@ -128,7 +128,7 @@ const FeedView = ({ posts, stories = [], onCreateClick, loading }) => {
                     </>
                 ) : posts.length > 0 ? (
                     posts.map((post) => (
-                        <PostCard key={post.id} post={post} />
+                        <PostCard key={post.id} post={post} onCinemaMode={onCinemaMode} />
                     ))
                 ) : (
                     <div className="py-20 text-center">

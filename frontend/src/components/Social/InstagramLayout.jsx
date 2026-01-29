@@ -5,6 +5,7 @@ import ProfileView from './ProfileView';
 import RightSidebar from './RightSidebar';
 import CreatePostModal from './CreatePostModal';
 import { AnimatePresence, motion } from 'framer-motion';
+import { X } from 'lucide-react';
 import Cookies from 'js-cookie';
 
 const InstagramLayout = ({ currentUser, onLogout }) => {
@@ -14,6 +15,7 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
     const [loading, setLoading] = useState(false);
     const [isPostModalOpen, setIsPostModalOpen] = useState(false);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
+    const [cinemaPost, setCinemaPost] = useState(null);
 
     // Persist social tab to localStorage
     useEffect(() => {
@@ -165,6 +167,7 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                                 posts={posts}
                                 onCreateClick={() => setIsPostModalOpen(true)}
                                 loading={loading}
+                                onCinemaMode={setCinemaPost}
                             />
                         </motion.div>
                     )}
@@ -183,6 +186,7 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                                 posts={posts}
                                 onOpenCreatePost={() => setIsPostModalOpen(true)}
                                 loading={loading}
+                                onCinemaMode={setCinemaPost}
                             />
                         </motion.div>
                     )}
@@ -208,6 +212,63 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                 onSubmit={handleCreatePost}
                 user={currentUser}
             />
+
+            {/* Neural Cinema Mode Overlay */}
+            <AnimatePresence>
+                {cinemaPost && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[1000] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-4 md:p-12"
+                        onClick={() => setCinemaPost(null)}
+                    >
+                        {/* Close Button / Terminate Link */}
+                        <motion.button
+                            initial={{ y: -20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            className="absolute top-8 right-8 z-[1010] flex items-center gap-3 px-6 py-3 bg-white/5 border border-white/10 rounded-2xl text-white hover:bg-emerald-500 hover:text-black transition-all group"
+                            onClick={() => setCinemaPost(null)}
+                        >
+                            <span className="text-[10px] font-bold uppercase tracking-[0.3em]">Terminate Link</span>
+                            <X size={20} className="group-hover:rotate-90 transition-transform" />
+                        </motion.button>
+
+                        {/* Media Container */}
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="relative max-w-7xl max-h-full flex items-center justify-center group/cinema"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="absolute inset-0 bg-emerald-500/10 blur-[100px] rounded-full -z-10 group-hover/cinema:bg-emerald-500/20 transition-all duration-1000" />
+
+                            {cinemaPost.type === 'VIDEO' ? (
+                                <video
+                                    src={cinemaPost.mediaUrl}
+                                    className="max-w-full max-h-[85vh] rounded-[2rem] shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-white/10"
+                                    controls
+                                    autoPlay
+                                    playsInline
+                                />
+                            ) : (
+                                <img
+                                    src={cinemaPost.mediaUrl}
+                                    className="max-w-full max-h-[85vh] rounded-[2rem] shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-white/10 object-contain"
+                                    alt="Full View"
+                                />
+                            )}
+
+                            {/* Info Overlay (Fades in on hover) */}
+                            <div className="absolute -bottom-16 left-0 right-0 text-center opacity-60 group-hover/cinema:opacity-100 transition-opacity">
+                                <p className="text-white font-bold text-lg tracking-tight">@{cinemaPost.user?.username}</p>
+                                <p className="text-gray-400 text-xs mt-1 italic">{cinemaPost.caption}</p>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

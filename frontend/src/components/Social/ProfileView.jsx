@@ -3,7 +3,7 @@ import { Grid, Play, Bookmark, User as UserIcon, Settings, ShieldCheck, Plus, Mo
 import { motion, AnimatePresence } from 'framer-motion';
 import Cookies from 'js-cookie';
 
-const ProfileView = ({ user, currentUser, posts: parentPosts = [], onOpenCreatePost, loading: parentLoading }) => {
+const ProfileView = ({ user, currentUser, posts: parentPosts = [], onOpenCreatePost, loading: parentLoading, onCinemaMode }) => {
     const [activeTab, setActiveTab] = useState('posts');
     const [tabData, setTabData] = useState([]);
     const [localLoading, setLocalLoading] = useState(false);
@@ -158,6 +158,7 @@ const ProfileView = ({ user, currentUser, posts: parentPosts = [], onOpenCreateP
                                         exit={{ opacity: 0, scale: 0.9 }}
                                         transition={{ delay: i * 0.05, duration: 0.4 }}
                                         className="aspect-square bg-white/[0.02] border border-white/5 rounded-[2rem] overflow-hidden relative group cursor-pointer shadow-lg hover:shadow-[0_20px_40px_rgba(0,0,0,0.5)] transition-all"
+                                        onClick={() => onCinemaMode(post)}
                                     >
                                         <div className="absolute inset-0 bg-emerald-500/20 opacity-0 group-hover:opacity-100 transition-all z-10 flex flex-col items-center justify-center backdrop-blur-sm">
                                             <div className="flex items-center gap-6 mb-2">
