@@ -239,11 +239,11 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
-                            className="relative w-full max-w-6xl h-[85vh] flex items-center justify-center group/cinema"
+                            className="relative w-full max-w-6xl h-[88vh] flex items-center justify-center group/cinema overflow-hidden rounded-[3rem] border border-white/10"
                             onClick={(e) => e.stopPropagation()}
                         >
                             {/* Layer 1: Wide Background (Cropped & Slightly Blurred) */}
-                            <div className="absolute inset-0 rounded-[3rem] overflow-hidden border border-white/10">
+                            <div className="absolute inset-0 z-0">
                                 {cinemaPost.type === 'VIDEO' ? (
                                     <video
                                         src={cinemaPost.mediaUrl}
@@ -262,12 +262,12 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
 
                             {/* Layer 2: Main Content (Maximum Screen Usage) */}
                             <div className="relative z-10 w-full h-full flex items-center justify-center">
-                                <div className="relative group/main max-w-full max-h-full">
+                                <div className="relative group/main max-w-full h-full flex items-center justify-center">
                                     <div className="absolute -inset-1 bg-emerald-500/20 blur-xl rounded-2xl opacity-0 group-hover/main:opacity-100 transition-opacity" />
                                     {cinemaPost.type === 'VIDEO' ? (
                                         <video
                                             src={cinemaPost.mediaUrl}
-                                            className="max-w-full max-h-[88vh] object-contain rounded-2xl shadow-[0_40px_100px_rgba(0,0,0,0.8)] border border-white/20"
+                                            className="max-w-full max-h-full object-contain shadow-[0_40px_100px_rgba(0,0,0,0.8)]"
                                             controls
                                             autoPlay
                                             playsInline
@@ -275,7 +275,7 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                                     ) : (
                                         <img
                                             src={cinemaPost.mediaUrl}
-                                            className="max-w-full max-h-[88vh] object-contain rounded-2xl shadow-[0_40px_100px_rgba(0,0,0,0.8)] border border-white/20"
+                                            className="max-w-full max-h-full object-contain shadow-[0_40px_100px_rgba(0,0,0,0.8)]"
                                             alt="Neural Actual Size"
                                         />
                                     )}
