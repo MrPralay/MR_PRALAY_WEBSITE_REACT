@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Sidebar from './Sidebar';
 import FeedView from './FeedView';
 import ProfileView from './ProfileView';
@@ -16,6 +16,7 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
     const [isPostModalOpen, setIsPostModalOpen] = useState(false);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const [cinemaPost, setCinemaPost] = useState(null);
+    const backdropVideoRef = useRef(null);
 
     // Persist social tab to localStorage
     useEffect(() => {
@@ -246,6 +247,7 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                             <div className="absolute inset-0 z-0">
                                 {cinemaPost.type === 'VIDEO' ? (
                                     <video
+                                        ref={backdropVideoRef}
                                         src={cinemaPost.mediaUrl}
                                         className="w-full h-full object-cover blur-[10px] opacity-60"
                                         muted loop autoPlay
@@ -260,22 +262,23 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                                 <div className="absolute inset-0 bg-black/30" />
                             </div>
 
-                            {/* Layer 2: Main Content (Maximum Screen Usage) */}
-                            <div className="relative z-10 w-full h-full flex items-center justify-center">
-                                <div className="relative group/main max-w-full h-full flex items-center justify-center">
-                                    <div className="absolute -inset-1 bg-emerald-500/20 blur-xl rounded-2xl opacity-0 group-hover/main:opacity-100 transition-opacity" />
+                            {/* Layer 2: Main Content (Floating Focus) */}
+                            <div className="relative z-10 w-full h-full flex items-center justify-center p-12">
+                                <div className="relative max-w-full h-full flex items-center justify-center transition-transform">
                                     {cinemaPost.type === 'VIDEO' ? (
                                         <video
                                             src={cinemaPost.mediaUrl}
-                                            className="max-w-full max-h-full object-contain shadow-[0_40px_100px_rgba(0,0,0,0.8)]"
+                                            className="max-w-full max-h-full object-contain shadow-[0_40px_100px_rgba(0,0,0,0.8)] rounded-[2.5rem]"
                                             controls
                                             autoPlay
                                             playsInline
+                                            onPlay={() => backdropVideoRef.current?.play()}
+                                            onPause={() => backdropVideoRef.current?.pause()}
                                         />
                                     ) : (
                                         <img
                                             src={cinemaPost.mediaUrl}
-                                            className="max-w-full max-h-full object-contain shadow-[0_40px_100px_rgba(0,0,0,0.8)]"
+                                            className="max-w-full max-h-full object-contain shadow-[0_40px_100px_rgba(0,0,0,0.8)] rounded-[2.5rem]"
                                             alt="Neural Actual Size"
                                         />
                                     )}
