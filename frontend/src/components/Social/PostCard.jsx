@@ -125,7 +125,7 @@ const PostCard = ({ post, onInteraction, onCinemaMode }) => {
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            className="group relative bg-white/[0.02] border border-white/5 rounded-[2.5rem] overflow-hidden mb-12 hover:border-emerald-500/20 transition-all duration-500 hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)]"
+            className="group relative bg-white/[0.02] border border-white/5 rounded-[3rem] overflow-hidden mb-24 hover:border-emerald-500/20 transition-all duration-500 hover:shadow-[0_40px_80px_rgba(0,0,0,0.6)]"
         >
             {/* Post Header */}
             <div className="flex items-center justify-between p-6 px-8">
@@ -154,8 +154,8 @@ const PostCard = ({ post, onInteraction, onCinemaMode }) => {
                 </button>
             </div>
 
-            {/* Media Canvas */}
-            <div className="relative aspect-square md:aspect-[16/10] bg-black/60 overflow-hidden flex items-center justify-center">
+            {/* Media Canvas - Optimized for Neural Tallness */}
+            <div className="relative min-h-[500px] max-h-[85vh] w-full bg-[#080808] overflow-hidden flex items-center justify-center">
                 {!isUnlocked ? (
                     <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/40 backdrop-blur-3xl p-8 text-center group">
                         <div className="p-6 bg-amber-500/10 rounded-[2rem] mb-6 mb-8 group-hover:scale-110 transition-transform">
@@ -191,7 +191,7 @@ const PostCard = ({ post, onInteraction, onCinemaMode }) => {
                                 <video
                                     ref={videoRef}
                                     src={post.mediaUrl}
-                                    className="w-full h-full object-cover"
+                                    className="w-full h-full object-contain"
                                     loop
                                     muted={isMuted}
                                     playsInline
@@ -218,7 +218,7 @@ const PostCard = ({ post, onInteraction, onCinemaMode }) => {
                         ) : (
                             <img
                                 src={post.mediaUrl}
-                                className="w-full h-full object-cover transition-transform duration-[2s] hover:scale-105 cursor-zoom-in"
+                                className="w-full h-full object-contain transition-transform duration-[2s] hover:scale-105 cursor-zoom-in"
                                 alt="Neural Visual"
                                 onDoubleClick={() => onCinemaMode(post)}
                                 onError={(e) => {
@@ -299,7 +299,6 @@ const PostCard = ({ post, onInteraction, onCinemaMode }) => {
                 {/* Caption / Content */}
                 <div className="space-y-4">
                     <p className="text-sm text-gray-300 leading-relaxed font-medium">
-                        <span className="text-white font-bold mr-3">{post.user?.username}</span>
                         {post.caption}
                     </p>
                     <p className="text-[10px] text-gray-600 font-bold uppercase tracking-[0.2em]">
