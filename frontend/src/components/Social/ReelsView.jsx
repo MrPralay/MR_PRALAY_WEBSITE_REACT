@@ -49,8 +49,8 @@ const ReelItem = ({ post }) => {
 
     return (
         <div className="relative w-full h-screen snap-center flex items-center justify-center p-4">
-            {/* The Floating Neural Tablet */}
-            <div className="relative w-full max-w-2xl h-[92vh] flex items-center justify-center bg-[#050505] rounded-[3.5rem] overflow-hidden shadow-[0_60px_120px_rgba(0,0,0,0.9)] border border-white/10 group">
+            {/* The Floating Neural Tablet - Width Synced to Feed (Max-2xl minus padding) */}
+            <div className="relative w-full max-w-[640px] h-[92vh] flex items-center justify-center bg-[#050505] rounded-[3.5rem] overflow-hidden shadow-[0_60px_120px_rgba(0,0,0,0.9)] border border-white/10 group">
                 <video
                     ref={videoRef}
                     src={post.mediaUrl}
