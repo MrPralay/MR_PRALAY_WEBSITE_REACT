@@ -235,15 +235,15 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                             <X size={20} className="group-hover:rotate-90 transition-transform" />
                         </motion.button>
 
-                        {/* Media Container - Dual Layer Neural Projection */}
+                        {/* Media Container - Full-Screen Neural Projection */}
                         <motion.div
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.9, opacity: 0 }}
-                            className="relative w-full max-w-6xl h-[88vh] flex items-center justify-center group/cinema overflow-hidden rounded-[3rem] border border-white/10"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="relative w-full h-full flex items-center justify-center group/cinema overflow-hidden"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            {/* Layer 1: Wide Background (Cropped & Slightly Blurred) */}
+                            {/* Layer 1: Wide Background (Slightly Blurred, Edge-to-Edge) */}
                             <div className="absolute inset-0 z-0">
                                 {cinemaPost.type === 'VIDEO' ? (
                                     <video
@@ -262,13 +262,13 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                                 <div className="absolute inset-0 bg-black/30" />
                             </div>
 
-                            {/* Layer 2: Main Content (Floating Focus) */}
+                            {/* Layer 2: Main Content (Maximum Cinematic Scale) */}
                             <div className="relative z-10 w-full h-full flex items-center justify-center p-4">
-                                <div className="relative max-w-full h-full flex items-center justify-center transition-transform">
+                                <div className="relative max-w-full h-full flex items-center justify-center">
                                     {cinemaPost.type === 'VIDEO' ? (
                                         <video
                                             src={cinemaPost.mediaUrl}
-                                            className="max-w-full max-h-full object-contain shadow-[0_40px_100px_rgba(0,0,0,0.8)] rounded-[2.5rem]"
+                                            className="max-w-full max-h-[92vh] object-contain shadow-[0_40px_150px_rgba(0,0,0,0.9)] rounded-[2rem] border border-white/5"
                                             controls
                                             autoPlay
                                             playsInline
@@ -278,7 +278,7 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                                     ) : (
                                         <img
                                             src={cinemaPost.mediaUrl}
-                                            className="max-w-full max-h-full object-contain shadow-[0_40px_100px_rgba(0,0,0,0.8)] rounded-[2.5rem]"
+                                            className="max-w-full max-h-[92vh] object-contain shadow-[0_40px_150px_rgba(0,0,0,0.9)] rounded-[2rem] border border-white/5"
                                             alt="Neural Actual Size"
                                         />
                                     )}
