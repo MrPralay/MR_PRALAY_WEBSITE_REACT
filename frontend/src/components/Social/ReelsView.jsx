@@ -115,9 +115,9 @@ const ReelItem = ({ post }) => {
     };
 
     return (
-        <div className="relative w-full h-screen snap-center flex items-center justify-center p-4">
+        <div className="relative w-full h-screen snap-center flex items-center justify-center">
             {/* The Floating Neural Tablet - Width Synced to Feed (Max-2xl minus padding) */}
-            <div className="relative w-full max-w-[640px] h-[92vh] flex items-center justify-center bg-[#050505] rounded-[3.5rem] overflow-hidden shadow-[0_60px_120px_rgba(0,0,0,0.9)] border border-white/10 group">
+            <div className="relative w-full max-w-[640px] h-[92vh] flex items-center justify-center bg-[#050505] rounded-[3.5rem] overflow-hidden shadow-[20px_40px_100px_rgba(0,0,0,0.8)] border border-white/10 group">
                 <video
                     ref={videoRef}
                     src={post.mediaUrl}
@@ -273,8 +273,8 @@ const ReelItem = ({ post }) => {
 };
 
 const ReelsSkeleton = () => (
-    <div className="relative w-full h-screen flex items-center justify-center p-4">
-        <div className="relative w-full max-w-[640px] h-[92vh] bg-[#080808] rounded-[3.5rem] overflow-hidden border border-white/5">
+    <div className="relative w-full h-screen flex items-center justify-center">
+        <div className="relative w-full max-w-[640px] h-[92vh] bg-[#080808] rounded-[3.5rem] overflow-hidden border border-white/10">
             <motion.div
                 initial={{ x: '-100%' }}
                 animate={{ x: '100%' }}
@@ -307,7 +307,7 @@ const ReelsView = ({ posts, loading }) => {
     const reels = posts.filter(post => post.type === 'VIDEO');
 
     return (
-        <div className="relative w-full h-screen overflow-y-scroll snap-y snap-mandatory hide-scrollbar bg-black">
+        <div className="relative w-full h-screen overflow-y-scroll snap-y snap-mandatory hide-scrollbar bg-transparent">
             {loading ? (
                 <>
                     <ReelsSkeleton />
