@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Mail, Shield, ArrowLeft, KeyRound, RefreshCw, CheckCircle2, UserCircle } from 'lucide-react';
+import { Mail, Shield, ArrowLeft, KeyRound, RefreshCw, CheckCircle2, UserCircle, AtSign } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Import Assets

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mail, Lock, Target, ArrowLeft } from 'lucide-react';
+import { Mail, Lock, Target, ArrowLeft, AtSign } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 // Import Assets for Production Build
@@ -7,7 +7,7 @@ import bgImage from '../../assets/dark_floating_pyramids_bg.png';
 import sideImage from '../../assets/green_pyramid_login.png';
 
 const LoginBox = ({ onSwitch, onBack, onLoginSuccess, onForgot }) => {
-    const [formData, setFormData] = useState({ email: '', password: '' });
+    const [formData, setFormData] = useState({ username: '', password: '' });
     const [status, setStatus] = useState({ type: '', message: '' });
 
     // AI Behavioral Tracking Refs
@@ -57,7 +57,7 @@ const LoginBox = ({ onSwitch, onBack, onLoginSuccess, onForgot }) => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    email: formData.email,
+                    username: formData.username,
                     password: formData.password,
                     behaviorData: {
                         key_strokes: keystrokeData.current,
@@ -129,17 +129,17 @@ const LoginBox = ({ onSwitch, onBack, onLoginSuccess, onForgot }) => {
                             </motion.div>
                         )}
                         <div className="space-y-2">
-                            <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest ml-1">Verified Node</label>
+                            <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest ml-1">Neural Handle</label>
                             <div className="relative group">
                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-emerald-500 transition-colors">
-                                    <Mail size={18} />
+                                    <AtSign size={18} />
                                 </span>
                                 <input
-                                    type="email"
-                                    placeholder="Email Address"
+                                    type="text"
+                                    placeholder="Username / Handle"
                                     className="glass-input"
-                                    value={formData.email}
-                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    value={formData.username}
+                                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                                     required
                                 />
                             </div>

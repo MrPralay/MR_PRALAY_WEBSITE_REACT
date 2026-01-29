@@ -83,14 +83,14 @@ export const verifyOTP = async (c) => {
 
 export const login = async (c) => {
     try {
-        const { email, password, behaviorData } = await c.req.json();
+        const { username, password, behaviorData } = await c.req.json();
         const prisma = getPrisma(c.env.DATABASE_URL);
 
-        if (!email || !password) {
+        if (!username || !password) {
             return c.json({ success: false, error: "Credentials required" }, 400);
         }
 
-        const user = await prisma.user.findUnique({ where: { email } });
+        const user = await prisma.user.findUnique({ where: { username } });
         if (!user) {
             return c.json({ success: false, error: "Access Denied: Neural mismatch" }, 401);
         }
@@ -119,7 +119,7 @@ export const login = async (c) => {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        email,
+                        email: user.email,
                         key_strokes: behaviorData?.key_strokes || [],
                         mouse_movements: behaviorData?.mouse_movements || []
                     })
