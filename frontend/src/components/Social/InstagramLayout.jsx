@@ -234,21 +234,29 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                             <X size={20} className="group-hover:rotate-90 transition-transform" />
                         </motion.button>
 
-                        {/* Media Container - Cinematic Wide Frame */}
+                        {/* Media Container - Dynamic Neural Wrap */}
                         <motion.div
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
-                            className="relative w-full max-w-6xl aspect-[16/10] flex items-center justify-center group/cinema"
+                            className="relative w-full max-w-6xl h-[80vh] flex items-center justify-center group/cinema"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            <div className="absolute inset-0 bg-emerald-500/10 blur-[120px] rounded-[3rem] -z-10 group-hover/cinema:bg-emerald-500/20 transition-all duration-1000" />
+                            {/* Cinematic Background Blur (Fills the wide space) */}
+                            <div className="absolute inset-x-0 h-full rounded-[3rem] overflow-hidden opacity-30 blur-3xl -z-10">
+                                {cinemaPost.type === 'VIDEO' ? (
+                                    <video src={cinemaPost.mediaUrl} className="w-full h-full object-cover" muted loop autoPlay />
+                                ) : (
+                                    <img src={cinemaPost.mediaUrl} className="w-full h-full object-cover" alt="blur" />
+                                )}
+                            </div>
 
-                            <div className="w-full h-full rounded-[2.5rem] overflow-hidden shadow-[0_40px_100px_rgba(0,0,0,0.8)] border border-white/10 relative bg-black/40">
+                            {/* Main Content Box (Preserves Height) */}
+                            <div className="w-full h-full rounded-[2.5rem] overflow-hidden shadow-[0_40px_100px_rgba(0,0,0,0.8)] border border-white/10 relative bg-black/20 flex items-center justify-center">
                                 {cinemaPost.type === 'VIDEO' ? (
                                     <video
                                         src={cinemaPost.mediaUrl}
-                                        className="w-full h-full object-cover"
+                                        className="max-w-full max-h-full object-contain"
                                         controls
                                         autoPlay
                                         playsInline
@@ -256,15 +264,15 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                                 ) : (
                                     <img
                                         src={cinemaPost.mediaUrl}
-                                        className="w-full h-full object-cover"
+                                        className="max-w-full max-h-full object-contain"
                                         alt="Cinematic View"
                                     />
                                 )}
 
-                                {/* Info Overlay (Now integrated into the bottom of the frame) */}
-                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-12 pt-24 opacity-0 group-hover/cinema:opacity-100 transition-all duration-500">
-                                    <p className="text-white font-bold text-2xl tracking-tighter">@{cinemaPost.user?.username}</p>
-                                    <p className="text-gray-300 text-sm mt-2 font-medium max-w-2xl">{cinemaPost.caption}</p>
+                                {/* Info Overlay */}
+                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-12 pt-32 opacity-0 group-hover/cinema:opacity-100 transition-all duration-500">
+                                    <p className="text-white font-bold text-3xl tracking-tighter">@{cinemaPost.user?.username}</p>
+                                    <p className="text-gray-300 text-base mt-3 font-medium max-w-3xl leading-relaxed">{cinemaPost.caption}</p>
                                 </div>
                             </div>
                         </motion.div>
