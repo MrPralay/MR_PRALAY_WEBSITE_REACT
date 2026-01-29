@@ -159,6 +159,7 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                             <FeedView
                                 posts={posts}
                                 onCreateClick={() => setIsPostModalOpen(true)}
+                                loading={loading}
                             />
                         </motion.div>
                     )}
@@ -176,6 +177,7 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                                 currentUser={currentUser}
                                 posts={posts}
                                 onOpenCreatePost={() => setIsPostModalOpen(true)}
+                                loading={loading}
                             />
                         </motion.div>
                     )}

@@ -1,10 +1,33 @@
 import React from 'react';
 import { Plus, ChevronRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import PostCard from './PostCard';
 
-const FeedView = ({ posts, stories = [], onCreateClick }) => {
+const FeedView = ({ posts, stories = [], onCreateClick, loading }) => {
     return (
         <div className="flex-1 max-w-2xl mx-auto py-8 px-4">
+            {/* Professional Loading State (Spinner + Skeleton) */}
+            <AnimatePresence>
+                {loading && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#050505]/60 backdrop-blur-md"
+                    >
+                        <div className="relative">
+                            <motion.div
+                                animate={{ rotate: 360 }}
+                                transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                                className="w-20 h-20 border-2 border-emerald-500/10 border-t-emerald-500 rounded-full"
+                            />
+                            <div className="absolute inset-0 bg-emerald-500/10 blur-xl rounded-full" />
+                        </div>
+                        <p className="mt-8 text-emerald-500 font-bold text-[10px] uppercase tracking-[0.4em] animate-pulse">Synchronizing Neural Feed...</p>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* Stories Section */}
             <div className="mb-12">
                 <div className="flex items-center justify-between mb-4">

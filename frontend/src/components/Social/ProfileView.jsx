@@ -3,10 +3,12 @@ import { Grid, Play, Bookmark, User as UserIcon, Settings, ShieldCheck, Plus, Mo
 import { motion, AnimatePresence } from 'framer-motion';
 import Cookies from 'js-cookie';
 
-const ProfileView = ({ user, currentUser, posts: parentPosts = [], onOpenCreatePost }) => {
+const ProfileView = ({ user, currentUser, posts: parentPosts = [], onOpenCreatePost, loading: parentLoading }) => {
     const [activeTab, setActiveTab] = useState('posts');
     const [tabData, setTabData] = useState([]);
-    const [loading, setLoading] = useState(false);
+    const [localLoading, setLocalLoading] = useState(false);
+
+    const isLoading = parentLoading || localLoading;
 
     // String matching to ensure IDs connect regardless of type (Number vs String)
     const isOwnProfile = String(currentUser?.id) === String(user.id);
@@ -16,7 +18,7 @@ const ProfileView = ({ user, currentUser, posts: parentPosts = [], onOpenCreateP
     useEffect(() => {
         const loadContent = async () => {
             if (activeTab === 'saved') {
-                setLoading(true);
+                setLocalLoading(true);
                 try {
                     const res = await fetch(`${apiUrl}/api/user/saved`, {
                         headers: { 'Authorization': `Bearer ${token}` }
@@ -26,7 +28,7 @@ const ProfileView = ({ user, currentUser, posts: parentPosts = [], onOpenCreateP
                 } catch (err) {
                     console.error("Registry Sync Failure:", err);
                 } finally {
-                    setLoading(false);
+                    setLocalLoading(false);
                 }
             } else if (activeTab === 'tagged') {
                 setTabData([]); // Tagged feature is logically empty for now
@@ -139,7 +141,7 @@ const ProfileView = ({ user, currentUser, posts: parentPosts = [], onOpenCreateP
 
             {/* Content Area */}
             <div className="min-h-[400px]">
-                {loading ? (
+                {isLoading ? (
                     <div className="flex flex-col items-center justify-center py-32 gap-4">
                         <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="w-12 h-12 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full" />
                         <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-[0.3em] animate-pulse">Syncing Registry...</p>
