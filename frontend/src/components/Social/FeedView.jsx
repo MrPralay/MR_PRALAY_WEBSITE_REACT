@@ -67,9 +67,9 @@ const FeedView = ({ posts, stories = [], onCreateClick, loading }) => {
             </div>
 
             {/* Posts Area with Precision Loader */}
-            <div className="space-y-4 min-h-[400px]">
+            <div className="space-y-4 flex flex-col min-h-[500px]">
                 {loading ? (
-                    <div className="flex flex-col items-center justify-center py-20 gap-6">
+                    <div className="flex-1 flex flex-col items-center justify-center gap-6">
                         <div className="relative">
                             <motion.div
                                 animate={{ rotate: 360 }}
