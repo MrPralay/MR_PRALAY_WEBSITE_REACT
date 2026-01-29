@@ -271,6 +271,7 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                                             className="max-w-full max-h-[82vh] object-contain shadow-[0_40px_100px_rgba(0,0,0,0.8)] rounded-[2.5rem] border border-white/10"
                                             controls
                                             autoPlay
+                                            loop
                                             playsInline
                                             onPlay={() => backdropVideoRef.current?.play()}
                                             onPause={() => backdropVideoRef.current?.pause()}
