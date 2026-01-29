@@ -154,8 +154,8 @@ const PostCard = ({ post, onInteraction, onCinemaMode }) => {
                 </button>
             </div>
 
-            {/* Media Canvas - Optimized for Neural Tallness */}
-            <div className="relative min-h-[500px] max-h-[85vh] w-full bg-[#080808] overflow-hidden flex items-center justify-center">
+            {/* Media Canvas - Calibrated Height for Better Feed Flow */}
+            <div className="relative min-h-[450px] max-h-[75vh] w-full bg-[#080808] overflow-hidden flex items-center justify-center">
                 {!isUnlocked ? (
                     <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/40 backdrop-blur-3xl p-8 text-center group">
                         <div className="p-6 bg-amber-500/10 rounded-[2rem] mb-6 mb-8 group-hover:scale-110 transition-transform">
@@ -196,7 +196,7 @@ const PostCard = ({ post, onInteraction, onCinemaMode }) => {
                                     muted={isMuted}
                                     playsInline
                                 />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover/video:opacity-100 transition-opacity flex flex-col justify-end p-8">
+                                <div className="absolute inset-0 z-40 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-8">
                                     <div className="flex items-center gap-4">
                                         <div
                                             onClick={togglePlay}
