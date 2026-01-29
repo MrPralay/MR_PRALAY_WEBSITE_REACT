@@ -22,9 +22,12 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
 
     // Data loading from API
     useEffect(() => {
+        let active = true;
         const fetchData = async () => {
-            setPosts([]); // Clear previous posts to prevent flickering/glitches when switching views
+            if (!active) return;
             setLoading(true);
+            setPosts([]);
+
             try {
                 const apiUrl = "https://synapse-backend.pralayd140.workers.dev";
                 const token = Cookies.get('synapse_token');
@@ -39,22 +42,24 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                 if (view === 'feed') {
                     const res = await fetch(`${apiUrl}/api/social/feed`, fetchOptions);
                     const data = await res.json();
-                    setPosts(Array.isArray(data) ? data : []);
+                    if (active) setPosts(Array.isArray(data) ? data : []);
                 } else if (view === 'profile') {
-                    setUserProfile(currentUser); // Reset to current user initially while loading fresh data
                     const res = await fetch(`${apiUrl}/api/user/profile/${encodeURIComponent(currentUser.username)}`, fetchOptions);
                     const data = await res.json();
                     const profileData = data.data || data;
-                    setUserProfile(profileData);
-                    setPosts(profileData.posts || []);
+                    if (active) {
+                        setUserProfile(profileData);
+                        setPosts(profileData.posts || []);
+                    }
                 }
             } catch (err) {
                 console.error("Data Fetch Error:", err);
             } finally {
-                setLoading(false);
+                if (active) setLoading(false);
             }
         };
         fetchData();
+        return () => { active = false; };
     }, [view, currentUser, refreshTrigger]);
 
     const handleCreatePost = async (postData) => {
