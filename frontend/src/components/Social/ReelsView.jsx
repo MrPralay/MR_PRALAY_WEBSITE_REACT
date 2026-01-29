@@ -26,7 +26,7 @@ const ReelItem = ({ post }) => {
                     }
                 });
             },
-            { threshold: 0.8 }
+            { threshold: 0.7 }
         );
 
         if (videoRef.current) observer.observe(videoRef.current);
@@ -48,9 +48,9 @@ const ReelItem = ({ post }) => {
     };
 
     return (
-        <div className="relative w-full h-[100vh] snap-start flex items-center justify-center bg-black overflow-hidden border-b border-white/5">
-            {/* The Video Engine */}
-            <div className="relative w-full max-w-2xl h-full flex items-center justify-center bg-black shadow-[0_0_100px_rgba(0,0,0,1)]">
+        <div className="relative w-full h-screen snap-center flex items-center justify-center p-4">
+            {/* The Floating Neural Tablet */}
+            <div className="relative w-full max-w-2xl h-[92vh] flex items-center justify-center bg-[#050505] rounded-[3.5rem] overflow-hidden shadow-[0_60px_120px_rgba(0,0,0,0.9)] border border-white/10 group">
                 <video
                     ref={videoRef}
                     src={post.mediaUrl}
@@ -62,75 +62,75 @@ const ReelItem = ({ post }) => {
                     onDoubleClick={handleDoubleTap}
                 />
 
-                {/* Left Side Overlay (Bottom Aligned) */}
-                <div className="absolute bottom-10 left-6 right-20 z-20">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="story-ring p-[2px] cursor-pointer">
+                {/* Left Side Overlay (Bottom Aligned HUD) */}
+                <div className="absolute bottom-12 left-10 right-20 z-20">
+                    <div className="flex items-center gap-3 mb-5">
+                        <div className="story-ring p-[2px] cursor-pointer shadow-lg">
                             <img
                                 src={post.user?.profileImage || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg"}
-                                className="w-10 h-10 rounded-full object-cover border-2 border-black"
+                                className="w-11 h-11 rounded-full object-cover border-2 border-black"
                                 alt={post.user?.username}
                             />
                         </div>
-                        <h4 className="text-white font-bold text-sm tracking-tight hover:underline cursor-pointer">{post.user?.username}</h4>
-                        <button className="px-5 py-1.5 bg-transparent border border-white/60 rounded-lg text-white font-bold text-[11px] uppercase tracking-wider hover:bg-white/10 transition-all ml-1">
+                        <h4 className="text-white font-bold text-sm tracking-tight hover:text-emerald-400 transition-colors cursor-pointer text-shadow-lg">{post.user?.username}</h4>
+                        <button className="px-5 py-2 bg-emerald-500 text-black font-bold text-[10px] uppercase tracking-wider rounded-xl hover:bg-emerald-400 transition-all ml-2 shadow-lg shadow-emerald-500/20">
                             Follow
                         </button>
                     </div>
-                    <p className="text-white text-sm font-medium pr-12 line-clamp-2 leading-relaxed mb-4 drop-shadow-lg">{post.caption}</p>
+                    <p className="text-white text-[15px] font-medium pr-12 line-clamp-2 leading-relaxed mb-5 drop-shadow-2xl">{post.caption}</p>
                     <div className="flex items-center gap-4 text-emerald-400 font-mono text-[9px] uppercase tracking-[0.2em]">
-                        <div className="flex items-center gap-2 px-3 py-1 bg-black/40 backdrop-blur-md rounded-full border border-emerald-500/20 shadow-xl">
-                            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                            Neural Segment Active
+                        <div className="flex items-center gap-2 px-4 py-1.5 bg-black/40 backdrop-blur-xl rounded-full border border-emerald-500/20 shadow-2xl">
+                            <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_#10b981]" />
+                            Neural Phase Locked
                         </div>
                     </div>
                 </div>
 
-                {/* Right Side Interaction HUD (Vertical) */}
-                <div className="absolute bottom-12 right-6 z-20 flex flex-col items-center gap-6">
+                {/* Right Side Interaction HUD (Vertical Floating HUD) */}
+                <div className="absolute bottom-14 right-8 z-20 flex flex-col items-center gap-7">
                     {/* Like Action */}
-                    <div className="flex flex-col items-center gap-1 group cursor-pointer" onClick={() => setIsLiked(!isLiked)}>
+                    <div className="flex flex-col items-center gap-2 group cursor-pointer" onClick={() => setIsLiked(!isLiked)}>
                         <motion.div
-                            whileTap={{ scale: 0.8 }}
-                            className={`p-3 rounded-full backdrop-blur-md transition-all ${isLiked ? 'text-red-500' : 'text-white'}`}
+                            whileTap={{ scale: 0.7 }}
+                            className={`p-4 rounded-2xl backdrop-blur-xl border border-white/5 transition-all ${isLiked ? 'text-red-500 bg-red-500/10' : 'text-white bg-white/5 hover:bg-white/10'}`}
                         >
-                            <Heart size={32} fill={isLiked ? "currentColor" : "none"} className="drop-shadow-2xl" />
+                            <Heart size={28} fill={isLiked ? "currentColor" : "none"} className="drop-shadow-2xl" />
                         </motion.div>
-                        <span className="text-[11px] text-white font-bold drop-shadow-lg">{Math.floor(Math.random() * 5000)}</span>
+                        <span className="text-[11px] text-white font-extrabold drop-shadow-lg">{Math.floor(Math.random() * 5000)}</span>
                     </div>
 
                     {/* Comment Action */}
-                    <div className="flex flex-col items-center gap-1 group cursor-pointer">
-                        <div className="p-3 text-white transition-all hover:scale-110">
-                            <MessageCircle size={32} className="drop-shadow-2xl" />
+                    <div className="flex flex-col items-center gap-2 group cursor-pointer">
+                        <div className="p-4 rounded-2xl backdrop-blur-xl bg-white/5 border border-white/5 text-white transition-all hover:bg-white/10">
+                            <MessageCircle size={28} className="drop-shadow-2xl" />
                         </div>
-                        <span className="text-[11px] text-white font-bold drop-shadow-lg">{Math.floor(Math.random() * 200)}</span>
+                        <span className="text-[11px] text-white font-extrabold drop-shadow-lg">{Math.floor(Math.random() * 200)}</span>
                     </div>
 
                     {/* Share Action */}
-                    <div className="flex flex-col items-center gap-1 group cursor-pointer">
-                        <div className="p-3 text-white transition-all hover:scale-110">
-                            <Share2 size={32} className="drop-shadow-2xl" />
+                    <div className="flex flex-col items-center gap-2 group cursor-pointer">
+                        <div className="p-4 rounded-2xl backdrop-blur-xl bg-white/5 border border-white/5 text-white transition-all hover:bg-white/10">
+                            <Share2 size={28} className="drop-shadow-2xl" />
                         </div>
-                        <span className="text-[11px] text-white font-bold drop-shadow-lg">Transmit</span>
+                        <span className="text-[11px] text-white font-extrabold drop-shadow-lg">Link</span>
                     </div>
 
                     {/* Bookmark Action */}
-                    <div className="flex flex-col items-center gap-1 group cursor-pointer" onClick={() => setIsSaved(!isSaved)}>
-                        <div className={`p-3 transition-all hover:scale-110 ${isSaved ? 'text-amber-500' : 'text-white'}`}>
-                            <Bookmark size={32} fill={isSaved ? "currentColor" : "none"} className="drop-shadow-2xl" />
+                    <div className="flex flex-col items-center gap-2 group cursor-pointer" onClick={() => setIsSaved(!isSaved)}>
+                        <div className={`p-4 rounded-2xl backdrop-blur-xl border border-white/5 transition-all ${isSaved ? 'text-amber-500 bg-amber-500/10' : 'text-white bg-white/5 hover:bg-white/10'}`}>
+                            <Bookmark size={28} fill={isSaved ? "currentColor" : "none"} className="drop-shadow-2xl" />
                         </div>
-                        <span className="text-[11px] text-white font-bold drop-shadow-lg">Save</span>
+                        <span className="text-[11px] text-white font-extrabold drop-shadow-lg">Vault</span>
                     </div>
 
-                    {/* Menu Action */}
-                    <div className="p-3 text-white cursor-pointer hover:rotate-90 transition-transform">
-                        <MoreHorizontal size={28} />
+                    {/* More Menu */}
+                    <div className="p-4 rounded-2xl backdrop-blur-xl bg-white/5 border border-white/5 text-white cursor-pointer hover:bg-white/10 group-hover:rotate-90 transition-all">
+                        < MoreHorizontal size={24} />
                     </div>
 
-                    {/* User Mini Avatar as bottom icon */}
-                    <div className="w-10 h-10 rounded-lg border-2 border-white/20 overflow-hidden mt-4 animate-spin-slow shadow-2xl">
-                        <img src={post.user?.profileImage} className="w-full h-full object-cover" alt="mini" />
+                    {/* Profile Link Animated Avatar */}
+                    <div className="w-12 h-12 rounded-2xl border-2 border-emerald-500/30 overflow-hidden mt-2 p-[2px] bg-black/40 backdrop-blur-md">
+                        <img src={post.user?.profileImage} className="w-full h-full rounded-xl object-cover animate-spin-slow" alt="mini" />
                     </div>
                 </div>
 
@@ -141,21 +141,24 @@ const ReelItem = ({ post }) => {
                             initial={{ scale: 0.5, opacity: 0, y: 0 }}
                             animate={{ scale: 1.5, opacity: 1, y: -20 }}
                             exit={{ scale: 2, opacity: 0, y: -40 }}
-                            className="absolute pointer-events-none z-40 text-red-500 drop-shadow-[0_0_50px_rgba(239,68,68,0.8)]"
+                            className="absolute pointer-events-none z-40 text-red-500 drop-shadow-[0_0_80px_rgba(239,68,68,0.8)]"
                         >
-                            <Heart size={150} fill="currentColor" />
+                            <Heart size={160} fill="currentColor" />
                         </motion.div>
                     )}
                 </AnimatePresence>
 
-                {/* Top Interaction Layer */}
-                <div className="absolute top-8 left-8 right-8 z-20 flex justify-between items-start">
-                    <h2 className="text-white text-2xl font-bold tracking-tighter drop-shadow-2xl opacity-80">Reels</h2>
+                {/* Top Interaction Layer (Ambient HUD) */}
+                <div className="absolute top-10 left-10 right-10 z-20 flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                        <div className="bg-emerald-500 w-2 h-2 rounded-full animate-pulse shadow-[0_0_10px_#10b981]" />
+                        <h2 className="text-white text-xl font-black uppercase tracking-widest drop-shadow-2xl opacity-90">TV Matrix</h2>
+                    </div>
                     <button
                         onClick={() => setIsMuted(!isMuted)}
-                        className="p-3 rounded-full bg-black/40 backdrop-blur-md text-white border border-white/10 hover:bg-white/10 transition-all shadow-2xl"
+                        className="p-4 rounded-2xl bg-black/40 backdrop-blur-xl text-white border border-white/10 hover:bg-emerald-500 hover:text-black transition-all shadow-2xl"
                     >
-                        {isMuted ? <VolumeX size={22} /> : <Volume2 size={22} />}
+                        {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
                     </button>
                 </div>
 
@@ -166,9 +169,9 @@ const ReelItem = ({ post }) => {
                             initial={{ scale: 0.8, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 1.2, opacity: 0 }}
-                            className="absolute pointer-events-none z-30 bg-black/40 backdrop-blur-2xl p-10 rounded-full border border-white/5"
+                            className="absolute pointer-events-none z-30 bg-black/60 backdrop-blur-3xl p-12 rounded-[2.5rem] border border-white/5"
                         >
-                            <Play size={64} className="text-white ml-3" fill="white" />
+                            <Play size={64} className="text-white ml-2" fill="white" />
                         </motion.div>
                     )}
                 </AnimatePresence>
