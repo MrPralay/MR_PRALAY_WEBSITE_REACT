@@ -4,6 +4,7 @@ import FeedView from './FeedView';
 import ProfileView from './ProfileView';
 import RightSidebar from './RightSidebar';
 import CreatePostModal from './CreatePostModal';
+import ReelsView from './ReelsView';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import Cookies from 'js-cookie';
@@ -42,7 +43,7 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                     }
                 };
 
-                if (view === 'feed') {
+                if (view === 'feed' || view === 'igtv') {
                     const res = await fetch(`${apiUrl}/api/social/feed`, fetchOptions);
                     const data = await res.json();
                     if (active) setPosts(Array.isArray(data) ? data : []);
@@ -192,7 +193,22 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                         </motion.div>
                     )}
 
-                    {!['feed', 'profile'].includes(view) && (
+                    {view === 'igtv' && (
+                        <motion.div
+                            key="igtv"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="h-screen overflow-hidden"
+                        >
+                            <ReelsView
+                                posts={posts}
+                                loading={loading}
+                            />
+                        </motion.div>
+                    )}
+
+                    {!['feed', 'profile', 'igtv'].includes(view) && (
                         <motion.div
                             key="other"
                             className="flex items-center justify-center min-h-screen text-gray-500 font-bold uppercase tracking-widest italic"
@@ -295,7 +311,7 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                     </motion.div>
                 )}
             </AnimatePresence>
-        </div>
+        </div >
     );
 };
 
