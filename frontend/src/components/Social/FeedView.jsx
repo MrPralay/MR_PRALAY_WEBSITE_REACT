@@ -1,34 +1,56 @@
 import React from 'react';
-import { Plus, ChevronRight } from 'lucide-react';
+import { Plus, ChevronRight, MoreHorizontal } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import PostCard from './PostCard';
 
 const PostSkeleton = () => (
-    <div className="bg-white/[0.02] border border-white/5 rounded-[2.5rem] overflow-hidden mb-8">
-        <div className="p-6 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-white/5 animate-pulse" />
-            <div className="space-y-2">
-                <div className="w-32 h-3 bg-white/5 rounded-full animate-pulse" />
-                <div className="w-20 h-2 bg-white/5 rounded-full animate-pulse" />
+    <div className="relative bg-white/[0.02] border border-white/5 rounded-[2.5rem] overflow-hidden mb-12">
+        {/* Post Header - Precision Match */}
+        <div className="flex items-center justify-between p-6 px-8">
+            <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-white/5 animate-pulse" />
+                <div className="space-y-2">
+                    <div className="w-32 h-3 bg-white/5 rounded-full animate-pulse" />
+                    <div className="w-20 h-2 bg-white/5 rounded-full animate-pulse" />
+                </div>
             </div>
+            <div className="p-3 bg-white/5 rounded-2xl w-10 h-10 animate-pulse" />
         </div>
-        <div className="aspect-square bg-white/5 relative overflow-hidden">
+
+        {/* Media Canvas - Precision Match */}
+        <div className="relative aspect-square md:aspect-[16/10] bg-black/40 overflow-hidden">
             <motion.div
                 initial={{ x: '-100%' }}
                 animate={{ x: '100%' }}
                 transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.03] to-transparent"
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.05] to-transparent"
             />
         </div>
-        <div className="p-6 space-y-4">
-            <div className="flex gap-4">
-                <div className="w-6 h-6 rounded-full bg-white/5 animate-pulse" />
-                <div className="w-6 h-6 rounded-full bg-white/5 animate-pulse" />
-                <div className="w-6 h-6 rounded-full bg-white/5 animate-pulse" />
+
+        {/* Neural Actions - Precision Match */}
+        <div className="p-8 px-10">
+            <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-8">
+                    {[1, 2, 3].map(i => (
+                        <div key={i} className="flex flex-col items-center gap-2">
+                            <div className="w-12 h-12 bg-white/5 rounded-[1.2rem] animate-pulse" />
+                            <div className="w-8 h-2 bg-white/5 rounded-full animate-pulse" />
+                        </div>
+                    ))}
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                    <div className="w-12 h-12 bg-white/5 rounded-[1.2rem] animate-pulse" />
+                    <div className="w-8 h-2 bg-white/5 rounded-full animate-pulse" />
+                </div>
             </div>
-            <div className="space-y-2">
-                <div className="w-full h-2 bg-white/5 rounded-full animate-pulse" />
-                <div className="w-2/3 h-2 bg-white/5 rounded-full animate-pulse" />
+
+            {/* Caption Area - Precision Match */}
+            <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                    <div className="w-20 h-3 bg-white/5 rounded-full animate-pulse" />
+                    <div className="flex-1 h-3 bg-white/5 rounded-full animate-pulse" />
+                </div>
+                <div className="w-32 h-2 bg-white/5 rounded-full animate-pulse" />
             </div>
         </div>
     </div>
@@ -97,8 +119,8 @@ const FeedView = ({ posts, stories = [], onCreateClick, loading }) => {
                 </div>
             </div>
 
-            {/* Posts Area with Professional Skeleton Loader */}
-            <div className="space-y-4">
+            {/* Posts Area - Absolute Precision Alignment */}
+            <div className="min-h-[500px]">
                 {loading ? (
                     <>
                         <PostSkeleton />
