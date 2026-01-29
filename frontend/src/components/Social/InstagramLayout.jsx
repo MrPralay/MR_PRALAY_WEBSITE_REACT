@@ -234,29 +234,41 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                             <X size={20} className="group-hover:rotate-90 transition-transform" />
                         </motion.button>
 
-                        {/* Media Container - Dynamic Neural Wrap */}
+                        {/* Media Container - Frosted Glass Neural Wrap */}
                         <motion.div
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
-                            className="relative w-full max-w-6xl h-[80vh] flex items-center justify-center group/cinema"
+                            className="relative w-full max-w-5xl h-[85vh] flex items-center justify-center group/cinema"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            {/* Cinematic Background Blur (Fills the wide space) */}
-                            <div className="absolute inset-x-0 h-full rounded-[3rem] overflow-hidden opacity-30 blur-3xl -z-10">
-                                {cinemaPost.type === 'VIDEO' ? (
-                                    <video src={cinemaPost.mediaUrl} className="w-full h-full object-cover" muted loop autoPlay />
-                                ) : (
-                                    <img src={cinemaPost.mediaUrl} className="w-full h-full object-cover" alt="blur" />
-                                )}
-                            </div>
-
-                            {/* Main Content Box (Preserves Height) */}
-                            <div className="w-full h-full rounded-[2.5rem] overflow-hidden shadow-[0_40px_100px_rgba(0,0,0,0.8)] border border-white/10 relative bg-black/20 flex items-center justify-center">
+                            {/* Frosted Glass Backdrop (Zoomed & Heavily Blurred) */}
+                            <div className="absolute inset-0 rounded-[3rem] overflow-hidden -z-10">
+                                <div className="absolute inset-0 bg-black/40 z-[1]" />
                                 {cinemaPost.type === 'VIDEO' ? (
                                     <video
                                         src={cinemaPost.mediaUrl}
-                                        className="max-w-full max-h-full object-contain"
+                                        className="w-full h-full object-cover scale-[1.8] blur-[80px] opacity-60"
+                                        muted loop autoPlay
+                                    />
+                                ) : (
+                                    <img
+                                        src={cinemaPost.mediaUrl}
+                                        className="w-full h-full object-cover scale-[1.8] blur-[80px] opacity-60"
+                                        alt="frosted"
+                                    />
+                                )}
+                            </div>
+
+                            {/* Precise Shadow Aura */}
+                            <div className="absolute inset-x-8 -inset-y-8 bg-emerald-500/5 blur-[120px] rounded-full -z-10 group-hover/cinema:bg-emerald-500/10 transition-all duration-1000" />
+
+                            {/* Main Display Layer */}
+                            <div className="w-full h-full rounded-[2.5rem] overflow-hidden shadow-[0_50px_120px_rgba(0,0,0,0.9)] border border-white/10 relative bg-black/20 flex items-center justify-center">
+                                {cinemaPost.type === 'VIDEO' ? (
+                                    <video
+                                        src={cinemaPost.mediaUrl}
+                                        className="max-w-full max-h-full object-contain z-10"
                                         controls
                                         autoPlay
                                         playsInline
@@ -264,15 +276,15 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                                 ) : (
                                     <img
                                         src={cinemaPost.mediaUrl}
-                                        className="max-w-full max-h-full object-contain"
-                                        alt="Cinematic View"
+                                        className="max-w-full max-h-full object-contain z-10"
+                                        alt="Neural Focus"
                                     />
                                 )}
 
-                                {/* Info Overlay */}
-                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-12 pt-32 opacity-0 group-hover/cinema:opacity-100 transition-all duration-500">
-                                    <p className="text-white font-bold text-3xl tracking-tighter">@{cinemaPost.user?.username}</p>
-                                    <p className="text-gray-300 text-base mt-3 font-medium max-w-3xl leading-relaxed">{cinemaPost.caption}</p>
+                                {/* Floating Neural Metadata Overlay */}
+                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent p-12 pt-40 opacity-0 group-hover/cinema:opacity-100 transition-all duration-700 z-20">
+                                    <p className="text-white font-bold text-4xl tracking-tighter drop-shadow-2xl">@{cinemaPost.user?.username}</p>
+                                    <p className="text-gray-300 text-lg mt-4 font-medium max-w-3xl leading-relaxed drop-shadow-lg">{cinemaPost.caption}</p>
                                 </div>
                             </div>
                         </motion.div>
