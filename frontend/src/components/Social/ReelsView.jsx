@@ -272,6 +272,36 @@ const ReelItem = ({ post }) => {
     );
 };
 
+const ReelsSkeleton = () => (
+    <div className="relative w-full h-screen flex items-center justify-center p-4">
+        <div className="relative w-full max-w-[640px] h-[92vh] bg-[#080808] rounded-[3.5rem] overflow-hidden border border-white/5">
+            <motion.div
+                initial={{ x: '-100%' }}
+                animate={{ x: '100%' }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.03] to-transparent"
+            />
+
+            {/* HUD Skeleton */}
+            <div className="absolute bottom-12 left-10 right-20 space-y-4">
+                <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-white/5 animate-pulse" />
+                    <div className="w-32 h-4 bg-white/5 rounded-lg animate-pulse" />
+                </div>
+                <div className="w-64 h-3 bg-white/5 rounded-lg animate-pulse" />
+                <div className="w-40 h-8 bg-white/5 rounded-2xl animate-pulse" />
+            </div>
+
+            {/* Interaction HUD Skeleton */}
+            <div className="absolute bottom-14 right-8 flex flex-col gap-8">
+                {[1, 2, 3, 4].map(i => (
+                    <div key={i} className="w-12 h-12 rounded-2xl bg-white/5 animate-pulse" />
+                ))}
+            </div>
+        </div>
+    </div>
+);
+
 const ReelsView = ({ posts, loading }) => {
     // Neural Filter: Only extract video segments for Reels Broadcast
     const reels = posts.filter(post => post.type === 'VIDEO');
@@ -279,9 +309,10 @@ const ReelsView = ({ posts, loading }) => {
     return (
         <div className="relative w-full h-screen overflow-y-scroll snap-y snap-mandatory hide-scrollbar bg-black">
             {loading ? (
-                <div className="flex items-center justify-center h-full text-emerald-500 font-bold uppercase tracking-[0.4em] animate-pulse">
-                    Synchronizing Reels Matrix...
-                </div>
+                <>
+                    <ReelsSkeleton />
+                    <ReelsSkeleton />
+                </>
             ) : reels.length > 0 ? (
                 reels.map((post) => (
                     <ReelItem key={post.id} post={post} />
