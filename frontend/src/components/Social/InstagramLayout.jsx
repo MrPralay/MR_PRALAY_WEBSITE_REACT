@@ -247,27 +247,27 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                                 {cinemaPost.type === 'VIDEO' ? (
                                     <video
                                         src={cinemaPost.mediaUrl}
-                                        className="w-full h-full object-cover blur-[30px] opacity-40 scale-105"
+                                        className="w-full h-full object-cover blur-[10px] opacity-60"
                                         muted loop autoPlay
                                     />
                                 ) : (
                                     <img
                                         src={cinemaPost.mediaUrl}
-                                        className="w-full h-full object-cover blur-[30px] opacity-40 scale-105"
+                                        className="w-full h-full object-cover blur-[10px] opacity-60"
                                         alt="projection-bg"
                                     />
                                 )}
-                                <div className="absolute inset-0 bg-black/40" />
+                                <div className="absolute inset-0 bg-black/30" />
                             </div>
 
-                            {/* Layer 2: Main Content (Actual Size, Uncropped) */}
-                            <div className="relative z-10 w-full h-full p-8 flex items-center justify-center">
-                                <div className="relative group/main">
+                            {/* Layer 2: Main Content (Maximum Screen Usage) */}
+                            <div className="relative z-10 w-full h-full flex items-center justify-center">
+                                <div className="relative group/main max-w-full max-h-full">
                                     <div className="absolute -inset-1 bg-emerald-500/20 blur-xl rounded-2xl opacity-0 group-hover/main:opacity-100 transition-opacity" />
                                     {cinemaPost.type === 'VIDEO' ? (
                                         <video
                                             src={cinemaPost.mediaUrl}
-                                            className="max-w-full max-h-[75vh] object-contain rounded-2xl shadow-[0_40px_100px_rgba(0,0,0,0.8)] border border-white/20"
+                                            className="max-w-full max-h-[88vh] object-contain rounded-2xl shadow-[0_40px_100px_rgba(0,0,0,0.8)] border border-white/20"
                                             controls
                                             autoPlay
                                             playsInline
@@ -275,7 +275,7 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                                     ) : (
                                         <img
                                             src={cinemaPost.mediaUrl}
-                                            className="max-w-full max-h-[75vh] object-contain rounded-2xl shadow-[0_40px_100px_rgba(0,0,0,0.8)] border border-white/20"
+                                            className="max-w-full max-h-[88vh] object-contain rounded-2xl shadow-[0_40px_100px_rgba(0,0,0,0.8)] border border-white/20"
                                             alt="Neural Actual Size"
                                         />
                                     )}
