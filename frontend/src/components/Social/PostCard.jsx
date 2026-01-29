@@ -155,7 +155,7 @@ const PostCard = ({ post, onInteraction, onCinemaMode }) => {
             </div>
 
             {/* Media Canvas - Calibrated Height for Better Feed Flow */}
-            <div className="relative min-h-[450px] max-h-[75vh] w-full bg-[#080808] overflow-hidden flex items-center justify-center">
+            <div className="relative min-h-[400px] max-h-[65vh] w-full bg-[#080808] overflow-hidden flex items-center justify-center">
                 {!isUnlocked ? (
                     <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/40 backdrop-blur-3xl p-8 text-center group">
                         <div className="p-6 bg-amber-500/10 rounded-[2rem] mb-6 mb-8 group-hover:scale-110 transition-transform">
