@@ -263,7 +263,7 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                             </div>
 
                             {/* Layer 2: Main Content (Floating Focus) */}
-                            <div className="relative z-10 w-full h-full flex items-center justify-center p-12">
+                            <div className="relative z-10 w-full h-full flex items-center justify-center p-4">
                                 <div className="relative max-w-full h-full flex items-center justify-center transition-transform">
                                     {cinemaPost.type === 'VIDEO' ? (
                                         <video
