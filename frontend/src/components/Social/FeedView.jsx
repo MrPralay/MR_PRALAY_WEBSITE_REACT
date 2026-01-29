@@ -6,28 +6,6 @@ import PostCard from './PostCard';
 const FeedView = ({ posts, stories = [], onCreateClick, loading }) => {
     return (
         <div className="flex-1 max-w-2xl mx-auto py-8 px-4">
-            {/* Professional Loading State (Spinner + Skeleton) */}
-            <AnimatePresence>
-                {loading && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#050505]/60 backdrop-blur-md"
-                    >
-                        <div className="relative">
-                            <motion.div
-                                animate={{ rotate: 360 }}
-                                transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                                className="w-20 h-20 border-2 border-emerald-500/10 border-t-emerald-500 rounded-full"
-                            />
-                            <div className="absolute inset-0 bg-emerald-500/10 blur-xl rounded-full" />
-                        </div>
-                        <p className="mt-8 text-emerald-500 font-bold text-[10px] uppercase tracking-[0.4em] animate-pulse">Synchronizing Neural Feed...</p>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
             {/* Stories Section */}
             <div className="mb-12">
                 <div className="flex items-center justify-between mb-4">
@@ -48,7 +26,7 @@ const FeedView = ({ posts, stories = [], onCreateClick, loading }) => {
                         <span className="text-[10px] text-gray-500 font-medium">Add story</span>
                     </div>
 
-                    {/* Dummy Stories */}
+                    {/* Stories Mapping */}
                     {stories.length > 0 ? (
                         stories.map((story, i) => (
                             <div key={i} className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer">
@@ -63,7 +41,6 @@ const FeedView = ({ posts, stories = [], onCreateClick, loading }) => {
                             </div>
                         ))
                     ) : (
-                        // Placeholder stories matching the image
                         ['Pradana', 'Ben Schade', 'Shubha', 'Shea Lewis', 'Sumeet'].map((name, i) => (
                             <div key={i} className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer">
                                 <div className="story-ring p-[2px]">
@@ -89,9 +66,21 @@ const FeedView = ({ posts, stories = [], onCreateClick, loading }) => {
                 </div>
             </div>
 
-            {/* Posts Grid/List */}
-            <div className="space-y-4">
-                {posts.length > 0 ? (
+            {/* Posts Area with Precision Loader */}
+            <div className="space-y-4 min-h-[400px]">
+                {loading ? (
+                    <div className="flex flex-col items-center justify-center py-20 gap-6">
+                        <div className="relative">
+                            <motion.div
+                                animate={{ rotate: 360 }}
+                                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                className="w-12 h-12 border-2 border-emerald-500/10 border-t-emerald-500 rounded-full"
+                            />
+                            <div className="absolute inset-0 bg-emerald-500/10 blur-xl rounded-full" />
+                        </div>
+                        <p className="text-emerald-500 font-bold text-[10px] uppercase tracking-[0.4em] animate-pulse">Synchronizing Neural Feed...</p>
+                    </div>
+                ) : posts.length > 0 ? (
                     posts.map((post) => (
                         <PostCard key={post.id} post={post} />
                     ))
