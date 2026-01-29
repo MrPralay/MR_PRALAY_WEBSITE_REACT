@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Download, Lock, Unlock, Play, Pause, Volume2, VolumeX, ShieldCheck, Share2, Maximize2 } from 'lucide-react';
+import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Download, Lock, Unlock, Play, Pause, Volume2, VolumeX, ShieldCheck, Share2, Maximize2, Expand } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Cookies from 'js-cookie';
 
@@ -212,14 +212,7 @@ const PostCard = ({ post, onInteraction, onCinemaMode }) => {
                                         </div>
                                     </div>
 
-                                    {/* Cinema Mode Toggle */}
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); onCinemaMode(post); }}
-                                        className="p-3 bg-white/10 backdrop-blur-md rounded-full text-white cursor-pointer hover:bg-emerald-500 hover:text-black transition-all"
-                                        title="Initiate Cinema Broadcast"
-                                    >
-                                        <Maximize2 size={20} />
-                                    </button>
+
                                 </div>
                             </div>
                         ) : (
@@ -233,21 +226,24 @@ const PostCard = ({ post, onInteraction, onCinemaMode }) => {
                                 }}
                             />
                         )}
-                        {/* Download Overlay */}
-                        <div className="absolute top-6 right-6 flex flex-col gap-3 opacity-0 group-hover:opacity-100 transition-all">
+
+                        {/* Cinema Mode Toggle - Top Left (Precision Placement) */}
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onCinemaMode(post); }}
+                            className="absolute top-6 left-6 z-30 p-2 bg-black/40 backdrop-blur-md rounded-full text-white border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-emerald-500 hover:text-black shadow-lg"
+                            title="Initiate Cinema Broadcast"
+                        >
+                            <Expand size={14} />
+                        </button>
+
+                        {/* Download Overlay - Top Right (Precision Placement) */}
+                        <div className="absolute top-6 right-6 z-30 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button
                                 onClick={handleDownload}
-                                className="p-4 bg-white/10 backdrop-blur-xl rounded-full text-white border border-white/10 hover:scale-110 hover:bg-emerald-500 hover:text-black transition-all"
+                                className="p-2 bg-black/40 backdrop-blur-md rounded-full text-white border border-white/10 hover:bg-emerald-500 hover:text-black shadow-lg transition-colors"
                                 title="Download Synchronized Data"
                             >
-                                <Download size={20} />
-                            </button>
-                            <button
-                                onClick={(e) => { e.stopPropagation(); onCinemaMode(post); }}
-                                className="p-4 bg-white/10 backdrop-blur-xl rounded-full text-white border border-white/10 hover:scale-110 hover:bg-emerald-500 hover:text-black transition-all md:hidden"
-                                title="Enter Cinema Mode"
-                            >
-                                <Maximize2 size={20} />
+                                <Download size={14} />
                             </button>
                         </div>
                     </>
