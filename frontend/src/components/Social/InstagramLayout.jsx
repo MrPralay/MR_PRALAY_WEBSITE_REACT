@@ -154,8 +154,8 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                 onOpenCreatePost={() => setIsPostModalOpen(true)}
             />
 
-            {/* Main Content Area */}
-            <main className="flex-1 ml-80 mr-80 min-h-screen">
+            {/* Main Content Area - Neural Scale Applied (90% Zoom feel) */}
+            <main className="flex-1 ml-80 mr-80 min-h-screen origin-top overflow-visible" style={{ transform: 'scale(0.9)', transformOrigin: 'top center' }}>
                 <AnimatePresence mode="wait">
                     {view === 'feed' && (
                         <motion.div
