@@ -1,14 +1,20 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Volume2, VolumeX, Play, Pause } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Volume2, VolumeX, Play, Pause, Download, Link, Info, X } from 'lucide-react';
+import Cookies from 'js-cookie';
 
 const ReelItem = ({ post }) => {
     const videoRef = useRef(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [isMuted, setIsMuted] = useState(true);
-    const [isLiked, setIsLiked] = useState(false);
-    const [isSaved, setIsSaved] = useState(false);
+    const [isLiked, setIsLiked] = useState(post.isLiked || false);
+    const [isSaved, setIsSaved] = useState(post.isSaved || false);
+    const [likesCount, setLikesCount] = useState(post._count?.likes || 0);
     const [showHeart, setShowHeart] = useState(false);
+    const [showMenu, setShowMenu] = useState(false);
+
+    const apiUrl = "https://synapse-backend.pralayd140.workers.dev";
+    const token = Cookies.get('synapse_token');
 
     useEffect(() => {
         const observer = new IntersectionObserver(
@@ -42,9 +48,60 @@ const ReelItem = ({ post }) => {
     };
 
     const handleDoubleTap = (e) => {
-        setIsLiked(true);
+        if (!isLiked) handleLike();
         setShowHeart(true);
         setTimeout(() => setShowHeart(false), 1000);
+    };
+
+    const handleLike = async () => {
+        setIsLiked(!isLiked);
+        setLikesCount(prev => isLiked ? prev - 1 : prev + 1);
+        try {
+            await fetch(`${apiUrl}/api/social/posts/${post.id}/like`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+        } catch (err) { console.error(err); }
+    };
+
+    const handleSave = async (e) => {
+        if (e) e.stopPropagation();
+        setIsSaved(!isSaved);
+        try {
+            await fetch(`${apiUrl}/api/social/posts/${post.id}/save`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+        } catch (err) { console.error(err); }
+    };
+
+    const handleShare = () => {
+        if (navigator.share) {
+            navigator.share({
+                title: 'SynapseX Reel',
+                text: post.caption,
+                url: window.location.href
+            });
+        } else {
+            navigator.clipboard.writeText(window.location.href);
+            alert("Broadcast link copied.");
+        }
+    };
+
+    const handleDownload = () => {
+        const link = document.createElement('a');
+        link.href = post.mediaUrl;
+        link.download = `synapse_reel_${post.id}.mp4`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setShowMenu(false);
+    };
+
+    const handleCopyLink = () => {
+        navigator.clipboard.writeText(window.location.href);
+        alert("Link copied to clipboard.");
+        setShowMenu(false);
     };
 
     return (
@@ -89,14 +146,14 @@ const ReelItem = ({ post }) => {
                 {/* Right Side Interaction HUD (Vertical Floating HUD) */}
                 <div className="absolute bottom-14 right-8 z-20 flex flex-col items-center gap-7">
                     {/* Like Action */}
-                    <div className="flex flex-col items-center gap-2 group cursor-pointer" onClick={() => setIsLiked(!isLiked)}>
+                    <div className="flex flex-col items-center gap-2 group cursor-pointer" onClick={handleLike}>
                         <motion.div
                             whileTap={{ scale: 0.7 }}
                             className={`p-4 rounded-2xl backdrop-blur-xl border border-white/5 transition-all ${isLiked ? 'text-red-500 bg-red-500/10' : 'text-white bg-white/5 hover:bg-white/10'}`}
                         >
                             <Heart size={28} fill={isLiked ? "currentColor" : "none"} className="drop-shadow-2xl" />
                         </motion.div>
-                        <span className="text-[11px] text-white font-extrabold drop-shadow-lg">{Math.floor(Math.random() * 5000)}</span>
+                        <span className="text-[11px] text-white font-extrabold drop-shadow-lg">{likesCount}</span>
                     </div>
 
                     {/* Comment Action */}
@@ -104,19 +161,19 @@ const ReelItem = ({ post }) => {
                         <div className="p-4 rounded-2xl backdrop-blur-xl bg-white/5 border border-white/5 text-white transition-all hover:bg-white/10">
                             <MessageCircle size={28} className="drop-shadow-2xl" />
                         </div>
-                        <span className="text-[11px] text-white font-extrabold drop-shadow-lg">{Math.floor(Math.random() * 200)}</span>
+                        <span className="text-[11px] text-white font-extrabold drop-shadow-lg">{post._count?.comments || 0}</span>
                     </div>
 
                     {/* Share Action */}
-                    <div className="flex flex-col items-center gap-2 group cursor-pointer">
+                    <div className="flex flex-col items-center gap-2 group cursor-pointer" onClick={handleShare}>
                         <div className="p-4 rounded-2xl backdrop-blur-xl bg-white/5 border border-white/5 text-white transition-all hover:bg-white/10">
                             <Share2 size={28} className="drop-shadow-2xl" />
                         </div>
-                        <span className="text-[11px] text-white font-extrabold drop-shadow-lg">Link</span>
+                        <span className="text-[11px] text-white font-extrabold drop-shadow-lg">Share</span>
                     </div>
 
                     {/* Bookmark Action */}
-                    <div className="flex flex-col items-center gap-2 group cursor-pointer" onClick={() => setIsSaved(!isSaved)}>
+                    <div className="flex flex-col items-center gap-2 group cursor-pointer" onClick={handleSave}>
                         <div className={`p-4 rounded-2xl backdrop-blur-xl border border-white/5 transition-all ${isSaved ? 'text-amber-500 bg-amber-500/10' : 'text-white bg-white/5 hover:bg-white/10'}`}>
                             <Bookmark size={28} fill={isSaved ? "currentColor" : "none"} className="drop-shadow-2xl" />
                         </div>
@@ -124,13 +181,38 @@ const ReelItem = ({ post }) => {
                     </div>
 
                     {/* More Menu */}
-                    <div className="p-4 rounded-2xl backdrop-blur-xl bg-white/5 border border-white/5 text-white cursor-pointer hover:bg-white/10 group-hover:rotate-90 transition-all">
-                        < MoreHorizontal size={24} />
-                    </div>
+                    <div className="relative">
+                        <div
+                            onClick={() => setShowMenu(!showMenu)}
+                            className={`p-4 rounded-2xl backdrop-blur-xl border border-white/5 text-white cursor-pointer transition-all ${showMenu ? 'bg-emerald-500 text-black rotate-90' : 'bg-white/5 hover:bg-white/10'}`}
+                        >
+                            <MoreHorizontal size={24} />
+                        </div>
 
-                    {/* Profile Link Animated Avatar */}
-                    <div className="w-12 h-12 rounded-2xl border-2 border-emerald-500/30 overflow-hidden mt-2 p-[2px] bg-black/40 backdrop-blur-md">
-                        <img src={post.user?.profileImage} className="w-full h-full rounded-xl object-cover animate-spin-slow" alt="mini" />
+                        {/* Professional Context Menu */}
+                        <AnimatePresence>
+                            {showMenu && (
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.9, x: 20 }}
+                                    animate={{ opacity: 1, scale: 1, x: 0 }}
+                                    exit={{ opacity: 0, scale: 0.9, x: 20 }}
+                                    className="absolute bottom-0 right-20 w-48 bg-black/80 backdrop-blur-2xl border border-white/10 rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-50"
+                                >
+                                    <button onClick={handleCopyLink} className="w-full flex items-center gap-3 px-6 py-4 text-white hover:bg-white/10 transition-all text-xs font-bold uppercase tracking-widest">
+                                        <Link size={16} /> Copy Link
+                                    </button>
+                                    <button className="w-full flex items-center gap-3 px-6 py-4 text-white hover:bg-white/10 transition-all text-xs font-bold uppercase tracking-widest border-t border-white/5">
+                                        <Info size={16} /> About Account
+                                    </button>
+                                    <button onClick={handleDownload} className="w-full flex items-center gap-3 px-6 py-4 text-emerald-500 hover:bg-emerald-500/10 transition-all text-xs font-bold uppercase tracking-widest border-t border-white/5">
+                                        <Download size={16} /> Download
+                                    </button>
+                                    <button onClick={() => setShowMenu(false)} className="w-full flex items-center gap-3 px-6 py-4 text-red-400 hover:bg-red-400/10 transition-all text-xs font-bold uppercase tracking-widest border-t border-white/5">
+                                        <X size={16} /> Close
+                                    </button>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                     </div>
                 </div>
 
