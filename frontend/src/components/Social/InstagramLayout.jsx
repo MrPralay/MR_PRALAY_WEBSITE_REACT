@@ -213,82 +213,81 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                 user={currentUser}
             />
 
-            {/* Neural Cinema Mode Overlay - Ambient Full-Screen Sync */}
+            {/* Neural Cinema Mode Overlay */}
             <AnimatePresence>
                 {cinemaPost && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[1000] bg-black flex items-center justify-center overflow-hidden"
+                        className="fixed inset-0 z-[1000] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-4 md:p-12"
                         onClick={() => setCinemaPost(null)}
                     >
-                        {/* Layer 1: Ambient Full-Screen Background Blur */}
-                        <div className="absolute inset-0 z-0">
-                            {cinemaPost.type === 'VIDEO' ? (
-                                <video
-                                    src={cinemaPost.mediaUrl}
-                                    className="w-full h-full object-cover scale-110 blur-[80px] opacity-40"
-                                    muted loop autoPlay
-                                />
-                            ) : (
-                                <img
-                                    src={cinemaPost.mediaUrl}
-                                    className="w-full h-full object-cover scale-110 blur-[80px] opacity-40"
-                                    alt="ambient-bg"
-                                />
-                            )}
-                            <div className="absolute inset-0 bg-black/50" />
-                        </div>
-
-                        {/* Close Button / Terminate Link - HUD Style */}
+                        {/* Close Button / Terminate Link */}
                         <motion.button
                             initial={{ y: -20, opacity: 0 }}
                             animate={{ y: 0, opacity: 1 }}
-                            className="absolute top-10 right-10 z-[1010] flex items-center gap-3 px-6 py-3 bg-white/5 border border-white/10 rounded-2xl text-white hover:bg-emerald-500 hover:text-black transition-all group backdrop-blur-xl shadow-2xl"
+                            className="absolute top-8 right-8 z-[1010] flex items-center gap-3 px-6 py-3 bg-white/5 border border-white/10 rounded-2xl text-white hover:bg-emerald-500 hover:text-black transition-all group"
                             onClick={() => setCinemaPost(null)}
                         >
                             <span className="text-[10px] font-bold uppercase tracking-[0.3em]">Terminate Link</span>
                             <X size={20} className="group-hover:rotate-90 transition-transform" />
                         </motion.button>
 
-                        {/* Layer 2: Main Content - Centered Floating Focus */}
-                        <div className="relative z-10 w-full h-full flex flex-col items-center justify-center p-8 md:p-12">
-                            <motion.div
-                                initial={{ scale: 0.9, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                exit={{ scale: 0.9, opacity: 0 }}
-                                className="relative group/main max-w-full max-h-[82vh]"
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                <div className="absolute -inset-1 bg-emerald-500/10 blur-2xl rounded-[2.5rem] opacity-0 group-hover/main:opacity-100 transition-opacity" />
+                        {/* Media Container - Dual Layer Neural Projection */}
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="relative w-full max-w-6xl h-[88vh] flex items-center justify-center group/cinema overflow-hidden rounded-[3rem] border border-white/10"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Layer 1: Wide Background (Cropped & Slightly Blurred) */}
+                            <div className="absolute inset-0 z-0">
                                 {cinemaPost.type === 'VIDEO' ? (
                                     <video
                                         src={cinemaPost.mediaUrl}
-                                        className="max-w-full max-h-[82vh] object-contain rounded-[2.5rem] shadow-[0_60px_120px_rgba(0,0,0,0.9)] border border-white/10"
-                                        controls
-                                        autoPlay
-                                        playsInline
+                                        className="w-full h-full object-cover blur-[10px] opacity-60"
+                                        muted loop autoPlay
                                     />
                                 ) : (
                                     <img
                                         src={cinemaPost.mediaUrl}
-                                        className="max-w-full max-h-[82vh] object-contain rounded-[2.5rem] shadow-[0_60px_120px_rgba(0,0,0,0.9)] border border-white/10"
-                                        alt="Neural Focus"
+                                        className="w-full h-full object-cover blur-[10px] opacity-60"
+                                        alt="projection-bg"
                                     />
                                 )}
-                            </motion.div>
+                                <div className="absolute inset-0 bg-black/30" />
+                            </div>
 
-                            {/* Floating Metadata (Centered HUD) */}
-                            <motion.div
-                                initial={{ y: 20, opacity: 0 }}
-                                animate={{ y: 0, opacity: 1 }}
-                                className="mt-8 text-center bg-black/40 backdrop-blur-md py-5 px-10 rounded-full border border-emerald-500/20 shadow-2xl"
-                            >
-                                <p className="text-emerald-500 font-bold text-xl tracking-tighter cursor-pointer hover:text-emerald-400 transition-colors">@{cinemaPost.user?.username}</p>
-                                <p className="text-gray-300 text-xs mt-1 font-medium max-w-xl line-clamp-1">{cinemaPost.caption}</p>
-                            </motion.div>
-                        </div>
+                            {/* Layer 2: Main Content (Maximum Screen Usage) */}
+                            <div className="relative z-10 w-full h-full flex items-center justify-center">
+                                <div className="relative group/main max-w-full h-full flex items-center justify-center">
+                                    <div className="absolute -inset-1 bg-emerald-500/20 blur-xl rounded-2xl opacity-0 group-hover/main:opacity-100 transition-opacity" />
+                                    {cinemaPost.type === 'VIDEO' ? (
+                                        <video
+                                            src={cinemaPost.mediaUrl}
+                                            className="max-w-full max-h-full object-contain shadow-[0_40px_100px_rgba(0,0,0,0.8)]"
+                                            controls
+                                            autoPlay
+                                            playsInline
+                                        />
+                                    ) : (
+                                        <img
+                                            src={cinemaPost.mediaUrl}
+                                            className="max-w-full max-h-full object-contain shadow-[0_40px_100px_rgba(0,0,0,0.8)]"
+                                            alt="Neural Actual Size"
+                                        />
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Floating Metadata (Centered at the Bottom) */}
+                            <div className="absolute bottom-6 left-0 right-0 text-center opacity-0 group-hover/cinema:opacity-100 transition-all duration-700 bg-black/40 backdrop-blur-md py-6 px-12 rounded-full mx-auto w-fit border border-emerald-500/20 shadow-2xl">
+                                <p className="text-emerald-500 font-bold text-xl tracking-tighter">@{cinemaPost.user?.username}</p>
+                                <p className="text-gray-300 text-sm mt-1 font-medium max-w-2xl">{cinemaPost.caption}</p>
+                            </div>
+                        </motion.div>
                     </motion.div>
                 )}
             </AnimatePresence>
