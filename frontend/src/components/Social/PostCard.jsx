@@ -120,6 +120,15 @@ const PostCard = ({ post, onInteraction, onCinemaMode }) => {
         }
     };
 
+    const handleCinemaModeClick = (e) => {
+        if (e) e.stopPropagation();
+        if (videoRef.current) {
+            videoRef.current.pause();
+            setIsPlaying(false);
+        }
+        onCinemaMode(post);
+    };
+
     return (
         <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -186,7 +195,7 @@ const PostCard = ({ post, onInteraction, onCinemaMode }) => {
                             <div
                                 className="relative w-full h-full group/video cursor-pointer"
                                 onClick={togglePlay}
-                                onDoubleClick={() => onCinemaMode(post)}
+                                onDoubleClick={handleCinemaModeClick}
                             >
                                 <video
                                     ref={videoRef}
@@ -220,7 +229,7 @@ const PostCard = ({ post, onInteraction, onCinemaMode }) => {
                                 src={post.mediaUrl}
                                 className="w-full h-full object-cover transition-transform duration-[2s] hover:scale-105 cursor-zoom-in"
                                 alt="Neural Visual"
-                                onDoubleClick={() => onCinemaMode(post)}
+                                onDoubleClick={handleCinemaModeClick}
                                 onError={(e) => {
                                     e.target.src = "https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?w=800&q=80";
                                 }}
@@ -229,7 +238,7 @@ const PostCard = ({ post, onInteraction, onCinemaMode }) => {
 
                         {/* Cinema Mode Toggle - Top Left (Precision Placement) */}
                         <button
-                            onClick={(e) => { e.stopPropagation(); onCinemaMode(post); }}
+                            onClick={handleCinemaModeClick}
                             className="absolute top-6 left-6 z-30 p-2 bg-black/40 backdrop-blur-md rounded-full text-white border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-emerald-500 hover:text-black shadow-lg"
                             title="Initiate Cinema Broadcast"
                         >
