@@ -95,6 +95,22 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
         return () => { active = false; };
     }, [view, currentUser, refreshTrigger]);
 
+    // Neural Prefetcher: Cache media in background for instant viewing
+    useEffect(() => {
+        if (allStories.length > 0) {
+            allStories.forEach(story => {
+                if (story.type === 'IMAGE') {
+                    const img = new Image();
+                    img.src = story.mediaUrl;
+                } else if (story.type === 'VIDEO') {
+                    const video = document.createElement('video');
+                    video.src = story.mediaUrl;
+                    video.preload = 'auto'; // Force browser to start caching
+                }
+            });
+        }
+    }, [allStories]);
+
     const handleCreatePost = async (postData) => {
         try {
             const apiUrl = "https://synapse-backend.pralayd140.workers.dev";
