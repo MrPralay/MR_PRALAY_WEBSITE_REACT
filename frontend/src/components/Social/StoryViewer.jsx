@@ -57,7 +57,7 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
             clearTimeout(timer);
             clearTimeout(safetyTimeout);
         };
-    }, [currentStory?.id, isFirstStoryLoad]);
+    }, [currentStory?.id]);
 
     // Handle initial load completion
     useEffect(() => {
