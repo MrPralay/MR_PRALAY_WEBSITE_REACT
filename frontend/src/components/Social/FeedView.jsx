@@ -156,7 +156,7 @@ const FeedView = ({ posts, stories = [], suggestedUsers = [], onCreateClick, loa
                                 <div className="w-[78px] h-[78px] rounded-full bg-white/5 border-2 border-white/5" />
                                 <div className="w-12 h-2 bg-white/5 rounded-full" />
                             </div>
-                            {[1, 2, 3, 4].map(i => <StoryCircleSkeleton key={i} />)}
+                            {[1, 2, 3, 4, 5].map(i => <StoryCircleSkeleton key={i} />)}
                         </>
                     ) : (
                         <>
