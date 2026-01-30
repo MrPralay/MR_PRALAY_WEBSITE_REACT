@@ -11,6 +11,7 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isMuted, setIsMuted] = useState(false);
     const [isMediaLoading, setIsMediaLoading] = useState(true);
+    const [showLoadingUI, setShowLoadingUI] = useState(false);
     const videoRef = useRef(null);
 
     // Mock multiple stories if only one provided, for the 3-bar UI requirement
@@ -36,7 +37,19 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
     useEffect(() => {
         // Reset loading state when story changes
         setIsMediaLoading(true);
+        setShowLoadingUI(false);
         setVideoDuration(null);
+
+        // DELAYED LOADING UI: Only show the "Syncing" circle if it takes > 250ms
+        // This makes cached stories feel 100% instant without the flicker.
+        const timer = setTimeout(() => {
+            setIsMediaLoading(prev => {
+                if (prev) setShowLoadingUI(true);
+                return prev;
+            });
+        }, 250);
+
+        return () => clearTimeout(timer);
     }, [currentStory?.id]);
 
     useEffect(() => {
@@ -121,17 +134,24 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
                         </motion.div>
                     </AnimatePresence>
 
-                    {/* Neural Loading Spinner */}
-                    {isMediaLoading && (
-                        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm">
+                    {/* Neural Loading Spinner - Only shows if it takes too long */}
+                    <AnimatePresence>
+                        {showLoadingUI && isMediaLoading && (
                             <motion.div
-                                animate={{ rotate: 360 }}
-                                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                                className="w-12 h-12 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full"
-                            />
-                            <p className="text-emerald-500 text-[8px] uppercase tracking-[0.4em] font-bold mt-4 animate-pulse">Syncing Media</p>
-                        </div>
-                    )}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm"
+                            >
+                                <motion.div
+                                    animate={{ rotate: 360 }}
+                                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                    className="w-12 h-12 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full"
+                                />
+                                <p className="text-emerald-500 text-[8px] uppercase tracking-[0.4em] font-bold mt-4 animate-pulse">Syncing Media</p>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
 
                     {/* Overlays */}
                     <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80 pointer-events-none z-10" />
