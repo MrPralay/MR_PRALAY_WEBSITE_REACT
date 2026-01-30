@@ -44,18 +44,23 @@ const CreateStoryModal = ({ isOpen, onClose, onSubmit, user }) => {
 
         setIsSubmitting(true);
         try {
-            // Mock submission or pass to parent handler
-            await onSubmit({
+            const success = await onSubmit({
                 mediaUrl,
                 type,
                 rawFile: rawMedia
             });
-            onClose();
-            setStep(1);
-            setMediaUrl('');
-            setRawMedia(null);
+
+            if (success) {
+                onClose();
+                setStep(1);
+                setMediaUrl('');
+                setRawMedia(null);
+            } else {
+                alert("Neural link unstable: Upload failed. Check your connection or file size.");
+            }
         } catch (err) {
             console.error("Story Upload Error", err);
+            alert("Neural crash: " + err.message);
         } finally {
             setIsSubmitting(false);
         }

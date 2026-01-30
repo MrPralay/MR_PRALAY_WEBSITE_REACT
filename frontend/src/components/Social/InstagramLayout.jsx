@@ -179,27 +179,51 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
             let finalMediaUrl = storyData.mediaUrl;
 
             // Neural Core Storage Logic (Cloud Uplink)
+            // If file is present, we MUST try cloud upload to bypass worker limits
             if (storyData.rawFile) {
-                const uploadUrlRes = await fetch(`${apiUrl}/api/social/upload-url`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                    body: JSON.stringify({ fileName: storyData.rawFile.name, fileType: storyData.rawFile.type })
-                });
-
-                if (uploadUrlRes.ok) {
-                    const { uploadUrl, publicUrl } = await uploadUrlRes.json();
-                    const storageRes = await fetch(uploadUrl, {
-                        method: 'PUT',
-                        body: storyData.rawFile,
-                        headers: { 'Content-Type': storyData.rawFile.type }
+                try {
+                    const uploadUrlRes = await fetch(`${apiUrl}/api/social/upload-url`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...(token && { 'Authorization': `Bearer ${token}` })
+                        },
+                        body: JSON.stringify({ fileName: storyData.rawFile.name, fileType: storyData.rawFile.type })
                     });
-                    if (storageRes.ok) finalMediaUrl = publicUrl;
+
+                    if (uploadUrlRes.ok) {
+                        const { uploadUrl, publicUrl } = await uploadUrlRes.json();
+                        const storageRes = await fetch(uploadUrl, {
+                            method: 'PUT',
+                            body: storyData.rawFile,
+                            headers: { 'Content-Type': storyData.rawFile.type }
+                        });
+
+                        if (storageRes.ok) {
+                            finalMediaUrl = publicUrl;
+                        } else {
+                            console.error("Cloud Storage rejected binary broadcast");
+                            return false; // Fail early if binary upload rejected
+                        }
+                    } else {
+                        // If it's a large file and we can't get a signed URL, we must stop here
+                        if (storyData.rawFile.size > 800000) {
+                            console.error("Cloud Uplink rejected. File too large for direct broadcast.");
+                            return false;
+                        }
+                    }
+                } catch (err) {
+                    console.error("Cloud Uplink Connection Refused:", err);
+                    if (storyData.rawFile.size > 800000) return false;
                 }
             }
 
             const res = await fetch(`${apiUrl}/api/social/stories`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` })
+                },
                 body: JSON.stringify({ mediaUrl: finalMediaUrl, type: storyData.type })
             });
 
@@ -207,6 +231,8 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                 setRefreshTrigger(prev => prev + 1);
                 return true;
             }
+            const errData = await res.json();
+            console.error("Broadcast Rejected:", errData);
             return false;
         } catch (err) {
             console.error("Neural Story Broadcast Failure:", err);
