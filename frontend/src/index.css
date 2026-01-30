@@ -88,9 +88,9 @@
 
     .post-media-fix {
         width: 102% !important;
-        height: 140% !important;
+        height: 102% !important;
         margin-left: -1% !important;
-        margin-top: -20% !important;
+        margin-top: -1% !important;
 
         /* Persistent Hardware Acceleration */
         backface-visibility: hidden;
@@ -123,7 +123,7 @@
 
         /* Pan Up (Slower) */
         30% {
-            transform: scale(1) translate3d(0, -18%, 0);
+            transform: scale(1) translate3d(0, -5%, 0);
         }
 
         /* Return to Center (Slightly Faster) + Zoom In */
@@ -138,7 +138,7 @@
 
         /* Pan Down (Slower) */
         75% {
-            transform: scale(1) translate3d(0, 18%, 0);
+            transform: scale(1) translate3d(0, 5%, 0);
         }
 
         /* Return to Center (Slightly Faster) + Zoom In */
