@@ -2,6 +2,7 @@ import React from 'react';
 import { Plus, ChevronRight, MoreHorizontal } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import PostCard from './PostCard';
+import Cookies from 'js-cookie';
 
 const PostSkeleton = () => (
     <div className="relative bg-white/[0.02] border border-white/5 rounded-[2.5rem] overflow-hidden mb-12">
@@ -56,11 +57,109 @@ const PostSkeleton = () => (
     </div>
 );
 
-const FeedView = ({ posts, stories = [], onCreateClick, loading, onCinemaMode }) => {
+const StoriesSlider = ({ stories, onStoryClick, onUserProfileClick }) => {
+    const [startIndex, setStartIndex] = React.useState(0);
+    const visibleCount = 5;
+
+    const handleNext = () => {
+        setStartIndex(prev => {
+            const potentialNext = prev + 2;
+            const maxStart = Math.max(0, stories.length - visibleCount);
+            return Math.min(potentialNext, maxStart);
+        });
+    };
+
+    const handlePrev = () => {
+        setStartIndex(Math.max(0, startIndex - 2));
+    };
+
+    const hasMore = startIndex + visibleCount < stories.length;
+    const canGoBack = startIndex > 0;
+
+    const visibleStories = stories.slice(startIndex, startIndex + visibleCount);
+
+    const handleClick = (item) => {
+        // Check if item has active story or is just a user profile
+        if (item.hasStory && onStoryClick) {
+            onStoryClick(item);
+        } else if (!item.hasStory && onUserProfileClick) {
+            onUserProfileClick(item.user);
+        }
+    };
+
+    return (
+        <div className="flex items-center gap-6">
+            {canGoBack && (
+                <button onClick={handlePrev} className="p-1 -ml-4 z-10 bg-black/50 rounded-full text-white hover:scale-110 transition-transform">
+                    <ChevronRight size={16} className="rotate-180" />
+                </button>
+            )}
+
+            {visibleStories.map((item, i) => (
+                <div
+                    key={item.id || i}
+                    className={`flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer ${!item.hasStory ? 'opacity-70 hover:opacity-100 transition-opacity' : ''}`}
+                    onClick={() => handleClick(item)}
+                >
+                    <div className={`w-[78px] h-[78px] rounded-full p-[2px] ${item.hasStory ? 'bg-gradient-to-tr from-yellow-400 to-fuchsia-600' : 'border-2 border-gray-700'}`}>
+                        <img
+                            src={item.user?.profileImage || `https://picsum.photos/seed/${i}/100/100`}
+                            className={`w-full h-full rounded-full ${item.hasStory ? 'border-2 border-black' : 'grayscale'} object-cover`}
+                            alt="Story"
+                        />
+                    </div>
+                    <span className="text-[10px] text-gray-300 font-medium">{item.user?.username || 'User'}</span>
+                </div>
+            ))}
+
+            {hasMore && (
+                <button
+                    onClick={handleNext}
+                    className="flex flex-col items-center justify-center gap-2 flex-shrink-0 cursor-pointer group animate-pulse hover:animate-none"
+                >
+                    <div className="w-[50px] h-[50px] rounded-full border-2 border-white/20 flex items-center justify-center bg-white/5 group-hover:bg-white/10 transition-colors">
+                        <ChevronRight size={24} className="text-white group-hover:translate-x-1 transition-transform" />
+                    </div>
+                </button>
+            )}
+        </div>
+    );
+};
+
+const FeedView = ({ posts, stories = [], onCreateClick, loading, onCinemaMode, myStories = [], onStoryClick, onUserProfileClick }) => {
+    // Smart Fill Logic: Mix stories and user profiles to always show optimal content
+    const maxVisible = 5;
+    const combinedList = React.useMemo(() => {
+        if (stories.length === 0) {
+            // No stories at all: show max 10 user profiles
+            return Array(10).fill(null).map((_, i) => ({
+                id: `user-${i}`,
+                user: { username: `User ${i + 1}`, profileImage: `https://i.pravatar.cc/150?u=user_${i}` },
+                hasStory: false
+            }));
+        } else if (stories.length >= maxVisible) {
+            // 5+ stories: show only stories
+            return stories.map(story => ({ ...story, hasStory: true }));
+        } else {
+            // < 5 stories: fill remaining slots with user profiles
+            const remainingSlots = maxVisible - stories.length;
+            const userProfiles = Array(remainingSlots).fill(null).map((_, i) => ({
+                id: `user-${i}`,
+                user: { username: `User ${i + 1}`, profileImage: `https://i.pravatar.cc/150?u=user_${i}` },
+                hasStory: false
+            }));
+
+            return [
+                ...stories.map(story => ({ ...story, hasStory: true })),
+                ...userProfiles
+            ];
+        }
+    }, [stories]);
+
     return (
         <div className="flex-1 max-w-2xl mx-auto py-8 px-4">
             {/* Stories Section */}
-            <div className="mb-12">
+            <div className="mb-8">
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-white font-bold text-lg">Stories</h3>
                     <button className="text-gray-500 text-[10px] font-bold uppercase tracking-widest flex items-center gap-1 hover:text-white transition-colors">
@@ -68,45 +167,46 @@ const FeedView = ({ posts, stories = [], onCreateClick, loading, onCinemaMode })
                     </button>
                 </div>
                 <div className="flex gap-6 overflow-x-auto hide-scrollbar py-2">
-                    {/* Add Story Button */}
+                    {/* Add Story / My Story Button */}
                     <div
-                        onClick={onCreateClick}
-                        className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer group"
+                        onClick={myStories.length > 0 ? onStoryClick : onCreateClick}
+                        className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer group relative"
                     >
-                        <div className="w-16 h-16 rounded-full border-2 border-dashed border-gray-700 flex items-center justify-center group-hover:border-emerald-500 transition-colors">
-                            <Plus size={24} className="text-gray-500 group-hover:text-emerald-500 transition-colors" />
-                        </div>
-                        <span className="text-[10px] text-gray-500 font-medium">Add story</span>
+                        {myStories.length > 0 ? (
+                            <div className="w-[78px] h-[78px] rounded-full p-[2px] bg-gradient-to-tr from-yellow-400 to-fuchsia-600 relative">
+                                <img
+                                    src={myStories[myStories.length - 1].user?.profileImage || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg"}
+                                    className="w-full h-full rounded-full border-2 border-black object-cover"
+                                    alt="My Story"
+                                />
+                                <div
+                                    onClick={(e) => { e.stopPropagation(); onCreateClick(); }}
+                                    className="absolute bottom-0 right-0 translate-x-[10%] translate-y-[10%] bg-blue-500 rounded-full p-1 border-2 border-black z-10 hover:scale-110 transition-transform"
+                                >
+                                    <Plus size={14} className="text-white" />
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="relative w-[78px] h-[78px]">
+                                <img
+                                    src={Cookies.get('synapse_user_image') || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg"}
+                                    className="w-full h-full rounded-full border-2 border-white/10 object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+                                    alt="Add Story"
+                                />
+                                <div className="absolute bottom-0 right-1 bg-blue-500 rounded-full p-1 border-2 border-black">
+                                    <Plus size={16} className="text-white" />
+                                </div>
+                            </div>
+                        )}
+                        <span className="text-[10px] text-gray-500 font-medium">{myStories.length > 0 ? 'Your Story' : 'Add story'}</span>
                     </div>
 
-                    {/* Stories Mapping */}
-                    {stories.length > 0 ? (
-                        stories.map((story, i) => (
-                            <div key={i} className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer">
-                                <div className="story-ring p-[2px]">
-                                    <img
-                                        src={story.user?.profileImage || `https://picsum.photos/seed/user${i}/100/100`}
-                                        className="w-14 h-14 rounded-full border-2 border-black object-cover"
-                                        alt="Story"
-                                    />
-                                </div>
-                                <span className="text-[10px] text-gray-300 font-medium">{story.user?.username || 'User'}</span>
-                            </div>
-                        ))
-                    ) : (
-                        ['Pradana', 'Ben Schade', 'Shubha', 'Shea Lewis', 'Sumeet'].map((name, i) => (
-                            <div key={i} className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer">
-                                <div className="story-ring p-[2px]">
-                                    <img
-                                        src={`https://i.pravatar.cc/150?u=${name}`}
-                                        className="w-14 h-14 rounded-full border-2 border-black object-cover"
-                                        alt={name}
-                                    />
-                                </div>
-                                <span className="text-[10px] text-gray-300 font-medium">{name}</span>
-                            </div>
-                        ))
-                    )}
+                    {/* Smart Combined List: Stories + User Profiles */}
+                    <StoriesSlider
+                        stories={combinedList}
+                        onStoryClick={onStoryClick}
+                        onUserProfileClick={onUserProfileClick}
+                    />
                 </div>
             </div>
 

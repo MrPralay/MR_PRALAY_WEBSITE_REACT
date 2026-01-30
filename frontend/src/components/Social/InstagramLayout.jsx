@@ -5,6 +5,8 @@ import ProfileView from './ProfileView';
 import RightSidebar from './RightSidebar';
 import CreatePostModal from './CreatePostModal';
 import ReelsView from './ReelsView';
+import CreateStoryModal from './CreateStoryModal';
+import StoryViewer from './StoryViewer';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import Cookies from 'js-cookie';
@@ -18,6 +20,11 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const [cinemaPost, setCinemaPost] = useState(null);
     const backdropVideoRef = useRef(null);
+
+    // Story State
+    const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
+    const [viewingStory, setViewingStory] = useState(false); // Can be boolean or hold story data
+    const [myStories, setMyStories] = useState([]); // Local state for immediate feedback
 
     // Persist social tab to localStorage
     useEffect(() => {
@@ -143,6 +150,33 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
         }
     };
 
+    const handleStoryUpload = (storyData) => {
+        // In a real app, this would upload to backend.
+        // For now, we simulate adding to "My Stories"
+        const newStory = {
+            id: Date.now(),
+            mediaUrl: storyData.mediaUrl,
+            type: storyData.type,
+            user: currentUser,
+            createdAt: new Date()
+        };
+        setMyStories(prev => [...prev, newStory]);
+    };
+
+    const handleAddStoryClick = () => {
+        // ALWAYS open the creator when this is called (Badge / Empty Circle)
+        setIsStoryModalOpen(true);
+    };
+
+    const handleDeleteStory = (storyId) => {
+        setMyStories(prev => {
+            const updated = prev.filter(s => s.id !== storyId);
+            // Close viewer if no stories left
+            if (updated.length === 0) setViewingStory(false);
+            return updated;
+        });
+    };
+
     return (
         <div className="flex bg-[#050505] min-h-screen">
             {/* Left Sidebar */}
@@ -173,9 +207,27 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                         >
                             <FeedView
                                 posts={posts}
-                                onCreateClick={() => setIsPostModalOpen(true)}
+                                stories={[
+                                    { id: 101, user: { username: 'alex_f', profileImage: 'https://i.pravatar.cc/150?u=alex' } },
+                                    { id: 102, user: { username: 'sarah_j', profileImage: 'https://i.pravatar.cc/150?u=sarah' } },
+                                    { id: 103, user: { username: 'mike_t', profileImage: 'https://i.pravatar.cc/150?u=mike' } },
+                                    { id: 104, user: { username: 'emily_r', profileImage: 'https://i.pravatar.cc/150?u=emily' } },
+                                    { id: 105, user: { username: 'david_k', profileImage: 'https://i.pravatar.cc/150?u=david' } },
+                                    { id: 106, user: { username: 'lisa_m', profileImage: 'https://i.pravatar.cc/150?u=lisa' } },
+                                    { id: 107, user: { username: 'chris_p', profileImage: 'https://i.pravatar.cc/150?u=chris' } },
+                                    { id: 108, user: { username: 'anna_b', profileImage: 'https://i.pravatar.cc/150?u=anna' } },
+                                    { id: 109, user: { username: 'tom_h', profileImage: 'https://i.pravatar.cc/150?u=tom' } },
+                                    { id: 110, user: { username: 'jess_w', profileImage: 'https://i.pravatar.cc/150?u=jess' } }
+                                ]}
+                                onCreateClick={handleAddStoryClick}
                                 loading={loading}
                                 onCinemaMode={setCinemaPost}
+                                myStories={myStories}
+                                onStoryClick={() => setViewingStory(true)}
+                                onUserProfileClick={(user) => {
+                                    setUserProfile(user);
+                                    setView('profile');
+                                }}
                             />
                         </motion.div>
                     )}
@@ -235,6 +287,26 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                 onSubmit={handleCreatePost}
                 user={currentUser}
             />
+
+            {/* Create Story Modal */}
+            <CreateStoryModal
+                isOpen={isStoryModalOpen}
+                onClose={() => setIsStoryModalOpen(false)}
+                onSubmit={handleStoryUpload}
+                user={currentUser}
+            />
+
+            {/* Story Viewer Overlay */}
+            <AnimatePresence>
+                {viewingStory && (
+                    <StoryViewer
+                        stories={myStories}
+                        initialStoryIndex={0}
+                        onClose={() => setViewingStory(false)}
+                        onDelete={handleDeleteStory}
+                    />
+                )}
+            </AnimatePresence>
 
             {/* Neural Cinema Mode Overlay */}
             <AnimatePresence>
