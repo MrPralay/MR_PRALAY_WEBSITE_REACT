@@ -98,6 +98,9 @@
         transform: translate3d(0, 0, 0);
         will-change: transform;
 
+        /* Smooth Entry/Exit Glide */
+        transition: transform 1.2s cubic-bezier(0.33, 1, 0.68, 1);
+
         /* Sharpness & Anti-aliasing */
         image-rendering: -webkit-optimize-contrast;
         -webkit-font-smoothing: antialiased;
@@ -105,7 +108,47 @@
 
     /* Ensure GPU stays active during the hover zoom */
     .post-media-fix:hover {
-        transform: scale(1.05) translateZ(0) !important;
+        animation: cinematic-breath-pan 12s cubic-bezier(0.45, 0, 0.55, 1) infinite !important;
+    }
+
+    @keyframes cinematic-breath-pan {
+        0% {
+            transform: scale(1) translate3d(0, 0, 0);
+        }
+
+        /* Initial Zoom In/Out */
+        10% {
+            transform: scale(1.1) translate3d(0, 0, 0);
+        }
+
+        /* Pan Up (Slower) */
+        30% {
+            transform: scale(1) translate3d(0, -5%, 0);
+        }
+
+        /* Return to Center (Slightly Faster) + Zoom In */
+        45% {
+            transform: scale(1.1) translate3d(0, 0, 0);
+        }
+
+        /* Zoom Out */
+        55% {
+            transform: scale(1) translate3d(0, 0, 0);
+        }
+
+        /* Pan Down (Slower) */
+        75% {
+            transform: scale(1) translate3d(0, 5%, 0);
+        }
+
+        /* Return to Center (Slightly Faster) + Zoom In */
+        90% {
+            transform: scale(1.1) translate3d(0, 0, 0);
+        }
+
+        100% {
+            transform: scale(1) translate3d(0, 0, 0);
+        }
     }
 
     /* Sub-pixel Clipping Fix for the container */
