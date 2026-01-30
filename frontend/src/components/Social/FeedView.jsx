@@ -5,43 +5,35 @@ import PostCard from './PostCard';
 import Cookies from 'js-cookie';
 
 const PostSkeleton = () => (
-    <div className="relative bg-white/[0.02] border border-white/5 rounded-[2.5rem] overflow-hidden mb-12">
+    <div className="relative bg-white/[0.02] border border-white/5 rounded-[2.5rem] overflow-hidden mb-12 animate-pulse">
         <div className="flex items-center justify-between p-6 px-8">
             <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-white/5 animate-pulse" />
+                <div className="w-12 h-12 rounded-full bg-white/5" />
                 <div className="space-y-2">
-                    <div className="w-32 h-3 bg-white/5 rounded-full animate-pulse" />
-                    <div className="w-20 h-2 bg-white/5 rounded-full animate-pulse" />
+                    <div className="w-32 h-3 bg-white/5 rounded-full" />
+                    <div className="w-20 h-2 bg-white/5 rounded-full" />
                 </div>
             </div>
-            <div className="p-3 bg-white/5 rounded-2xl w-10 h-10 animate-pulse" />
+            <div className="p-3 bg-white/5 rounded-2xl w-10 h-10" />
         </div>
-        <div className="relative aspect-square md:aspect-[16/10] bg-black/40 overflow-hidden">
-            <motion.div
-                initial={{ x: '-100%' }}
-                animate={{ x: '100%' }}
-                transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.05] to-transparent"
-            />
-        </div>
+        <div className="relative aspect-square md:aspect-[16/10] bg-black/40 overflow-hidden" />
         <div className="p-8 px-10">
-            <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-8">
-                    {[1, 2, 3].map(i => (
-                        <div key={i} className="flex flex-col items-center gap-2">
-                            <div className="w-12 h-12 bg-white/5 rounded-[1.2rem] animate-pulse" />
-                            <div className="w-8 h-2 bg-white/5 rounded-full animate-pulse" />
-                        </div>
-                    ))}
-                </div>
-            </div>
-            <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                    <div className="w-20 h-3 bg-white/5 rounded-full animate-pulse" />
-                    <div className="flex-1 h-3 bg-white/5 rounded-full animate-pulse" />
-                </div>
+            <div className="flex items-center gap-8 mb-8">
+                {[1, 2, 3].map(i => (
+                    <div key={i} className="flex flex-col items-center gap-2">
+                        <div className="w-12 h-12 bg-white/5 rounded-[1.2rem]" />
+                        <div className="w-8 h-2 bg-white/5 rounded-full" />
+                    </div>
+                ))}
             </div>
         </div>
+    </div>
+);
+
+const StoryCircleSkeleton = () => (
+    <div className="flex flex-col items-center gap-2 flex-shrink-0 animate-pulse">
+        <div className="w-[78px] h-[78px] rounded-full bg-white/5 border-2 border-white/5" />
+        <div className="w-12 h-2 bg-white/5 rounded-full" />
     </div>
 );
 
@@ -118,10 +110,7 @@ const FeedView = ({ posts, stories = [], suggestedUsers = [], onCreateClick, loa
     const maxVisible = 5;
 
     const combinedList = React.useMemo(() => {
-        // Filter out my own stories
         const otherStories = stories.filter(s => !myStories.find(ms => ms.id === s.id));
-
-        // Group by user so only one circle appears per person
         const userMap = new Map();
         otherStories.forEach(story => {
             if (!userMap.has(story.userId)) {
@@ -161,44 +150,56 @@ const FeedView = ({ posts, stories = [], suggestedUsers = [], onCreateClick, loa
                     </button>
                 </div>
                 <div className="flex gap-6 overflow-x-auto hide-scrollbar py-2 items-center">
-                    <div
-                        onClick={myStories.length > 0 ? onMyStoryClick : onCreateClick}
-                        className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer group relative"
-                    >
-                        {myStories.length > 0 ? (
-                            <div className="w-[78px] h-[78px] rounded-full p-[2px] bg-gradient-to-tr from-yellow-400 to-fuchsia-600 relative">
-                                <img
-                                    src={myStories[myStories.length - 1].user?.profileImage || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg"}
-                                    className="w-full h-full rounded-full border-2 border-black object-cover"
-                                    alt="My Story"
-                                />
-                                <div
-                                    onClick={(e) => { e.stopPropagation(); onCreateClick(); }}
-                                    className="absolute bottom-0 right-0 translate-x-[10%] translate-y-[10%] bg-blue-500 rounded-full p-1 border-2 border-black z-10 hover:scale-110 transition-transform"
-                                >
-                                    <Plus size={14} className="text-white" />
-                                </div>
+                    {loading ? (
+                        <>
+                            <div className="flex flex-col items-center gap-2 flex-shrink-0 animate-pulse">
+                                <div className="w-[78px] h-[78px] rounded-full bg-white/5 border-2 border-white/5" />
+                                <div className="w-12 h-2 bg-white/5 rounded-full" />
                             </div>
-                        ) : (
-                            <div className="relative w-[78px] h-[78px]">
-                                <img
-                                    src={Cookies.get('synapse_user_image') || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg"}
-                                    className="w-full h-full rounded-full border-2 border-white/10 object-cover opacity-80 group-hover:opacity-100 transition-opacity"
-                                    alt="Add Story"
-                                />
-                                <div className="absolute bottom-0 right-1 bg-blue-500 rounded-full p-1 border-2 border-black">
-                                    <Plus size={16} className="text-white" />
-                                </div>
+                            {[1, 2, 3, 4].map(i => <StoryCircleSkeleton key={i} />)}
+                        </>
+                    ) : (
+                        <>
+                            <div
+                                onClick={myStories.length > 0 ? onMyStoryClick : onCreateClick}
+                                className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer group relative"
+                            >
+                                {myStories.length > 0 ? (
+                                    <div className="w-[78px] h-[78px] rounded-full p-[2px] bg-gradient-to-tr from-yellow-400 to-fuchsia-600 relative">
+                                        <img
+                                            src={myStories[myStories.length - 1].user?.profileImage || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg"}
+                                            className="w-full h-full rounded-full border-2 border-black object-cover"
+                                            alt="My Story"
+                                        />
+                                        <div
+                                            onClick={(e) => { e.stopPropagation(); onCreateClick(); }}
+                                            className="absolute bottom-0 right-0 translate-x-[10%] translate-y-[10%] bg-blue-500 rounded-full p-1 border-2 border-black z-10 hover:scale-110 transition-transform"
+                                        >
+                                            <Plus size={14} className="text-white" />
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="relative w-[78px] h-[78px]">
+                                        <img
+                                            src={Cookies.get('synapse_user_image') || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg"}
+                                            className="w-full h-full rounded-full border-2 border-white/10 object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+                                            alt="Add Story"
+                                        />
+                                        <div className="absolute bottom-0 right-1 bg-blue-500 rounded-full p-1 border-2 border-black">
+                                            <Plus size={16} className="text-white" />
+                                        </div>
+                                    </div>
+                                )}
+                                <span className="text-[10px] text-gray-500 font-medium">{myStories.length > 0 ? 'Your Story' : 'Add story'}</span>
                             </div>
-                        )}
-                        <span className="text-[10px] text-gray-500 font-medium">{myStories.length > 0 ? 'Your Story' : 'Add story'}</span>
-                    </div>
 
-                    <StoriesSlider
-                        stories={combinedList}
-                        onStoryClick={onStoryClick}
-                        onUserProfileClick={onUserProfileClick}
-                    />
+                            <StoriesSlider
+                                stories={combinedList}
+                                onStoryClick={onStoryClick}
+                                onUserProfileClick={onUserProfileClick}
+                            />
+                        </>
+                    )}
                 </div>
             </div>
 

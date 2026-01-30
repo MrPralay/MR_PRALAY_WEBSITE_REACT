@@ -217,14 +217,34 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
-                                className="absolute inset-0 z-50 flex flex-col items-center justify-center backdrop-blur-2xl bg-black/20"
+                                className="absolute inset-0 z-50 flex flex-col items-center justify-center backdrop-blur-2xl bg-black/40"
                             >
-                                <motion.div
-                                    animate={{ rotate: 360 }}
-                                    transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
-                                    className="w-10 h-10 border-2 border-white/20 border-t-white rounded-full"
-                                />
-                                <p className="text-white text-[7px] uppercase tracking-[0.4em] font-bold mt-4 animate-pulse">Neural Sync</p>
+                                {/* Header Skeleton */}
+                                <div className="absolute top-8 left-4 right-4 flex items-center justify-between pointer-events-none">
+                                    <div className="flex items-center gap-3 animate-pulse">
+                                        <div className="w-8 h-8 rounded-full bg-white/10" />
+                                        <div className="space-y-2">
+                                            <div className="w-20 h-2 bg-white/10 rounded-full" />
+                                            <div className="w-10 h-1.5 bg-white/10 rounded-full" />
+                                        </div>
+                                    </div>
+                                    <div className="w-6 h-6 rounded-full bg-white/10 animate-pulse" />
+                                </div>
+
+                                {/* Main Sync UI */}
+                                <div className="flex flex-col items-center justify-center">
+                                    <motion.div
+                                        animate={{ rotate: 360 }}
+                                        transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
+                                        className="w-10 h-10 border-2 border-white/10 border-t-white rounded-full mb-4 shadow-[0_0_15px_rgba(255,255,255,0.2)]"
+                                    />
+                                    <p className="text-white text-[7px] uppercase tracking-[0.4em] font-bold opacity-40 animate-pulse">Neural Sync</p>
+                                </div>
+
+                                {/* Footer Skeleton */}
+                                <div className="absolute bottom-8 left-4 right-4 animate-pulse pointer-events-none">
+                                    <div className="w-full h-12 rounded-full border border-white/10 bg-white/5" />
+                                </div>
                             </motion.div>
                         )}
                     </AnimatePresence>
