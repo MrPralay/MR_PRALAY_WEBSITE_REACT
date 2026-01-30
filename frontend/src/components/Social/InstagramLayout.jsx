@@ -23,8 +23,10 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
 
     // Story State
     const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
-    const [viewingStory, setViewingStory] = useState(false); // Can be boolean or hold story data
-    const [myStories, setMyStories] = useState([]); // Local state for immediate feedback
+    const [viewingStory, setViewingStory] = useState(false);
+    const [allStories, setAllStories] = useState([]);
+    const [suggestedUsers, setSuggestedUsers] = useState([]);
+    const [myStories, setMyStories] = useState([]);
 
     // Persist social tab to localStorage
     useEffect(() => {
@@ -54,8 +56,28 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                     const res = await fetch(`${apiUrl}/api/social/feed`, fetchOptions);
                     const data = await res.json();
                     if (active) setPosts(Array.isArray(data) ? data : []);
+
+                    // ALSO FETCH STORIES FOR FEED
+                    if (view === 'feed') {
+                        const storyRes = await fetch(`${apiUrl}/api/social/stories`, fetchOptions);
+                        const storyData = await storyRes.json();
+                        if (active && storyData.success) {
+                            setAllStories(storyData.data);
+                            // Set current user's stories for the "My Story" button
+                            const mine = storyData.data.filter(s => s.userId === currentUser.id || s.userId === currentUser.userId);
+                            setMyStories(mine);
+                        }
+
+                        // FETCH SUGGESTED USERS (for empty states)
+                        const userRes = await fetch(`${apiUrl}/api/user/suggested?limit=10`, fetchOptions);
+                        const userData = await userRes.json();
+                        if (active && userData.success) {
+                            setSuggestedUsers(userData.data);
+                        }
+                    }
                 } else if (view === 'profile') {
-                    const res = await fetch(`${apiUrl}/api/user/profile/${encodeURIComponent(currentUser.username)}`, fetchOptions);
+                    const profileToFetch = userProfile?.username || currentUser.username;
+                    const res = await fetch(`${apiUrl}/api/user/profile/${encodeURIComponent(profileToFetch)}`, fetchOptions);
                     const data = await res.json();
                     const profileData = data.data || data;
                     if (active) {
@@ -150,31 +172,77 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
         }
     };
 
-    const handleStoryUpload = (storyData) => {
-        // In a real app, this would upload to backend.
-        // For now, we simulate adding to "My Stories"
-        const newStory = {
-            id: Date.now(),
-            mediaUrl: storyData.mediaUrl,
-            type: storyData.type,
-            user: currentUser,
-            createdAt: new Date()
-        };
-        setMyStories(prev => [...prev, newStory]);
+    const handleStoryUpload = async (storyData) => {
+        try {
+            const apiUrl = "https://synapse-backend.pralayd140.workers.dev";
+            const token = Cookies.get('synapse_token');
+            let finalMediaUrl = storyData.mediaUrl;
+
+            // Neural Core Storage Logic (Cloud Uplink)
+            if (storyData.rawFile) {
+                const uploadUrlRes = await fetch(`${apiUrl}/api/social/upload-url`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ fileName: storyData.rawFile.name, fileType: storyData.rawFile.type })
+                });
+
+                if (uploadUrlRes.ok) {
+                    const { uploadUrl, publicUrl } = await uploadUrlRes.json();
+                    const storageRes = await fetch(uploadUrl, {
+                        method: 'PUT',
+                        body: storyData.rawFile,
+                        headers: { 'Content-Type': storyData.rawFile.type }
+                    });
+                    if (storageRes.ok) finalMediaUrl = publicUrl;
+                }
+            }
+
+            const res = await fetch(`${apiUrl}/api/social/stories`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ mediaUrl: finalMediaUrl, type: storyData.type })
+            });
+
+            if (res.ok) {
+                setRefreshTrigger(prev => prev + 1);
+                return true;
+            }
+            return false;
+        } catch (err) {
+            console.error("Neural Story Broadcast Failure:", err);
+            return false;
+        }
     };
 
     const handleAddStoryClick = () => {
-        // ALWAYS open the creator when this is called (Badge / Empty Circle)
         setIsStoryModalOpen(true);
     };
 
-    const handleDeleteStory = (storyId) => {
-        setMyStories(prev => {
-            const updated = prev.filter(s => s.id !== storyId);
-            // Close viewer if no stories left
-            if (updated.length === 0) setViewingStory(false);
-            return updated;
-        });
+    const handleMyStoryClick = () => {
+        if (myStories.length > 0) {
+            setViewingStory(myStories);
+        } else {
+            setIsStoryModalOpen(true);
+        }
+    };
+
+    const handleDeleteStory = async (storyId) => {
+        try {
+            const apiUrl = "https://synapse-backend.pralayd140.workers.dev";
+            const token = Cookies.get('synapse_token');
+            const res = await fetch(`${apiUrl}/api/social/stories/${storyId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (res.ok) {
+                setRefreshTrigger(prev => prev + 1);
+                return true;
+            }
+        } catch (err) {
+            console.error("Story Termination Failed:", err);
+        }
+        return false;
     };
 
     return (
@@ -207,23 +275,18 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                         >
                             <FeedView
                                 posts={posts}
-                                stories={[
-                                    { id: 101, user: { username: 'alex_f', profileImage: 'https://i.pravatar.cc/150?u=alex' } },
-                                    { id: 102, user: { username: 'sarah_j', profileImage: 'https://i.pravatar.cc/150?u=sarah' } },
-                                    { id: 103, user: { username: 'mike_t', profileImage: 'https://i.pravatar.cc/150?u=mike' } },
-                                    { id: 104, user: { username: 'emily_r', profileImage: 'https://i.pravatar.cc/150?u=emily' } },
-                                    { id: 105, user: { username: 'david_k', profileImage: 'https://i.pravatar.cc/150?u=david' } },
-                                    { id: 106, user: { username: 'lisa_m', profileImage: 'https://i.pravatar.cc/150?u=lisa' } },
-                                    { id: 107, user: { username: 'chris_p', profileImage: 'https://i.pravatar.cc/150?u=chris' } },
-                                    { id: 108, user: { username: 'anna_b', profileImage: 'https://i.pravatar.cc/150?u=anna' } },
-                                    { id: 109, user: { username: 'tom_h', profileImage: 'https://i.pravatar.cc/150?u=tom' } },
-                                    { id: 110, user: { username: 'jess_w', profileImage: 'https://i.pravatar.cc/150?u=jess' } }
-                                ]}
+                                stories={allStories}
+                                suggestedUsers={suggestedUsers}
                                 onCreateClick={handleAddStoryClick}
                                 loading={loading}
                                 onCinemaMode={setCinemaPost}
                                 myStories={myStories}
-                                onStoryClick={() => setViewingStory(true)}
+                                onMyStoryClick={handleMyStoryClick}
+                                onStoryClick={(item) => {
+                                    // Group stories by user and show all stories of the clicked user
+                                    const userStories = allStories.filter(s => s.userId === item.userId);
+                                    setViewingStory(userStories);
+                                }}
                                 onUserProfileClick={(user) => {
                                     setUserProfile(user);
                                     setView('profile');
@@ -298,9 +361,9 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
 
             {/* Story Viewer Overlay */}
             <AnimatePresence>
-                {viewingStory && (
+                {viewingStory && Array.isArray(viewingStory) && viewingStory.length > 0 && (
                     <StoryViewer
-                        stories={myStories}
+                        stories={viewingStory}
                         initialStoryIndex={0}
                         onClose={() => setViewingStory(false)}
                         onDelete={handleDeleteStory}

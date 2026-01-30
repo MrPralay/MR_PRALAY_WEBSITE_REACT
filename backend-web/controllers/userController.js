@@ -100,3 +100,26 @@ export const updateProfile = async (c) => {
         return c.json({ success: false, error: "Neural recalibration failed" }, 500);
     }
 };
+
+export const getSuggestedUsers = async (c) => {
+    try {
+        const prisma = getPrisma(c.env.DATABASE_URL);
+        const limit = parseInt(c.req.query('limit')) || 10;
+
+        // Fetch users for the story bar (suggested users)
+        const users = await prisma.user.findMany({
+            take: limit,
+            select: {
+                id: true,
+                username: true,
+                profileImage: true
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        return c.json({ success: true, data: users });
+    } catch (error) {
+        console.error("Suggested Users Error:", error);
+        return c.json({ success: false, error: "Failed to fetch user signatures" }, 500);
+    }
+};

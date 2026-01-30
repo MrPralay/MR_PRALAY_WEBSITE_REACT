@@ -63,14 +63,15 @@ const StoriesSlider = ({ stories, onStoryClick, onUserProfileClick }) => {
 
     const handleNext = () => {
         setStartIndex(prev => {
-            const potentialNext = prev + 2;
+            const remainingRight = stories.length - (prev + visibleCount);
+            const shift = remainingRight === 1 ? 1 : 2;
             const maxStart = Math.max(0, stories.length - visibleCount);
-            return Math.min(potentialNext, maxStart);
+            return Math.min(prev + shift, maxStart);
         });
     };
 
     const handlePrev = () => {
-        setStartIndex(Math.max(0, startIndex - 2));
+        setStartIndex(prev => Math.max(0, prev - 2));
     };
 
     const hasMore = startIndex + visibleCount < stories.length;
@@ -95,22 +96,29 @@ const StoriesSlider = ({ stories, onStoryClick, onUserProfileClick }) => {
                 </button>
             )}
 
-            {visibleStories.map((item, i) => (
-                <div
-                    key={item.id || i}
-                    className={`flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer ${!item.hasStory ? 'opacity-70 hover:opacity-100 transition-opacity' : ''}`}
-                    onClick={() => handleClick(item)}
-                >
-                    <div className={`w-[78px] h-[78px] rounded-full p-[2px] ${item.hasStory ? 'bg-gradient-to-tr from-yellow-400 to-fuchsia-600' : 'border-2 border-gray-700'}`}>
-                        <img
-                            src={item.user?.profileImage || `https://picsum.photos/seed/${i}/100/100`}
-                            className={`w-full h-full rounded-full ${item.hasStory ? 'border-2 border-black' : 'grayscale'} object-cover`}
-                            alt="Story"
-                        />
-                    </div>
-                    <span className="text-[10px] text-gray-300 font-medium">{item.user?.username || 'User'}</span>
-                </div>
-            ))}
+            <AnimatePresence mode="popLayout">
+                {visibleStories.map((item, i) => (
+                    <motion.div
+                        key={item.id || item.user?.username || i}
+                        layout
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                        className={`flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer ${!item.hasStory ? 'opacity-70 hover:opacity-100 transition-opacity' : ''}`}
+                        onClick={() => handleClick(item)}
+                    >
+                        <div className={`w-[78px] h-[78px] rounded-full p-[2px] ${item.hasStory ? 'bg-gradient-to-tr from-yellow-400 to-fuchsia-600' : 'border-2 border-gray-700'}`}>
+                            <img
+                                src={item.user?.profileImage || `https://i.pravatar.cc/150?u=${item.user?.username || i}`}
+                                className={`w-full h-full rounded-full ${item.hasStory ? 'border-2 border-black' : 'grayscale'} object-cover`}
+                                alt="Story"
+                            />
+                        </div>
+                        <span className="text-[10px] text-gray-300 font-medium truncate w-[78px] text-center">{item.user?.username || 'User'}</span>
+                    </motion.div>
+                ))}
+            </AnimatePresence>
 
             {hasMore && (
                 <button
@@ -126,35 +134,43 @@ const StoriesSlider = ({ stories, onStoryClick, onUserProfileClick }) => {
     );
 };
 
-const FeedView = ({ posts, stories = [], onCreateClick, loading, onCinemaMode, myStories = [], onStoryClick, onUserProfileClick }) => {
+const FeedView = ({ posts, stories = [], suggestedUsers = [], onCreateClick, loading, onCinemaMode, myStories = [], onStoryClick, onUserProfileClick, onMyStoryClick }) => {
     // Smart Fill Logic: Mix stories and user profiles to always show optimal content
     const maxVisible = 5;
     const combinedList = React.useMemo(() => {
-        if (stories.length === 0) {
-            // No stories at all: show max 10 user profiles
-            return Array(10).fill(null).map((_, i) => ({
-                id: `user-${i}`,
-                user: { username: `User ${i + 1}`, profileImage: `https://i.pravatar.cc/150?u=user_${i}` },
+        // Filter out my own stories from the global list to avoid duplication if needed, 
+        // but typically Instagram shows them separately or first. 
+        // Here we keep them separate as 'myStories' is handled outside the slider.
+        const otherStories = stories.filter(s => !myStories.find(ms => ms.id === s.id));
+
+        if (otherStories.length === 0) {
+            // No stories at all: show suggested users
+            return suggestedUsers.map(user => ({
+                id: `user-${user.id}`,
+                user: user,
                 hasStory: false
             }));
-        } else if (stories.length >= maxVisible) {
+        } else if (otherStories.length >= maxVisible) {
             // 5+ stories: show only stories
-            return stories.map(story => ({ ...story, hasStory: true }));
+            return otherStories.map(story => ({ ...story, hasStory: true }));
         } else {
-            // < 5 stories: fill remaining slots with user profiles
-            const remainingSlots = maxVisible - stories.length;
-            const userProfiles = Array(remainingSlots).fill(null).map((_, i) => ({
-                id: `user-${i}`,
-                user: { username: `User ${i + 1}`, profileImage: `https://i.pravatar.cc/150?u=user_${i}` },
+            // < 5 stories: fill remaining slots with suggested users who don't have stories
+            const storyUserIds = new Set(otherStories.map(s => s.userId));
+            const filteredSuggested = suggestedUsers.filter(u => !storyUserIds.has(u.id));
+
+            const remainingSlots = maxVisible - otherStories.length;
+            const fillingProfiles = filteredSuggested.slice(0, remainingSlots).map(user => ({
+                id: `user-${user.id}`,
+                user: user,
                 hasStory: false
             }));
 
             return [
-                ...stories.map(story => ({ ...story, hasStory: true })),
-                ...userProfiles
+                ...otherStories.map(story => ({ ...story, hasStory: true })),
+                ...fillingProfiles
             ];
         }
-    }, [stories]);
+    }, [stories, suggestedUsers, myStories]);
 
     return (
         <div className="flex-1 max-w-2xl mx-auto py-8 px-4">
@@ -169,7 +185,7 @@ const FeedView = ({ posts, stories = [], onCreateClick, loading, onCinemaMode, m
                 <div className="flex gap-6 overflow-x-auto hide-scrollbar py-2">
                     {/* Add Story / My Story Button */}
                     <div
-                        onClick={myStories.length > 0 ? onStoryClick : onCreateClick}
+                        onClick={myStories.length > 0 ? onMyStoryClick : onCreateClick}
                         className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer group relative"
                     >
                         {myStories.length > 0 ? (

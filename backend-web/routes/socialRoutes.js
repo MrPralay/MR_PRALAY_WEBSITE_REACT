@@ -6,7 +6,10 @@ import {
     toggleLike,
     addComment,
     toggleSave,
-    getComments
+    getComments,
+    getStories,
+    createStory,
+    deleteStory
 } from '../controllers/socialController.js';
 import authenticateToken from '../middleware/authMiddleware.js';
 
@@ -22,5 +25,10 @@ social.post('/posts/:id/like', authenticateToken, toggleLike);
 social.post('/posts/:id/comment', authenticateToken, addComment);
 social.get('/posts/:id/comments', getComments);
 social.post('/posts/:id/save', authenticateToken, toggleSave);
+
+// Story System
+social.get('/stories', getStories);
+social.post('/stories', authenticateToken, createStory);
+social.delete('/stories/:id', authenticateToken, deleteStory);
 
 export default social;

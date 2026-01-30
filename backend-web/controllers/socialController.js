@@ -240,3 +240,88 @@ export const getComments = async (c) => {
         return c.json({ success: false, error: "Comment retrieval failed" }, 500);
     }
 };
+
+export const getStories = async (c) => {
+    try {
+        const prisma = getPrisma(c.env.DATABASE_URL);
+        const now = new Date();
+
+        // Fetch stories that haven't expired
+        const stories = await prisma.story.findMany({
+            where: {
+                expiresAt: { gt: now }
+            },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        username: true,
+                        profileImage: true
+                    }
+                }
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        return c.json({ success: true, data: stories });
+    } catch (error) {
+        console.error("Story Retrieval Error:", error);
+        return c.json({ success: false, error: "Failed to fetch stories" }, 500);
+    }
+};
+
+export const createStory = async (c) => {
+    try {
+        const { mediaUrl, type } = await c.req.json();
+        const user = c.get('user');
+        const prisma = getPrisma(c.env.DATABASE_URL);
+
+        if (!mediaUrl) return c.json({ success: false, error: "Media resource required" }, 400);
+
+        // Story expires in 24 hours
+        const expiresAt = new Date();
+        expiresAt.setHours(expiresAt.getHours() + 24);
+
+        const story = await prisma.story.create({
+            data: {
+                mediaUrl,
+                type: type || 'IMAGE',
+                userId: user.userId,
+                expiresAt
+            },
+            include: {
+                user: {
+                    select: { id: true, username: true, profileImage: true }
+                }
+            }
+        });
+
+        return c.json({ success: true, data: story }, 201);
+    } catch (error) {
+        console.error("Story Creation Error:", error);
+        return c.json({ success: false, error: "Failed to broadcast story" }, 500);
+    }
+};
+
+export const deleteStory = async (c) => {
+    try {
+        const storyId = parseInt(c.req.param('id'));
+        const user = c.get('user');
+        const prisma = getPrisma(c.env.DATABASE_URL);
+
+        const story = await prisma.story.findUnique({
+            where: { id: storyId }
+        });
+
+        if (!story) return c.json({ success: false, error: "Story not found" }, 404);
+        if (story.userId !== user.userId) return c.json({ success: false, error: "Unauthorized" }, 412);
+
+        await prisma.story.delete({
+            where: { id: storyId }
+        });
+
+        return c.json({ success: true, message: "Story terminated" });
+    } catch (error) {
+        return c.json({ success: false, error: "Termination failed" }, 500);
+    }
+};
