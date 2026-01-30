@@ -13,6 +13,7 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
     const [isMediaLoading, setIsMediaLoading] = useState(true);
     const [showLoadingUI, setShowLoadingUI] = useState(false);
     const [isFirstStoryLoad, setIsFirstStoryLoad] = useState(true);
+    const [retryKey, setRetryKey] = useState(0);
     const videoRef = useRef(null);
 
     // Mock multiple stories if only one provided, for the 3-bar UI requirement
@@ -60,6 +61,19 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
             setIsFirstStoryLoad(false);
         }
     }, [isMediaLoading, isFirstStoryLoad]);
+    // Neural Re-Link Logic: Auto-retry when connection restored
+    useEffect(() => {
+        const handleOnline = () => {
+            if (isMediaLoading) {
+                console.log("Neural Link Restored. Re-syncing media...");
+                setRetryKey(prev => prev + 1); // Triggers a re-assignment of src to force reload
+                if (videoRef.current) videoRef.current.load();
+            }
+        };
+        window.addEventListener('online', handleOnline);
+        return () => window.removeEventListener('online', handleOnline);
+    }, [isMediaLoading]);
+
 
     // Unified Progress & Buffering Logic
     useEffect(() => {
@@ -143,6 +157,7 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
                             {currentStory?.type === 'VIDEO' ? (
                                 <video
                                     ref={videoRef}
+                                    key={`video-${currentStory.id}-${retryKey}`}
                                     src={currentStory.mediaUrl}
                                     className={`w-full h-full object-cover transition-opacity duration-200 ${isMediaLoading ? 'opacity-0' : 'opacity-100'}`}
                                     autoPlay
@@ -153,13 +168,21 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
                                     onCanPlayThrough={() => setIsMediaLoading(false)}
                                     onWaiting={() => setIsMediaLoading(true)}
                                     onPlaying={() => setIsMediaLoading(false)}
+                                    onError={() => {
+                                        // If net is off, wait for online event. If net is on, retry once.
+                                        if (navigator.onLine) setTimeout(() => setRetryKey(k => k + 1), 2000);
+                                    }}
                                 />
                             ) : (
                                 <img
+                                    key={`img-${currentStory.id}-${retryKey}`}
                                     src={currentStory.mediaUrl}
                                     className={`w-full h-full object-cover transition-opacity duration-200 ${isMediaLoading ? 'opacity-0' : 'opacity-100'}`}
                                     alt="Story"
                                     onLoad={() => setIsMediaLoading(false)}
+                                    onError={() => {
+                                        if (navigator.onLine) setTimeout(() => setRetryKey(k => k + 1), 2000);
+                                    }}
                                 />
                             )}
                         </motion.div>
