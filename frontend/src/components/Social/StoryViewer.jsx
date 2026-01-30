@@ -15,6 +15,7 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
     const [isFirstStoryLoad, setIsFirstStoryLoad] = useState(true);
     const [retryKey, setRetryKey] = useState(0);
     const videoRef = useRef(null);
+    const imgRef = useRef(null);
 
     // Mock multiple stories if only one provided, for the 3-bar UI requirement
     const activeStories = stories?.length > 0 ? stories : [
@@ -42,9 +43,6 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
         setShowLoadingUI(false);
         setVideoDuration(null);
 
-        // SMART SYNC UI: 100ms threshold.
-        // If media is cached (instant), no loader appears. 
-        // If it takes even a few frames to load, the emerald ring replaces the black screen.
         const timer = setTimeout(() => {
             setIsMediaLoading(prev => {
                 if (prev) setShowLoadingUI(true);
@@ -52,7 +50,13 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
             });
         }, 100);
 
-        return () => clearTimeout(timer);
+        // SAFETY OVERRIDE: If story is stuck for 5s, force clear the loader
+        const safetyTimeout = setTimeout(() => setIsMediaLoading(false), 5000);
+
+        return () => {
+            clearTimeout(timer);
+            clearTimeout(safetyTimeout);
+        };
     }, [currentStory?.id, isFirstStoryLoad]);
 
     // Handle initial load completion
@@ -61,12 +65,12 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
             setIsFirstStoryLoad(false);
         }
     }, [isMediaLoading, isFirstStoryLoad]);
+
     // Neural Re-Link Logic: Auto-retry when connection restored
     useEffect(() => {
         const handleOnline = () => {
             if (isMediaLoading) {
-                console.log("Neural Link Restored. Re-syncing media...");
-                setRetryKey(prev => prev + 1); // Triggers a re-assignment of src to force reload
+                setRetryKey(prev => prev + 1);
                 if (videoRef.current) videoRef.current.load();
             }
         };
@@ -74,22 +78,18 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
         return () => window.removeEventListener('online', handleOnline);
     }, [isMediaLoading]);
 
-
     // Neural Cache Check: Instant detection for pre-fetched media
     useEffect(() => {
         if (!currentStory) return;
 
         const checkLoadingStatus = () => {
-            if (currentStory.type === 'IMAGE') {
-                const img = new Image();
-                img.src = currentStory.mediaUrl;
-                if (img.complete) setIsMediaLoading(false);
+            if (currentStory.type === 'IMAGE' && imgRef.current) {
+                if (imgRef.current.complete) setIsMediaLoading(false);
             } else if (currentStory.type === 'VIDEO' && videoRef.current) {
                 if (videoRef.current.readyState >= 3) setIsMediaLoading(false);
             }
         };
 
-        // Check immediately and then after a tiny delay to catch fast loads
         checkLoadingStatus();
         const t = setTimeout(checkLoadingStatus, 50);
         return () => clearTimeout(t);
@@ -186,7 +186,7 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
                                     playsInline
                                     onLoadedMetadata={(e) => setVideoDuration(e.target.duration * 1000)}
                                     onLoadedData={() => setIsMediaLoading(false)}
-                                    onCanPlayThrough={() => setIsMediaLoading(false)}
+                                    onCanPlay={() => setIsMediaLoading(false)}
                                     onWaiting={() => setIsMediaLoading(true)}
                                     onPlaying={() => setIsMediaLoading(false)}
                                     onError={() => {
@@ -196,6 +196,7 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
                                 />
                             ) : (
                                 <img
+                                    ref={imgRef}
                                     key={`img-${currentStory.id}-${retryKey}`}
                                     src={currentStory.mediaUrl}
                                     className={`w-full h-full object-cover transition-opacity duration-200 ${isMediaLoading ? 'opacity-0' : 'opacity-100'}`}
