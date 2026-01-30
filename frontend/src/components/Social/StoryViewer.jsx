@@ -12,6 +12,7 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
     const [isMuted, setIsMuted] = useState(false);
     const [isMediaLoading, setIsMediaLoading] = useState(true);
     const [showLoadingUI, setShowLoadingUI] = useState(false);
+    const [isFirstStoryLoad, setIsFirstStoryLoad] = useState(true);
     const videoRef = useRef(null);
 
     // Mock multiple stories if only one provided, for the 3-bar UI requirement
@@ -40,39 +41,67 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
         setShowLoadingUI(false);
         setVideoDuration(null);
 
-        // NEURAL STUCK DETECTION: Only show a subtle indicator if it takes > 2 seconds.
-        // This ensures the experience feels instant for 99% of loads.
+        // SMART SYNC UI: 100ms threshold.
+        // If media is cached (instant), no loader appears. 
+        // If it takes even a few frames to load, the emerald ring replaces the black screen.
         const timer = setTimeout(() => {
             setIsMediaLoading(prev => {
                 if (prev) setShowLoadingUI(true);
                 return prev;
             });
-        }, 1500);
+        }, 100);
 
         return () => clearTimeout(timer);
-    }, [currentStory?.id]);
+    }, [currentStory?.id, isFirstStoryLoad]);
 
+    // Handle initial load completion
     useEffect(() => {
-        if (isPaused || isMediaLoading) return; // Wait for media to keep progress accurate
+        if (!isMediaLoading && isFirstStoryLoad) {
+            setIsFirstStoryLoad(false);
+        }
+    }, [isMediaLoading, isFirstStoryLoad]);
 
-        // Auto-advance logic
-        const interval = setInterval(() => {
-            setProgress((prev) => {
-                if (prev >= 100) {
-                    if (currentIndex < activeStories.length - 1) {
-                        setCurrentIndex(c => c + 1);
-                        return 0;
-                    } else {
-                        onClose();
-                        return 100;
+    // Unified Progress & Buffering Logic
+    useEffect(() => {
+        if (isPaused || isMediaLoading) {
+            if (currentStory?.type === 'VIDEO' && videoRef.current) {
+                videoRef.current.pause();
+            }
+            return;
+        }
+
+        if (currentStory?.type === 'VIDEO' && videoRef.current) {
+            videoRef.current.play().catch(() => { });
+
+            const updateVideoProgress = () => {
+                if (videoRef.current && !isPaused && !isMediaLoading) {
+                    const duration = videoRef.current.duration;
+                    const currentTime = videoRef.current.currentTime;
+                    if (duration) {
+                        const calculatedProgress = (currentTime / duration) * 100;
+                        setProgress(calculatedProgress);
+
+                        if (calculatedProgress >= 99.9) handleNext();
                     }
                 }
-                return prev + (100 / (effectiveDuration / 50));
-            });
-        }, 50);
+            };
 
-        return () => clearInterval(interval);
-    }, [currentIndex, isPaused, activeStories, effectiveDuration, onClose]);
+            const interval = setInterval(updateVideoProgress, 30);
+            return () => clearInterval(interval);
+        } else {
+            // Image Progress Logic
+            const interval = setInterval(() => {
+                setProgress((prev) => {
+                    if (prev >= 100) {
+                        handleNext();
+                        return 100;
+                    }
+                    return prev + (100 / (effectiveDuration / 50));
+                });
+            }, 50);
+            return () => clearInterval(interval);
+        }
+    }, [currentIndex, isPaused, isMediaLoading, effectiveDuration, currentStory?.id]);
 
     const handleNext = () => {
         if (currentIndex < activeStories.length - 1) {
@@ -122,6 +151,8 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
                                     playsInline
                                     onLoadedMetadata={(e) => setVideoDuration(e.target.duration * 1000)}
                                     onCanPlayThrough={() => setIsMediaLoading(false)}
+                                    onWaiting={() => setIsMediaLoading(true)}
+                                    onPlaying={() => setIsMediaLoading(false)}
                                 />
                             ) : (
                                 <img
@@ -141,16 +172,14 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
-                                className="absolute inset-0 z-50 flex flex-col items-center justify-center pointer-events-none"
+                                className="absolute inset-0 z-50 flex flex-col items-center justify-center backdrop-blur-2xl bg-black/20"
                             >
-                                <div className="p-4 rounded-full bg-black/20 backdrop-blur-md border border-white/5">
-                                    <motion.div
-                                        animate={{ rotate: 360 }}
-                                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                                        className="w-10 h-10 border-2 border-emerald-500/10 border-t-emerald-500 rounded-full"
-                                    />
-                                </div>
-                                <p className="text-emerald-500 text-[7px] uppercase tracking-[0.4em] font-bold mt-3 animate-pulse">Syncing Connection</p>
+                                <motion.div
+                                    animate={{ rotate: 360 }}
+                                    transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
+                                    className="w-10 h-10 border-2 border-white/20 border-t-white rounded-full"
+                                />
+                                <p className="text-white text-[7px] uppercase tracking-[0.4em] font-bold mt-4 animate-pulse">Neural Sync</p>
                             </motion.div>
                         )}
                     </AnimatePresence>
