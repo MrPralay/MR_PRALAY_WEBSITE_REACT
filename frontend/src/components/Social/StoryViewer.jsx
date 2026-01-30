@@ -40,14 +40,14 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
         setShowLoadingUI(false);
         setVideoDuration(null);
 
-        // DELAYED LOADING UI: Only show the "Syncing" circle if it takes > 250ms
-        // This makes cached stories feel 100% instant without the flicker.
+        // NEURAL STUCK DETECTION: Only show a subtle indicator if it takes > 2 seconds.
+        // This ensures the experience feels instant for 99% of loads.
         const timer = setTimeout(() => {
             setIsMediaLoading(prev => {
                 if (prev) setShowLoadingUI(true);
                 return prev;
             });
-        }, 250);
+        }, 2000);
 
         return () => clearTimeout(timer);
     }, [currentStory?.id]);
@@ -141,14 +141,16 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
-                                className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm"
+                                className="absolute inset-0 z-50 flex flex-col items-center justify-center pointer-events-none"
                             >
-                                <motion.div
-                                    animate={{ rotate: 360 }}
-                                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                                    className="w-12 h-12 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full"
-                                />
-                                <p className="text-emerald-500 text-[8px] uppercase tracking-[0.4em] font-bold mt-4 animate-pulse">Syncing Media</p>
+                                <div className="p-4 rounded-full bg-black/20 backdrop-blur-md border border-white/5">
+                                    <motion.div
+                                        animate={{ rotate: 360 }}
+                                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                        className="w-10 h-10 border-2 border-emerald-500/10 border-t-emerald-500 rounded-full"
+                                    />
+                                </div>
+                                <p className="text-emerald-500 text-[7px] uppercase tracking-[0.4em] font-bold mt-3 animate-pulse">Syncing Connection</p>
                             </motion.div>
                         )}
                     </AnimatePresence>
