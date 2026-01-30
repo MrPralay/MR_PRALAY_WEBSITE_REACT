@@ -16,7 +16,14 @@ const PostSkeleton = () => (
             </div>
             <div className="p-3 bg-white/5 rounded-2xl w-10 h-10" />
         </div>
-        <div className="relative aspect-square md:aspect-[16/10] bg-black/40 overflow-hidden" />
+        <div className="relative aspect-square md:aspect-[16/10] bg-black/40 overflow-hidden">
+            <motion.div
+                initial={{ x: '-100%' }}
+                animate={{ x: '100%' }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.05] to-transparent"
+            />
+        </div>
         <div className="p-8 px-10">
             <div className="flex items-center gap-8 mb-8">
                 {[1, 2, 3].map(i => (
