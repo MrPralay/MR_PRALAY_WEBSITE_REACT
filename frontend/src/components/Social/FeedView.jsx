@@ -1,12 +1,11 @@
 import React from 'react';
-import { Plus, ChevronRight, MoreHorizontal } from 'lucide-react';
+import { Plus, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import PostCard from './PostCard';
 import Cookies from 'js-cookie';
 
 const PostSkeleton = () => (
     <div className="relative bg-white/[0.02] border border-white/5 rounded-[2.5rem] overflow-hidden mb-12">
-        {/* Post Header - Precision Match */}
         <div className="flex items-center justify-between p-6 px-8">
             <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-full bg-white/5 animate-pulse" />
@@ -17,8 +16,6 @@ const PostSkeleton = () => (
             </div>
             <div className="p-3 bg-white/5 rounded-2xl w-10 h-10 animate-pulse" />
         </div>
-
-        {/* Media Canvas - Precision Match */}
         <div className="relative aspect-square md:aspect-[16/10] bg-black/40 overflow-hidden">
             <motion.div
                 initial={{ x: '-100%' }}
@@ -27,8 +24,6 @@ const PostSkeleton = () => (
                 className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.05] to-transparent"
             />
         </div>
-
-        {/* Neural Actions - Precision Match */}
         <div className="p-8 px-10">
             <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-8">
@@ -39,19 +34,12 @@ const PostSkeleton = () => (
                         </div>
                     ))}
                 </div>
-                <div className="flex flex-col items-center gap-2">
-                    <div className="w-12 h-12 bg-white/5 rounded-[1.2rem] animate-pulse" />
-                    <div className="w-8 h-2 bg-white/5 rounded-full animate-pulse" />
-                </div>
             </div>
-
-            {/* Caption Area - Precision Match */}
             <div className="space-y-4">
                 <div className="flex items-center gap-3">
                     <div className="w-20 h-3 bg-white/5 rounded-full animate-pulse" />
                     <div className="flex-1 h-3 bg-white/5 rounded-full animate-pulse" />
                 </div>
-                <div className="w-32 h-2 bg-white/5 rounded-full animate-pulse" />
             </div>
         </div>
     </div>
@@ -76,11 +64,9 @@ const StoriesSlider = ({ stories, onStoryClick, onUserProfileClick }) => {
 
     const hasMore = startIndex + visibleCount < stories.length;
     const canGoBack = startIndex > 0;
-
     const visibleStories = stories.slice(startIndex, startIndex + visibleCount);
 
     const handleClick = (item) => {
-        // Check if item has active story or is just a user profile
         if (item.hasStory && onStoryClick) {
             onStoryClick(item);
         } else if (!item.hasStory && onUserProfileClick) {
@@ -91,7 +77,7 @@ const StoriesSlider = ({ stories, onStoryClick, onUserProfileClick }) => {
     return (
         <div className="flex items-center gap-6">
             {canGoBack && (
-                <button onClick={handlePrev} className="p-1 -ml-4 z-10 bg-black/50 rounded-full text-white hover:scale-110 transition-transform">
+                <button onClick={handlePrev} className="p-1 z-10 bg-black/50 rounded-full text-white hover:scale-110 transition-transform">
                     <ChevronRight size={16} className="rotate-180" />
                 </button>
             )}
@@ -104,8 +90,7 @@ const StoriesSlider = ({ stories, onStoryClick, onUserProfileClick }) => {
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.8 }}
-                        transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                        className={`flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer ${!item.hasStory ? 'opacity-70 hover:opacity-100 transition-opacity' : ''}`}
+                        className={`flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer ${!item.hasStory ? 'opacity-70' : ''}`}
                         onClick={() => handleClick(item)}
                     >
                         <div className={`w-[78px] h-[78px] rounded-full p-[2px] ${item.hasStory ? 'bg-gradient-to-tr from-yellow-400 to-fuchsia-600' : 'border-2 border-gray-700'}`}>
@@ -121,13 +106,8 @@ const StoriesSlider = ({ stories, onStoryClick, onUserProfileClick }) => {
             </AnimatePresence>
 
             {hasMore && (
-                <button
-                    onClick={handleNext}
-                    className="flex flex-col items-center justify-center gap-2 flex-shrink-0 cursor-pointer group animate-pulse hover:animate-none"
-                >
-                    <div className="w-[50px] h-[50px] rounded-full border-2 border-white/20 flex items-center justify-center bg-white/5 group-hover:bg-white/10 transition-colors">
-                        <ChevronRight size={24} className="text-white group-hover:translate-x-1 transition-transform" />
-                    </div>
+                <button onClick={handleNext} className="flex flex-col items-center justify-center p-2 bg-white/5 rounded-full hover:bg-white/10 transition-colors">
+                    <ChevronRight size={24} className="text-white" />
                 </button>
             )}
         </div>
@@ -135,46 +115,44 @@ const StoriesSlider = ({ stories, onStoryClick, onUserProfileClick }) => {
 };
 
 const FeedView = ({ posts, stories = [], suggestedUsers = [], onCreateClick, loading, onCinemaMode, myStories = [], onStoryClick, onUserProfileClick, onMyStoryClick }) => {
-    // Smart Fill Logic: Mix stories and user profiles to always show optimal content
     const maxVisible = 5;
+
     const combinedList = React.useMemo(() => {
-        // Filter out my own stories from the global list to avoid duplication if needed, 
-        // but typically Instagram shows them separately or first. 
-        // Here we keep them separate as 'myStories' is handled outside the slider.
+        // Filter out my own stories
         const otherStories = stories.filter(s => !myStories.find(ms => ms.id === s.id));
 
-        if (otherStories.length === 0) {
-            // No stories at all: show suggested users
+        // Group by user so only one circle appears per person
+        const userMap = new Map();
+        otherStories.forEach(story => {
+            if (!userMap.has(story.userId)) {
+                userMap.set(story.userId, { ...story, hasStory: true });
+            }
+        });
+        const uniqueUserStories = Array.from(userMap.values());
+
+        if (uniqueUserStories.length === 0) {
             return suggestedUsers.map(user => ({
                 id: `user-${user.id}`,
                 user: user,
                 hasStory: false
             }));
-        } else if (otherStories.length >= maxVisible) {
-            // 5+ stories: show only stories
-            return otherStories.map(story => ({ ...story, hasStory: true }));
+        } else if (uniqueUserStories.length >= maxVisible) {
+            return uniqueUserStories;
         } else {
-            // < 5 stories: fill remaining slots with suggested users who don't have stories
-            const storyUserIds = new Set(otherStories.map(s => s.userId));
+            const storyUserIds = new Set(uniqueUserStories.map(s => s.userId));
             const filteredSuggested = suggestedUsers.filter(u => !storyUserIds.has(u.id));
-
-            const remainingSlots = maxVisible - otherStories.length;
+            const remainingSlots = maxVisible - uniqueUserStories.length;
             const fillingProfiles = filteredSuggested.slice(0, remainingSlots).map(user => ({
                 id: `user-${user.id}`,
                 user: user,
                 hasStory: false
             }));
-
-            return [
-                ...otherStories.map(story => ({ ...story, hasStory: true })),
-                ...fillingProfiles
-            ];
+            return [...uniqueUserStories, ...fillingProfiles];
         }
     }, [stories, suggestedUsers, myStories]);
 
     return (
         <div className="flex-1 max-w-2xl mx-auto py-8 px-4">
-            {/* Stories Section */}
             <div className="mb-8">
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-white font-bold text-lg">Stories</h3>
@@ -182,8 +160,7 @@ const FeedView = ({ posts, stories = [], suggestedUsers = [], onCreateClick, loa
                         WATCH ALL <ChevronRight size={12} />
                     </button>
                 </div>
-                <div className="flex gap-6 overflow-x-auto hide-scrollbar py-2">
-                    {/* Add Story / My Story Button */}
+                <div className="flex gap-6 overflow-x-auto hide-scrollbar py-2 items-center">
                     <div
                         onClick={myStories.length > 0 ? onMyStoryClick : onCreateClick}
                         className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer group relative"
@@ -217,7 +194,6 @@ const FeedView = ({ posts, stories = [], suggestedUsers = [], onCreateClick, loa
                         <span className="text-[10px] text-gray-500 font-medium">{myStories.length > 0 ? 'Your Story' : 'Add story'}</span>
                     </div>
 
-                    {/* Smart Combined List: Stories + User Profiles */}
                     <StoriesSlider
                         stories={combinedList}
                         onStoryClick={onStoryClick}
@@ -226,7 +202,6 @@ const FeedView = ({ posts, stories = [], suggestedUsers = [], onCreateClick, loa
                 </div>
             </div>
 
-            {/* Feeds Header */}
             <div className="flex items-center justify-between mb-8">
                 <h3 className="text-white font-bold text-2xl">Feeds</h3>
                 <div className="flex bg-white/5 p-1 rounded-xl border border-white/5">
@@ -235,7 +210,6 @@ const FeedView = ({ posts, stories = [], suggestedUsers = [], onCreateClick, loa
                 </div>
             </div>
 
-            {/* Posts Area - Absolute Precision Alignment */}
             <div className="min-h-[500px]">
                 {loading ? (
                     <>
@@ -252,7 +226,7 @@ const FeedView = ({ posts, stories = [], suggestedUsers = [], onCreateClick, loa
                             <Plus size={32} className="text-emerald-500" />
                         </div>
                         <h3 className="text-white text-xl font-bold mb-2">No posts yet</h3>
-                        <p className="text-gray-500 text-sm max-w-xs mx-auto">The neural network is quiet. Be the first to synchronize your thoughts.</p>
+                        <p className="text-gray-500 text-sm max-w-xs mx-auto">The neural network is quiet.</p>
                         <button
                             onClick={onCreateClick}
                             className="mt-8 px-8 py-3 bg-emerald-500 text-black font-bold rounded-xl hover:bg-emerald-400 transition-colors"
