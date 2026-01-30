@@ -75,6 +75,26 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
     }, [isMediaLoading]);
 
 
+    // Neural Cache Check: Instant detection for pre-fetched media
+    useEffect(() => {
+        if (!currentStory) return;
+
+        const checkLoadingStatus = () => {
+            if (currentStory.type === 'IMAGE') {
+                const img = new Image();
+                img.src = currentStory.mediaUrl;
+                if (img.complete) setIsMediaLoading(false);
+            } else if (currentStory.type === 'VIDEO' && videoRef.current) {
+                if (videoRef.current.readyState >= 3) setIsMediaLoading(false);
+            }
+        };
+
+        // Check immediately and then after a tiny delay to catch fast loads
+        checkLoadingStatus();
+        const t = setTimeout(checkLoadingStatus, 50);
+        return () => clearTimeout(t);
+    }, [currentStory?.id, retryKey]);
+
     // Unified Progress & Buffering Logic
     useEffect(() => {
         if (isPaused || isMediaLoading) {
@@ -165,6 +185,7 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
                                     muted={isMuted}
                                     playsInline
                                     onLoadedMetadata={(e) => setVideoDuration(e.target.duration * 1000)}
+                                    onLoadedData={() => setIsMediaLoading(false)}
                                     onCanPlayThrough={() => setIsMediaLoading(false)}
                                     onWaiting={() => setIsMediaLoading(true)}
                                     onPlaying={() => setIsMediaLoading(false)}
