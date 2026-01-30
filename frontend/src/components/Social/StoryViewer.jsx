@@ -47,7 +47,7 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
                 if (prev) setShowLoadingUI(true);
                 return prev;
             });
-        }, 2000);
+        }, 1500);
 
         return () => clearTimeout(timer);
     }, [currentStory?.id]);
@@ -102,20 +102,20 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
 
                 {/* Story Image/Video Area with Transitions */}
                 <div className="absolute inset-0 z-0 bg-black">
-                    <AnimatePresence mode="wait">
+                    <AnimatePresence mode="popLayout">
                         <motion.div
                             key={currentStory.id}
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            transition={{ duration: 0.3 }}
+                            transition={{ duration: 0.15 }}
                             className="absolute inset-0"
                         >
                             {currentStory?.type === 'VIDEO' ? (
                                 <video
                                     ref={videoRef}
                                     src={currentStory.mediaUrl}
-                                    className={`w-full h-full object-cover transition-opacity duration-500 ${isMediaLoading ? 'opacity-0' : 'opacity-100'}`}
+                                    className={`w-full h-full object-cover transition-opacity duration-200 ${isMediaLoading ? 'opacity-0' : 'opacity-100'}`}
                                     autoPlay
                                     loop
                                     muted={isMuted}
@@ -126,7 +126,7 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
                             ) : (
                                 <img
                                     src={currentStory.mediaUrl}
-                                    className={`w-full h-full object-cover transition-opacity duration-500 ${isMediaLoading ? 'opacity-0' : 'opacity-100'}`}
+                                    className={`w-full h-full object-cover transition-opacity duration-200 ${isMediaLoading ? 'opacity-0' : 'opacity-100'}`}
                                     alt="Story"
                                     onLoad={() => setIsMediaLoading(false)}
                                 />
