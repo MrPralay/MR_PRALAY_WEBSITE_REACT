@@ -251,7 +251,7 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
                 {/* Header Info */}
                 <div className="absolute top-8 left-4 right-4 z-20 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <img src={currentStory.user?.profileImage || currentStory.user?.image} className="w-8 h-8 rounded-full border border-white/20" alt="User" />
+                        <img src={currentStory.user?.profileImage || currentStory.user?.image || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg"} className="w-8 h-8 rounded-full border border-white/20" alt="User" />
                         <div className="flex items-center gap-2">
                             <span className="text-white font-bold text-sm tracking-wide">{currentStory.user?.username}</span>
                             <span className="text-gray-400 text-xs font-medium">31s</span>

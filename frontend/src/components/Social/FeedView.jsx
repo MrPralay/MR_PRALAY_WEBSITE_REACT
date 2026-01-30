@@ -95,7 +95,7 @@ const StoriesSlider = ({ stories, onStoryClick, onUserProfileClick }) => {
                     >
                         <div className={`w-[78px] h-[78px] rounded-full p-[2px] ${item.hasStory ? 'bg-gradient-to-tr from-yellow-400 to-fuchsia-600' : 'border-2 border-gray-700'}`}>
                             <img
-                                src={item.user?.profileImage || `https://i.pravatar.cc/150?u=${item.user?.username || i}`}
+                                src={item.user?.profileImage || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg"}
                                 className={`w-full h-full rounded-full ${item.hasStory ? 'border-2 border-black' : 'grayscale'} object-cover`}
                                 alt="Story"
                             />
