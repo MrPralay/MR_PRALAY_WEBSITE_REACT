@@ -10,6 +10,7 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
     const [isLiked, setIsLiked] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isMuted, setIsMuted] = useState(false);
+    const [isMediaLoading, setIsMediaLoading] = useState(true);
     const videoRef = useRef(null);
 
     // Mock multiple stories if only one provided, for the 3-bar UI requirement
@@ -33,12 +34,13 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
         : 5000;
 
     useEffect(() => {
-        // Reset video duration when story changes
+        // Reset loading state when story changes
+        setIsMediaLoading(true);
         setVideoDuration(null);
     }, [currentStory?.id]);
 
     useEffect(() => {
-        if (isPaused) return;
+        if (isPaused || isMediaLoading) return; // Wait for media to keep progress accurate
 
         // Auto-advance logic
         const interval = setInterval(() => {
@@ -100,22 +102,36 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
                                 <video
                                     ref={videoRef}
                                     src={currentStory.mediaUrl}
-                                    className="w-full h-full object-cover"
+                                    className={`w-full h-full object-cover transition-opacity duration-500 ${isMediaLoading ? 'opacity-0' : 'opacity-100'}`}
                                     autoPlay
                                     loop
                                     muted={isMuted}
                                     playsInline
                                     onLoadedMetadata={(e) => setVideoDuration(e.target.duration * 1000)}
+                                    onCanPlayThrough={() => setIsMediaLoading(false)}
                                 />
                             ) : (
                                 <img
                                     src={currentStory.mediaUrl}
-                                    className="w-full h-full object-cover"
+                                    className={`w-full h-full object-cover transition-opacity duration-500 ${isMediaLoading ? 'opacity-0' : 'opacity-100'}`}
                                     alt="Story"
+                                    onLoad={() => setIsMediaLoading(false)}
                                 />
                             )}
                         </motion.div>
                     </AnimatePresence>
+
+                    {/* Neural Loading Spinner */}
+                    {isMediaLoading && (
+                        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm">
+                            <motion.div
+                                animate={{ rotate: 360 }}
+                                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                className="w-12 h-12 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full"
+                            />
+                            <p className="text-emerald-500 text-[8px] uppercase tracking-[0.4em] font-bold mt-4 animate-pulse">Syncing Media</p>
+                        </div>
+                    )}
 
                     {/* Overlays */}
                     <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80 pointer-events-none z-10" />
