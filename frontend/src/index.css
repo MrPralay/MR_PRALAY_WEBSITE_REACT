@@ -106,8 +106,8 @@
         -webkit-font-smoothing: antialiased;
     }
 
-    /* Ensure GPU stays active during the hover zoom */
-    .post-media-fix:hover {
+    /* Trigger animation when post is in view */
+    .post-media-fix.active-cinematic {
         animation: cinematic-breath-pan 12s cubic-bezier(0.45, 0, 0.55, 1) infinite !important;
     }
 

@@ -13,35 +13,36 @@ const PostCard = ({ post, onInteraction, onCinemaMode }) => {
     const [commentText, setCommentText] = useState('');
     const [isPlaying, setIsPlaying] = useState(true);
     const [isMuted, setIsMuted] = useState(true);
+    const [isInView, setIsInView] = useState(false);
     const videoRef = useRef(null);
+    const containerRef = useRef(null);
 
     useEffect(() => {
         const observer = new IntersectionObserver(
             (entries) => {
                 entries.forEach(entry => {
-                    if (videoRef.current) {
-                        if (entry.isIntersecting) {
-                            videoRef.current.play().catch(() => {
-                                // Autoplay might be blocked if not muted
-                                console.warn("Autoplay block detected");
-                            });
+                    if (entry.isIntersecting) {
+                        if (videoRef.current) {
+                            videoRef.current.play().catch(() => { });
                             setIsPlaying(true);
-                        } else {
-                            videoRef.current.pause();
-                            setIsPlaying(false);
                         }
+                        setIsInView(true);
+                    } else {
+                        if (videoRef.current) videoRef.current.pause();
+                        setIsPlaying(false);
+                        setIsInView(false);
                     }
                 });
             },
-            { threshold: 0.6 } // Play when 60% of the video is visible
+            { threshold: 0.6 }
         );
 
-        if (videoRef.current) {
-            observer.observe(videoRef.current);
+        if (containerRef.current) {
+            observer.observe(containerRef.current);
         }
 
         return () => {
-            if (videoRef.current) observer.unobserve(videoRef.current);
+            if (containerRef.current) observer.unobserve(containerRef.current);
         };
     }, []);
 
@@ -143,7 +144,7 @@ const PostCard = ({ post, onInteraction, onCinemaMode }) => {
         <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
+            ref={containerRef}
             className="group relative bg-white/[0.02] border border-white/5 rounded-[2.5rem] overflow-hidden mb-12 hover:border-emerald-500/20 transition-all duration-500 hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)]"
         >
             {/* Post Header */}
@@ -210,7 +211,7 @@ const PostCard = ({ post, onInteraction, onCinemaMode }) => {
                                 <video
                                     ref={videoRef}
                                     src={post.mediaUrl}
-                                    className="post-media-fix object-cover"
+                                    className={`post-media-fix object-cover ${isInView ? 'active-cinematic' : ''}`}
                                     loop
                                     muted={isMuted}
                                     playsInline
@@ -237,7 +238,7 @@ const PostCard = ({ post, onInteraction, onCinemaMode }) => {
                         ) : (
                             <img
                                 src={post.mediaUrl}
-                                className="post-media-fix object-cover cursor-zoom-in"
+                                className={`post-media-fix object-cover cursor-zoom-in ${isInView ? 'active-cinematic' : ''}`}
                                 alt="Neural Visual"
                                 onDoubleClick={handleCinemaModeClick}
                                 onError={(e) => {
