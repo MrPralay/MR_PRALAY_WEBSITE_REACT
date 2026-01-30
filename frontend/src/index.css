@@ -89,13 +89,33 @@
     .post-media-fix {
         width: 102% !important;
         height: 102% !important;
-        margin-left: -1%;
-        margin-top: -1%;
+        margin-left: -1% !important;
+        margin-top: -1% !important;
+
+        /* Persistent Hardware Acceleration */
         backface-visibility: hidden;
         -webkit-backface-visibility: hidden;
-        transform: translateZ(0);
+        transform: translate3d(0, 0, 0);
         will-change: transform;
+
+        /* Sharpness & Anti-aliasing */
         image-rendering: -webkit-optimize-contrast;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    /* Ensure GPU stays active during the hover zoom */
+    .post-media-fix:hover {
+        transform: scale(1.05) translateZ(0) !important;
+    }
+
+    /* Sub-pixel Clipping Fix for the container */
+    .post-media-container {
+        position: relative;
+        overflow: hidden;
+        /* This forces a new stacking context and clean clipping */
+        isolation: isolate;
+        -webkit-mask-image: -webkit-radial-gradient(white, black);
+        mask-image: radial-gradient(white, black);
     }
 
     .stats-item {
