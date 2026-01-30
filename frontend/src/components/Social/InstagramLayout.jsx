@@ -156,9 +156,9 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
 
             {/* Main Content Area - Neural Scale Applied (90% Zoom feel) */}
             <main
-                className={`flex-1 ml-80 mr-80 min-h-screen ${view === 'igtv' ? 'origin-center' : 'origin-top'} overflow-visible`}
+                className={`flex-1 ml-80 mr-80 ${view === 'igtv' ? 'origin-center' : 'origin-top'} overflow-visible`}
                 style={{
-                    transform: 'scale(0.9)',
+                    zoom: '0.9',
                     transformOrigin: view === 'igtv' ? 'center' : 'top center'
                 }}
             >

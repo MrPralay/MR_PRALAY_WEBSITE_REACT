@@ -145,7 +145,7 @@ const PostCard = ({ post, onInteraction, onCinemaMode }) => {
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             ref={containerRef}
-            className="group relative bg-white/[0.02] border border-white/5 rounded-[2.5rem] overflow-hidden mb-12 hover:border-emerald-500/20 transition-all duration-500 hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)]"
+            className="group relative bg-white/[0.02] border border-white/5 rounded-[2.5rem] overflow-hidden mb-12 last:mb-0 hover:border-emerald-500/20 transition-all duration-500 hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)]"
         >
             {/* Post Header */}
             <div className="flex items-center justify-between p-6 px-8">
