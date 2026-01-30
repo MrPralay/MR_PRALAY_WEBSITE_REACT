@@ -210,7 +210,7 @@ const PostCard = ({ post, onInteraction, onCinemaMode }) => {
                                 <video
                                     ref={videoRef}
                                     src={post.mediaUrl}
-                                    className="w-full h-full object-cover"
+                                    className="post-media-fix object-cover"
                                     loop
                                     muted={isMuted}
                                     playsInline
@@ -237,7 +237,7 @@ const PostCard = ({ post, onInteraction, onCinemaMode }) => {
                         ) : (
                             <img
                                 src={post.mediaUrl}
-                                className="w-full h-full object-cover transition-transform duration-[2s] hover:scale-105 cursor-zoom-in"
+                                className="post-media-fix object-cover transition-transform duration-[2s] hover:scale-105 cursor-zoom-in"
                                 alt="Neural Visual"
                                 onDoubleClick={handleCinemaModeClick}
                                 onError={(e) => {
