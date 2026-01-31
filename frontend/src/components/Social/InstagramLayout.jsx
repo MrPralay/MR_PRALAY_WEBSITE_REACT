@@ -54,29 +54,26 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                     }
                 };
 
+                // ALWAYS FETCH STORIES AND SUGGESTED USERS TO KEEP STATE SYNCED (especially after uploads in setting view)
+                const storyRes = await fetch(`${apiUrl}/api/social/stories`, fetchOptions);
+                const storyData = await storyRes.json();
+                if (active && storyData.success) {
+                    setAllStories(storyData.data);
+                    // Set current user's stories for the "My Story" button
+                    const mine = storyData.data.filter(s => s.userId === currentUserState.id || s.userId === currentUserState.userId);
+                    setMyStories(mine);
+                }
+
+                const userRes = await fetch(`${apiUrl}/api/user/suggested?limit=10`, fetchOptions);
+                const userData = await userRes.json();
+                if (active && userData.success) {
+                    setSuggestedUsers(userData.data);
+                }
+
                 if (view === 'feed' || view === 'igtv') {
                     const res = await fetch(`${apiUrl}/api/social/feed`, fetchOptions);
                     const data = await res.json();
                     if (active) setPosts(Array.isArray(data) ? data : []);
-
-                    // ALSO FETCH STORIES FOR FEED
-                    if (view === 'feed') {
-                        const storyRes = await fetch(`${apiUrl}/api/social/stories`, fetchOptions);
-                        const storyData = await storyRes.json();
-                        if (active && storyData.success) {
-                            setAllStories(storyData.data);
-                            // Set current user's stories for the "My Story" button
-                            const mine = storyData.data.filter(s => s.userId === currentUser.id || s.userId === currentUser.userId);
-                            setMyStories(mine);
-                        }
-
-                        // FETCH SUGGESTED USERS (for empty states)
-                        const userRes = await fetch(`${apiUrl}/api/user/suggested?limit=10`, fetchOptions);
-                        const userData = await userRes.json();
-                        if (active && userData.success) {
-                            setSuggestedUsers(userData.data);
-                        }
-                    }
                 } else if (view === 'profile') {
                     const profileToFetch = userProfile?.username || currentUser.username;
                     const res = await fetch(`${apiUrl}/api/user/profile/${encodeURIComponent(profileToFetch)}`, fetchOptions);
@@ -421,20 +418,28 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
             <RightSidebar />
 
             {/* Global Create Post Modal */}
-            <CreatePostModal
-                isOpen={isPostModalOpen}
-                onClose={() => setIsPostModalOpen(false)}
-                onSubmit={handleCreatePost}
-                user={currentUserState}
-            />
+            <AnimatePresence>
+                {isPostModalOpen && (
+                    <CreatePostModal
+                        isOpen={isPostModalOpen}
+                        onClose={() => setIsPostModalOpen(false)}
+                        onSubmit={handleCreatePost}
+                        user={currentUserState}
+                    />
+                )}
+            </AnimatePresence>
 
             {/* Create Story Modal */}
-            <CreateStoryModal
-                isOpen={isStoryModalOpen}
-                onClose={() => setIsStoryModalOpen(false)}
-                onSubmit={handleStoryUpload}
-                user={currentUser}
-            />
+            <AnimatePresence>
+                {isStoryModalOpen && (
+                    <CreateStoryModal
+                        isOpen={isStoryModalOpen}
+                        onClose={() => setIsStoryModalOpen(false)}
+                        onSubmit={handleStoryUpload}
+                        user={currentUserState}
+                    />
+                )}
+            </AnimatePresence>
 
             {/* Story Viewer Overlay */}
             <AnimatePresence>

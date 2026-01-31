@@ -62,123 +62,137 @@ const CreateStoryModal = ({ isOpen, onClose, onSubmit, user }) => {
         }
     };
 
+    // Legendary Variants for stable animation
+    const modalVariants = {
+        hidden: { opacity: 0, scale: 0.9, rotateY: 5 },
+        visible: {
+            opacity: 1,
+            scale: 1,
+            rotateY: 0,
+            transition: { duration: 0.4, ease: "easeOut" }
+        },
+        wobble: {
+            rotateY: [-5, 5],
+            rotateX: [3, -3],
+            y: [-12, 12],
+            transition: {
+                duration: 7,
+                repeat: Infinity,
+                repeatType: "reverse",
+                ease: "easeInOut"
+            }
+        }
+    };
+
     return (
-        <AnimatePresence>
-            {isOpen && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-0 md:p-8 perspective-[1500px]">
-                    {/* Backdrop - High-End Obsidian Void */}
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-0 md:p-8 perspective-[2000px] pointer-events-none">
+            {/* Backdrop - High-End Obsidian Void */}
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={onClose}
+                className="absolute inset-0 bg-black/80 backdrop-blur-xl pointer-events-auto"
+            />
+
+            {/* 3D Floating Glass Slab Container */}
+            <motion.div
+                variants={modalVariants}
+                initial="hidden"
+                animate={step === 2 ? ["visible", "wobble"] : "visible"}
+                exit="hidden"
+                style={{
+                    transformStyle: 'preserve-3d',
+                    backfaceVisibility: 'hidden',
+                    WebkitBackfaceVisibility: 'hidden'
+                }}
+                className="relative w-full md:max-w-md h-full md:h-[90vh] flex flex-col group z-10 pointer-events-auto"
+                onClick={(e) => e.stopPropagation()}
+            >
+                {/* Glass Prism Frame - Pulse Protocol */}
+                {step === 2 && (
                     <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        onClick={onClose}
-                        className="absolute inset-0 bg-black/80 backdrop-blur-xl"
+                        animate={{ opacity: [0.2, 0.4, 0.2] }}
+                        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                        className="absolute -inset-[3px] rounded-[2rem] bg-gradient-to-tr from-fuchsia-500/30 via-white/40 to-emerald-500/30 blur-[2px] z-0"
                     />
+                )}
 
-                    {/* 3D Floating Glass Slab Container */}
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.9, rotateY: 5 }}
-                        animate={step === 2 ? {
-                            rotateY: [-5, 5],
-                            rotateX: [3, -3],
-                            y: [-12, 12],
-                            scale: 1
-                        } : {
-                            opacity: 1,
-                            scale: 1,
-                            rotateY: 0,
-                            rotateX: 0
-                        }}
-                        exit={{ opacity: 0, scale: 0.9, rotateY: -5 }}
-                        transition={step === 2 ? {
-                            duration: 7,
-                            repeat: Infinity,
-                            repeatType: "reverse",
-                            ease: "easeInOut"
-                        } : { duration: 0.4 }}
-                        style={{
-                            transformStyle: 'preserve-3d',
-                            backfaceVisibility: 'hidden',
-                            WebkitBackfaceVisibility: 'hidden'
-                        }}
-                        className="relative w-full md:max-w-md h-full md:h-[90vh] flex flex-col group z-10"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        {/* Glass Prism Frame */}
+                {/* Main Modal Content */}
+                <div className="relative flex-1 bg-[#050505]/95 backdrop-blur-3xl md:rounded-[2rem] border border-white/10 overflow-hidden shadow-2xl flex flex-col z-10" style={{ transform: 'translateZ(1px)', willChange: 'transform' }}>
+                    {/* Header overlay - Softened Gradient */}
+                    <div className="absolute top-0 left-0 right-0 z-20 p-6 flex items-center justify-between bg-gradient-to-b from-black/60 via-black/20 to-transparent">
+                        <button onClick={step === 1 ? onClose : () => setStep(1)} className="text-white/80 hover:text-white transition-colors">
+                            {step === 1 ? <X size={28} /> : <ArrowLeft size={28} />}
+                        </button>
                         {step === 2 && (
-                            <div className="absolute -inset-[2px] rounded-[2rem] bg-gradient-to-tr from-fuchsia-500/20 via-white/30 to-emerald-500/20 opacity-30 blur-[1px] z-0" />
+                            <button
+                                onClick={handleSubmit}
+                                disabled={isSubmitting}
+                                className="bg-emerald-500 text-black px-6 py-2 rounded-full font-bold text-xs uppercase tracking-widest hover:bg-emerald-300 transition-all disabled:opacity-50 shadow-[0_0_30px_rgba(16,185,129,0.4)]"
+                            >
+                                {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : "Broadcast"}
+                            </button>
                         )}
+                    </div>
 
-                        {/* Main Modal Content */}
-                        <div className="relative flex-1 bg-[#111]/90 backdrop-blur-md md:rounded-[2rem] border border-white/10 overflow-hidden shadow-2xl flex flex-col z-10" style={{ transform: 'translateZ(1px)', willChange: 'transform' }}>
-                            {/* Header overlay */}
-                            <div className="absolute top-0 left-0 right-0 z-20 p-6 flex items-center justify-between bg-gradient-to-b from-black/80 to-transparent">
-                                <button onClick={step === 1 ? onClose : () => setStep(1)} className="text-white hover:text-emerald-500 transition-colors">
-                                    {step === 1 ? <X size={28} /> : <ArrowLeft size={28} />}
-                                </button>
-                                {step === 2 && (
-                                    <button
-                                        onClick={handleSubmit}
-                                        disabled={isSubmitting}
-                                        className="bg-emerald-500 text-black px-6 py-2 rounded-full font-bold text-xs uppercase tracking-widest hover:bg-emerald-400 transition-all disabled:opacity-50 shadow-[0_0_20px_rgba(16,185,129,0.3)]"
-                                    >
-                                        {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : "Share"}
-                                    </button>
+                    {/* Step 1: Selection */}
+                    {step === 1 && (
+                        <div
+                            onDragEnter={handleDrag} onDragLeave={handleDrag} onDragOver={handleDrag} onDrop={handleDrop}
+                            onClick={() => fileInputRef.current.click()}
+                            className={`flex-1 flex flex-col items-center justify-center cursor-pointer transition-all ${dragActive ? 'bg-emerald-500/5' : ''}`}
+                        >
+                            <input type="file" ref={fileInputRef} className="hidden" onChange={(e) => handleFile(e.target.files[0])} accept="image/*,video/*" />
+                            <motion.div
+                                whileHover={{ scale: 1.1, rotate: 10 }}
+                                className="w-24 h-24 bg-white/5 rounded-[2rem] flex items-center justify-center mb-6 border border-white/10 group-hover:border-emerald-500/50 transition-all shadow-inner"
+                            >
+                                <Upload className="text-emerald-500" size={32} />
+                            </motion.div>
+                            <h3 className="text-white text-lg font-bold tracking-tight">Sync Neural Stream</h3>
+                            <p className="text-gray-500 text-[10px] mt-2 tracking-[0.3em] uppercase opacity-60">Package Selection Required</p>
+                        </div>
+                    )}
+
+                    {/* Step 2: Realistic Preview */}
+                    {step === 2 && (
+                        <div className="relative w-full h-full bg-[#080808] flex items-center justify-center group/preview overflow-hidden">
+                            <motion.div
+                                initial={{ opacity: 0.5, scale: 1.1, filter: 'blur(20px) brightness(0.8)' }}
+                                animate={{ opacity: 1, scale: 1, filter: 'blur(0px) brightness(1.02)' }}
+                                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                                className="w-full h-full"
+                                style={{ willChange: 'transform, opacity, filter' }}
+                            >
+                                {type === 'VIDEO' ? (
+                                    <video src={mediaUrl} className="w-full h-full object-cover" autoPlay loop muted playsInline />
+                                ) : (
+                                    <img src={mediaUrl} className="w-full h-full object-cover" alt="Preview" />
                                 )}
+                            </motion.div>
+
+                            {/* Glass Preview Badge */}
+                            <div className="absolute bottom-12 left-0 right-0 flex justify-center z-30">
+                                <motion.div
+                                    initial={{ y: 20, opacity: 0 }}
+                                    animate={{ y: 0, opacity: 1 }}
+                                    transition={{ delay: 0.3 }}
+                                    className="bg-black/40 backdrop-blur-2xl px-6 py-3 rounded-full border border-white/10 flex items-center gap-3 shadow-2xl"
+                                >
+                                    <img src={user?.image || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg"} className="w-6 h-6 rounded-full border border-white/20" alt="me" />
+                                    <span className="text-white text-[10px] font-bold uppercase tracking-[0.2em]">Neural Projection</span>
+                                </motion.div>
                             </div>
 
-                            {/* Step 1: Selection */}
-                            {step === 1 && (
-                                <div
-                                    onDragEnter={handleDrag} onDragLeave={handleDrag} onDragOver={handleDrag} onDrop={handleDrop}
-                                    onClick={() => fileInputRef.current.click()}
-                                    className={`flex-1 flex flex-col items-center justify-center cursor-pointer transition-all ${dragActive ? 'bg-emerald-500/10' : ''}`}
-                                >
-                                    <input type="file" ref={fileInputRef} className="hidden" onChange={(e) => handleFile(e.target.files[0])} accept="image/*,video/*" />
-                                    <motion.div
-                                        whileHover={{ scale: 1.05 }}
-                                        className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mb-6 border border-white/10 group-hover:border-emerald-500/50 transition-all"
-                                    >
-                                        <Upload className="text-emerald-500" size={32} />
-                                    </motion.div>
-                                    <h3 className="text-white text-lg font-bold">Initiate Story Upload</h3>
-                                    <p className="text-gray-500 text-xs mt-2 tracking-widest uppercase opacity-60">Neural Network Ready</p>
-                                </div>
-                            )}
-
-                            {/* Step 2: Realistic Preview */}
-                            {step === 2 && (
-                                <div className="relative w-full h-full bg-black flex items-center justify-center group/preview">
-                                    <motion.div
-                                        initial={{ opacity: 0.4, scale: 1.05, filter: 'blur(10px)' }}
-                                        animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-                                        transition={{ duration: 0.5 }}
-                                        className="w-full h-full"
-                                    >
-                                        {type === 'VIDEO' ? (
-                                            <video src={mediaUrl} className="w-full h-full object-cover" autoPlay loop muted playsInline />
-                                        ) : (
-                                            <img src={mediaUrl} className="w-full h-full object-cover" alt="Preview" />
-                                        )}
-                                    </motion.div>
-
-                                    {/* Glass Preview Badge */}
-                                    <div className="absolute bottom-12 left-0 right-0 flex justify-center">
-                                        <div className="bg-black/40 backdrop-blur-xl px-6 py-3 rounded-full border border-white/10 flex items-center gap-3 shadow-xl">
-                                            <img src={user?.image || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg"} className="w-6 h-6 rounded-full border border-white/20" alt="me" />
-                                            <span className="text-white text-[10px] font-bold uppercase tracking-[0.2em]">Neural Preview</span>
-                                        </div>
-                                    </div>
-
-                                    {/* Cinematic vignette for preview */}
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/60 pointer-events-none" />
-                                </div>
-                            )}
+                            {/* Cinematic vignette - Lightened for better visibility */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/40 pointer-events-none z-20" />
                         </div>
-                    </motion.div>
+                    )}
                 </div>
-            )}
-        </AnimatePresence>
+
+            </motion.div>
+        </div>
     );
 };
 
