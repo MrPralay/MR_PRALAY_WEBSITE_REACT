@@ -70,17 +70,6 @@ const CreateStoryModal = ({ isOpen, onClose, onSubmit, user }) => {
             scale: 1,
             rotateY: 0,
             transition: { duration: 0.4, ease: "easeOut" }
-        },
-        wobble: {
-            rotateY: [-5, 5],
-            rotateX: [3, -3],
-            y: [-12, 12],
-            transition: {
-                duration: 7,
-                repeat: Infinity,
-                repeatType: "reverse",
-                ease: "easeInOut"
-            }
         }
     };
 
@@ -99,7 +88,7 @@ const CreateStoryModal = ({ isOpen, onClose, onSubmit, user }) => {
             <motion.div
                 variants={modalVariants}
                 initial="hidden"
-                animate={step === 2 ? ["visible", "wobble"] : "visible"}
+                animate="visible"
                 exit="hidden"
                 style={{
                     transformStyle: 'preserve-3d',
@@ -114,12 +103,16 @@ const CreateStoryModal = ({ isOpen, onClose, onSubmit, user }) => {
                     <motion.div
                         animate={{ opacity: [0.2, 0.4, 0.2] }}
                         transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                        style={{ willChange: 'opacity' }}
                         className="absolute -inset-[3px] rounded-[2rem] bg-gradient-to-tr from-fuchsia-500/30 via-white/40 to-emerald-500/30 blur-[2px] z-0"
                     />
                 )}
 
                 {/* Main Modal Content */}
-                <div className="relative flex-1 bg-[#050505]/95 backdrop-blur-3xl md:rounded-[2rem] border border-white/10 overflow-hidden shadow-2xl flex flex-col z-10" style={{ transform: 'translateZ(1px)', willChange: 'transform' }}>
+                <div
+                    className="relative flex-1 bg-[#050505] md:rounded-[2rem] border border-white/10 overflow-hidden shadow-2xl flex flex-col z-10"
+                    style={{ isolation: 'isolate' }}
+                >
                     {/* Header overlay - Softened Gradient */}
                     <div className="absolute top-0 left-0 right-0 z-20 p-6 flex items-center justify-between bg-gradient-to-b from-black/60 via-black/20 to-transparent">
                         <button onClick={step === 1 ? onClose : () => setStep(1)} className="text-white/80 hover:text-white transition-colors">
@@ -159,16 +152,30 @@ const CreateStoryModal = ({ isOpen, onClose, onSubmit, user }) => {
                     {step === 2 && (
                         <div className="relative w-full h-full bg-[#080808] flex items-center justify-center group/preview overflow-hidden">
                             <motion.div
-                                initial={{ opacity: 0.5, scale: 1.1, filter: 'blur(20px) brightness(0.8)' }}
-                                animate={{ opacity: 1, scale: 1, filter: 'blur(0px) brightness(1.02)' }}
-                                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ duration: 0.3 }}
                                 className="w-full h-full"
-                                style={{ willChange: 'transform, opacity, filter' }}
+                                style={{
+                                    backfaceVisibility: 'hidden',
+                                    WebkitBackfaceVisibility: 'hidden',
+                                    transform: 'translateZ(0)'
+                                }}
                             >
                                 {type === 'VIDEO' ? (
-                                    <video src={mediaUrl} className="w-full h-full object-cover" autoPlay loop muted playsInline />
+                                    <video
+                                        src={mediaUrl}
+                                        className="w-full h-full object-cover"
+                                        autoPlay loop muted playsInline
+                                        style={{ transform: 'translateZ(0)' }}
+                                    />
                                 ) : (
-                                    <img src={mediaUrl} className="w-full h-full object-cover" alt="Preview" />
+                                    <img
+                                        src={mediaUrl}
+                                        className="w-full h-full object-cover"
+                                        alt="Preview"
+                                        style={{ transform: 'translateZ(0)' }}
+                                    />
                                 )}
                             </motion.div>
 

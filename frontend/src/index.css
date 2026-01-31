@@ -99,8 +99,8 @@
         /* Persistent Hardware Acceleration */
         backface-visibility: hidden;
         -webkit-backface-visibility: hidden;
-        transform: translate3d(-50%, -50%, 0);
-        /* will-change: transform; Removed to prevent layer artifacts/glitches */
+        transform: translate3d(-50%, -50%, 0) rotate(0.01deg);
+        will-change: transform;
 
         /* Smooth Entry/Exit Glide */
         transition: transform 1.2s cubic-bezier(0.33, 1, 0.68, 1);
@@ -116,41 +116,41 @@
 
     @keyframes cinematic-breath-pan {
         0% {
-            transform: scale(1) translate3d(-50%, -50%, 0);
+            transform: scale(1) translate3d(-50%, -50%, 0) rotate(0.01deg);
         }
 
         /* Initial Zoom In/Out */
         10% {
-            transform: scale(1.1) translate3d(-50%, -50%, 0);
+            transform: scale(1.1) translate3d(-50%, -50%, 0) rotate(0.01deg);
         }
 
         /* Pan Up (Show Bottom) - Moves Center UP to -65% */
         30% {
-            transform: scale(1.05) translate3d(-50%, -65%, 0);
+            transform: scale(1.05) translate3d(-50%, -65%, 0) rotate(0.01deg);
         }
 
         /* Return to Center (Slightly Faster) + Zoom In */
         45% {
-            transform: scale(1.15) translate3d(-50%, -50%, 0);
+            transform: scale(1.15) translate3d(-50%, -50%, 0) rotate(0.01deg);
         }
 
         /* Zoom Out */
         55% {
-            transform: scale(1.05) translate3d(-50%, -50%, 0);
+            transform: scale(1.05) translate3d(-50%, -50%, 0) rotate(0.01deg);
         }
 
         /* Pan Down (Show Top) - Moves Center DOWN to -35% */
         75% {
-            transform: scale(1.05) translate3d(-50%, -35%, 0);
+            transform: scale(1.05) translate3d(-50%, -35%, 0) rotate(0.01deg);
         }
 
         /* Return to Center (Slightly Faster) + Zoom In */
         90% {
-            transform: scale(1.1) translate3d(-50%, -50%, 0);
+            transform: scale(1.1) translate3d(-50%, -50%, 0) rotate(0.01deg);
         }
 
         100% {
-            transform: scale(1) translate3d(-50%, -50%, 0);
+            transform: scale(1) translate3d(-50%, -50%, 0) rotate(0.01deg);
         }
     }
 
@@ -162,7 +162,8 @@
         isolation: isolate;
         /* create a stacking context without mask to avoid artifacts */
         z-index: 1;
-        /* Removed mask-image which can cause box artifacts */
+        transform: translateZ(0);
+        backface-visibility: hidden;
     }
 
     .stats-item {
