@@ -186,6 +186,40 @@
     }
 }
 
+/* Legendary Global Scrollbar - Fluid Stealth System */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 10px;
+    transition: background 0.4s ease;
+}
+
+/* Only show thumb when scrolling or hovering the scroll area */
+body.is-scrolling::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb:hover {
+    background: rgba(16, 185, 129, 0.4); /* Emerald Stealth Overlay */
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Firefox Support */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+}
+
+body.is-scrolling,
+body:hover {
+    scrollbar-color: rgba(16, 185, 129, 0.4) transparent;
+}
+
 /* Custom animations */
 @keyframes float {
     0% {

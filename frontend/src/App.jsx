@@ -35,6 +35,23 @@ function App() {
     const LIVE_API = "https://synapse-backend.pralayd140.workers.dev";
 
     useEffect(() => {
+        let scrollTimeout;
+        const handleScroll = () => {
+            document.body.classList.add('is-scrolling');
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(() => {
+                document.body.classList.remove('is-scrolling');
+            }, 1000);
+        };
+
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => {
+            window.removeEventListener('scroll', handleScroll);
+            clearTimeout(scrollTimeout);
+        };
+    }, []);
+
+    useEffect(() => {
         const performNeuralSync = async () => {
             const token = Cookies.get('synapse_token');
             const savedUser = localStorage.getItem('synapse_user_data');
