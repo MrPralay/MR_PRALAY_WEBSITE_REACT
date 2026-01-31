@@ -81,7 +81,10 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                     const data = await res.json();
                     const profileData = data.data || data;
                     if (active) {
-                        setUserProfile(profileData);
+                        // Only update if it's different to prevent potential sync loops
+                        if (profileData.id !== userProfile?.id || profileData.username !== userProfile?.username) {
+                            setUserProfile(profileData);
+                        }
                         setPosts(profileData.posts || []);
                     }
                 }
@@ -93,7 +96,7 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
         };
         fetchData();
         return () => { active = false; };
-    }, [view, currentUser, refreshTrigger]);
+    }, [view, currentUser, refreshTrigger, userProfile?.username]);
 
     // Neural Prefetcher: Cache media in background for instant viewing
     useEffect(() => {
@@ -415,6 +418,11 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                         initialStoryIndex={0}
                         onClose={() => setViewingStory(false)}
                         onDelete={handleDeleteStory}
+                        onUserProfileClick={(user) => {
+                            setViewingStory(false);
+                            setUserProfile(user);
+                            setView('profile');
+                        }}
                     />
                 )}
             </AnimatePresence>

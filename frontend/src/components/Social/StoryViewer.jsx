@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Heart, Send, MoreHorizontal, Eye, Trash2, Copy, Volume2, VolumeX } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
+const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete, onUserProfileClick }) => {
     const [currentIndex, setCurrentIndex] = useState(initialStoryIndex);
     const [progress, setProgress] = useState(0);
     const [isPaused, setIsPaused] = useState(false);
@@ -256,10 +256,16 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
 
                     {/* Story Header */}
                     <div className="absolute top-8 left-4 right-4 z-20 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <img src={currentStory.user?.profileImage || currentStory.user?.image || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg"} className="w-8 h-8 rounded-full border border-white/20" alt="User" />
+                        <div
+                            className="flex items-center gap-3 cursor-pointer group"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (onUserProfileClick) onUserProfileClick(currentStory.user);
+                            }}
+                        >
+                            <img src={currentStory.user?.profileImage || currentStory.user?.image || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg"} className="w-8 h-8 rounded-full border border-white/20 group-hover:scale-105 transition-transform" alt="User" />
                             <div className="flex items-center gap-2">
-                                <span className="text-white font-bold text-sm tracking-wide">{currentStory.user?.username}</span>
+                                <span className="text-white font-bold text-sm tracking-wide group-hover:text-emerald-400 transition-colors">{currentStory.user?.username}</span>
                                 <span className="text-gray-400 text-xs font-medium">31s</span>
                             </div>
                         </div>
