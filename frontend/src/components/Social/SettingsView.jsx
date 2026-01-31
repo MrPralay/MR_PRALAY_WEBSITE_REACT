@@ -4,7 +4,7 @@ import {
     Bell, Eye, Trash2, Smartphone, Globe, Palette,
     ChevronRight, Key, ShieldCheck, CreditCard, ChevronLeft,
     LogOut, AlertTriangle, CheckCircle2, X, TrendingUp,
-    Activity, Clock, ShieldAlert, Cpu, EyeOff, Ghost, CheckCheck, ScanEye
+    Activity, Clock, ShieldAlert, Cpu, EyeOff, Ghost, CheckCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Cookies from 'js-cookie';
@@ -735,7 +735,7 @@ const SettingsView = ({ user, onUpdateUser, onLogout }) => {
                                         <motion.div variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }} className="p-8 bg-white/5 border border-white/10 rounded-[2.5rem] flex items-center justify-between group hover:bg-white/[0.07] transition-all">
                                             <div className="flex items-center gap-5">
                                                 <div className="w-12 h-12 bg-amber-500/10 rounded-xl flex items-center justify-center text-amber-500 group-hover:scale-110 transition-transform">
-                                                    <ScanEye size={22} />
+                                                    <ShieldCheck size={22} />
                                                 </div>
                                                 <div>
                                                     <h4 className="text-white font-bold text-lg mb-1 tracking-tight">Neural Vault</h4>
@@ -883,6 +883,78 @@ const SettingsView = ({ user, onUpdateUser, onLogout }) => {
                                                     <p className="text-[10px] font-bold text-center uppercase tracking-widest text-white">{theme.name}</p>
                                                 </motion.div>
                                             ))}
+                                        </motion.div>
+                                    </div>
+                                </section>
+                            </motion.div>
+                        )}
+
+                        {activeSection === 'notifications' && (
+                            <motion.div initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.1 } } }} className="space-y-12">
+                                <section>
+                                    <motion.h3 variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }} className="text-2xl font-bold text-white mb-8 tracking-tight">Notification Pulse</motion.h3>
+
+                                    <div className="space-y-6">
+                                        {/* AI Security Alert: Failed Logins */}
+                                        <motion.div variants={{ hidden: { opacity: 0, x: -20 }, visible: { opacity: 1, x: 0 } }} className="p-8 bg-red-500/5 border border-red-500/20 rounded-[2.5rem] relative overflow-hidden group hover:bg-red-500/10 transition-all">
+                                            <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 rounded-full -mr-16 -mt-16 blur-3xl opacity-50 group-hover:opacity-100 transition-opacity" />
+                                            <div className="flex items-start gap-8">
+                                                <div className="w-16 h-16 bg-red-500/20 rounded-2xl flex items-center justify-center text-red-500 shrink-0">
+                                                    <ShieldAlert size={32} className="animate-pulse" />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <div className="flex justify-between items-center mb-2">
+                                                        <span className="text-[10px] font-bold text-red-500 uppercase tracking-[0.3em]">AI Security Threat</span>
+                                                        <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">2 MINS AGO</span>
+                                                    </div>
+                                                    <h4 className="text-white font-bold text-xl mb-2 tracking-tight">Brute Force Detected</h4>
+                                                    <p className="text-gray-500 text-sm leading-relaxed mb-4">AI neural scan detected 4 failed login attempts synchronized from IP: 192.168.0.XX (Sector 7G). Immediate security protocol recommended.</p>
+                                                    <div className="flex gap-4">
+                                                        <button className="px-6 py-2 bg-red-500 text-black text-[10px] font-bold uppercase tracking-widest rounded-xl hover:bg-red-400 transition-all">Lock Synapse</button>
+                                                        <button className="px-6 py-2 bg-white/5 border border-white/10 text-white text-[10px] font-bold uppercase tracking-widest rounded-xl hover:bg-white/10 transition-all">Dismiss Trace</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </motion.div>
+
+                                        {/* AI Security Alert: Suspicious Device */}
+                                        <motion.div variants={{ hidden: { opacity: 0, x: -20 }, visible: { opacity: 1, x: 0 } }} className="p-8 bg-amber-500/5 border border-amber-500/20 rounded-[2.5rem] relative overflow-hidden group hover:bg-amber-500/10 transition-all">
+                                            <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full -mr-16 -mt-16 blur-3xl opacity-50 group-hover:opacity-100 transition-opacity" />
+                                            <div className="flex items-start gap-8">
+                                                <div className="w-16 h-16 bg-amber-500/20 rounded-2xl flex items-center justify-center text-amber-500 shrink-0">
+                                                    <Monitor size={32} />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <div className="flex justify-between items-center mb-2">
+                                                        <span className="text-[10px] font-bold text-amber-500 uppercase tracking-[0.3em]">AI Resonance Alert</span>
+                                                        <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">1 HOUR AGO</span>
+                                                    </div>
+                                                    <h4 className="text-white font-bold text-xl mb-2 tracking-tight">Unknown Terminal Link</h4>
+                                                    <p className="text-gray-500 text-sm leading-relaxed">Suspicious terminal link initiated from unknown sector (Chrome on Linux-X86). AI has quarantined the session until verification.</p>
+                                                </div>
+                                            </div>
+                                        </motion.div>
+
+                                        {/* Developer Pulse: Patch Notes */}
+                                        <motion.div variants={{ hidden: { opacity: 0, x: -20 }, visible: { opacity: 1, x: 0 } }} className="p-8 bg-emerald-500/5 border border-emerald-500/20 rounded-[2.5rem] relative overflow-hidden group hover:bg-emerald-500/10 transition-all">
+                                            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full -mr-16 -mt-16 blur-3xl opacity-50 group-hover:opacity-100 transition-opacity" />
+                                            <div className="flex items-start gap-8">
+                                                <div className="w-16 h-16 bg-emerald-500/20 rounded-2xl flex items-center justify-center text-emerald-500 shrink-0">
+                                                    <Cpu size={32} />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <div className="flex justify-between items-center mb-2">
+                                                        <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-[0.3em]">Developer Pulse</span>
+                                                        <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">SYSTEM RECENT</span>
+                                                    </div>
+                                                    <h4 className="text-white font-bold text-xl mb-2 tracking-tight">Neural Engine Patch 2.4.1</h4>
+                                                    <p className="text-gray-500 text-sm leading-relaxed mb-4">Quantum decay logic optimized for better digital ephemerality across all synapses. Privacy Link protocols hardened.</p>
+                                                    <button className="text-[10px] font-bold text-emerald-500 uppercase tracking-[0.2em] flex items-center gap-2 group/btn">
+                                                        Read Full Patch Manifest
+                                                        <ChevronRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </motion.div>
                                     </div>
                                 </section>
