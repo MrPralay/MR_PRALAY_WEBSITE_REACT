@@ -364,7 +364,7 @@ const SettingsView = ({ user, onUpdateUser, onLogout }) => {
                                                                             onPaste={handleOtpPaste}
                                                                             onChange={e => handleOtpChange(idx, e.target.value)}
                                                                             onKeyDown={e => handleOtpKeyDown(idx, e)}
-                                                                            className="w-full aspect-square bg-white/5 border border-white/10 rounded-2xl text-center text-xl font-bold text-emerald-500 focus:border-emerald-500/50 focus:bg-emerald-500/5 focus:outline-none transition-all"
+                                                                            className="w-full aspect-square bg-white/5 border border-white/10 rounded-2xl text-center text-xl font-bold text-emerald-500 focus:border-emerald-500/50 focus:bg-emerald-500/5 focus:outline-none transition-all caret-transparent select-none"
                                                                             placeholder="-"
                                                                         />
                                                                     ))}
