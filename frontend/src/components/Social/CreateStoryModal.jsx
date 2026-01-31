@@ -150,9 +150,9 @@ const CreateStoryModal = ({ isOpen, onClose, onSubmit, user }) => {
                             {step === 2 && (
                                 <div className="relative w-full h-full bg-black flex items-center justify-center group/preview">
                                     <motion.div
-                                        initial={{ opacity: 0.2, scale: 1.1, filter: 'blur(20px)' }}
+                                        initial={{ opacity: 0.4, scale: 1.05, filter: 'blur(10px)' }}
                                         animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-                                        transition={{ duration: 0.6 }}
+                                        transition={{ duration: 0.5 }}
                                         className="w-full h-full"
                                     >
                                         {type === 'VIDEO' ? (

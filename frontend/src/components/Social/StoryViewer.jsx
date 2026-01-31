@@ -170,9 +170,9 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
                                         src={currentStory.mediaUrl}
                                         className="w-full h-full object-cover transition-all duration-700 ease-out"
                                         style={{
-                                            opacity: isMediaLoading ? 0.2 : 1,
-                                            filter: isMediaLoading ? 'blur(20px)' : 'none',
-                                            transform: isMediaLoading ? 'scale(1.1)' : 'scale(1)'
+                                            opacity: isMediaLoading ? 0.4 : 1,
+                                            filter: isMediaLoading ? 'blur(10px)' : 'none',
+                                            transform: isMediaLoading ? 'scale(1.05)' : 'scale(1)'
                                         }}
                                         autoPlay
                                         loop
@@ -194,9 +194,9 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
                                         src={currentStory.mediaUrl}
                                         className="w-full h-full object-cover transition-all duration-700 ease-out"
                                         style={{
-                                            opacity: isMediaLoading ? 0.2 : 1,
-                                            filter: isMediaLoading ? 'blur(20px)' : 'none',
-                                            transform: isMediaLoading ? 'scale(1.1)' : 'scale(1)'
+                                            opacity: isMediaLoading ? 0.4 : 1,
+                                            filter: isMediaLoading ? 'blur(10px)' : 'none',
+                                            transform: isMediaLoading ? 'scale(1.05)' : 'scale(1)'
                                         }}
                                         alt="Story"
                                         onLoad={() => setIsMediaLoading(false)}
