@@ -110,7 +110,7 @@ const ProfileView = ({ user, currentUser, posts: parentPosts = [], onOpenCreateP
                     <div className="flex flex-col md:flex-row items-center gap-6 mb-10">
                         <div className="flex items-center gap-3">
                             <h2 className="text-4xl font-bold text-white tracking-tighter">{user.username}</h2>
-                            <ShieldCheck className="text-emerald-500" size={24} />
+                            {user.isPrivate ? <Lock className="text-amber-500" size={24} /> : <ShieldCheck className="text-emerald-500" size={24} />}
                         </div>
                         <div className="flex gap-3">
                             {isOwnProfile ? (
@@ -179,6 +179,21 @@ const ProfileView = ({ user, currentUser, posts: parentPosts = [], onOpenCreateP
                         <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="w-12 h-12 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full" />
                         <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-[0.3em] animate-pulse">Syncing Registry...</p>
                     </div>
+                ) : user.isPrivate && !isOwnProfile ? (
+                    <motion.div
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="flex flex-col items-center justify-center py-40 text-center"
+                    >
+                        <div className="w-24 h-24 bg-amber-500/5 border border-amber-500/10 rounded-[2.5rem] flex items-center justify-center mb-8 relative">
+                            <div className="absolute inset-0 bg-amber-500/10 blur-2xl rounded-full animate-pulse" />
+                            <Lock size={40} className="text-amber-500 relative z-10" />
+                        </div>
+                        <h3 className="text-white text-2xl font-bold mb-2 tracking-tight uppercase">Neural Link Restricted</h3>
+                        <p className="text-gray-600 text-[10px] font-bold tracking-[0.3em] mb-10 uppercase max-w-xs leading-relaxed">
+                            This user has activated their Stealth Shield. Follow them to synchronize with their synapses.
+                        </p>
+                    </motion.div>
                 ) : (
                     <div className="grid grid-cols-2 lg:grid-cols-3 gap-1 md:gap-8">
                         <AnimatePresence mode="popLayout">

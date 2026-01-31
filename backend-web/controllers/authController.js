@@ -303,7 +303,8 @@ export const getMe = async (c) => {
                 name: user.name,
                 image: user.profileImage,
                 bio: user.bio,
-                riskScore: user.riskScore
+                riskScore: user.riskScore,
+                isPrivate: user.isPrivate
             }
         });
     } catch (error) {

@@ -13,6 +13,7 @@ export const getProfile = async (c) => {
                 bio: true,
                 profileImage: true,
                 riskScore: true,
+                isPrivate: true,
                 createdAt: true,
                 role: true,
                 posts: {
@@ -82,7 +83,9 @@ export const updateProfile = async (c) => {
             data: {
                 ...(name && { name }),
                 ...(bio && { bio }),
-                ...(profileImage && { profileImage })
+                ...(profileImage && { profileImage }),
+                ...(username && { username }),
+                ...(typeof isPrivate === 'boolean' && { isPrivate })
             },
             select: {
                 id: true,
@@ -98,6 +101,34 @@ export const updateProfile = async (c) => {
     } catch (error) {
         console.error("Profile Update Error:", error);
         return c.json({ success: false, error: "Neural recalibration failed" }, 500);
+    }
+};
+
+export const getResonance = async (c) => {
+    try {
+        const targetUsername = c.req.param('username');
+        const currentUser = c.get('user');
+        const prisma = getPrisma(c.env.DATABASE_URL);
+
+        // Find posts liked by BOTH users
+        const mutualPosts = await prisma.post.findMany({
+            where: {
+                AND: [
+                    { likes: { some: { userId: currentUser.userId } } },
+                    { likes: { some: { user: { username: targetUsername } } } }
+                ]
+            },
+            include: {
+                user: { select: { username: true, profileImage: true } },
+                _count: { select: { likes: true, comments: true } }
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        return c.json({ success: true, data: mutualPosts });
+    } catch (error) {
+        console.error("Resonance Error:", error);
+        return c.json({ success: false, error: "Neural resonance failed" }, 500);
     }
 };
 

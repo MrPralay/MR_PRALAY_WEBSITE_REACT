@@ -34,6 +34,7 @@ model User {
   following     Follow[]      @relation("Follower")
   sessions      Session[]
   isVerified    Boolean       @default(false)
+  isPrivate     Boolean       @default(false)
   otp           String?
   otpExpires    DateTime?
   createdAt     DateTime      @default(now())

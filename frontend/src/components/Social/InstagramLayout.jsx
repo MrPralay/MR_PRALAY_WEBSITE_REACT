@@ -7,6 +7,7 @@ import CreatePostModal from './CreatePostModal';
 import ReelsView from './ReelsView';
 import CreateStoryModal from './CreateStoryModal';
 import StoryViewer from './StoryViewer';
+import SettingsView from './SettingsView';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import Cookies from 'js-cookie';
@@ -14,6 +15,7 @@ import Cookies from 'js-cookie';
 const InstagramLayout = ({ currentUser, onLogout }) => {
     const [view, setView] = useState(() => localStorage.getItem('synapse_social_tab') || 'feed'); // feed, profile, explore, etc.
     const [posts, setPosts] = useState([]);
+    const [currentUserState, setCurrentUserState] = useState(currentUser);
     const [userProfile, setUserProfile] = useState(currentUser);
     const [loading, setLoading] = useState(false);
     const [isPostModalOpen, setIsPostModalOpen] = useState(false);
@@ -115,8 +117,18 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
     }, [allStories]);
 
     const handleViewMyProfile = () => {
-        setUserProfile(currentUser);
+        setUserProfile(currentUserState);
         setView('profile');
+    };
+
+    const handleUpdateUser = (newData) => {
+        const updated = { ...currentUserState, ...newData };
+        setCurrentUserState(updated);
+        localStorage.setItem('synapse_user_data', JSON.stringify(updated));
+        // Reset userProfile if looking at own profile to reflect changes
+        if (userProfile.id === updated.id) {
+            setUserProfile(updated);
+        }
     };
 
     const handleCreatePost = async (postData) => {
@@ -299,7 +311,7 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
         <div className="flex bg-[#050505] min-h-screen">
             {/* Left Sidebar */}
             <Sidebar
-                user={currentUser}
+                user={currentUserState}
                 activeView={view}
                 setView={setView}
                 onLogout={onLogout}
@@ -356,11 +368,27 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                         >
                             <ProfileView
                                 user={userProfile}
-                                currentUser={currentUser}
+                                currentUser={currentUserState}
                                 posts={posts}
                                 onOpenCreatePost={() => setIsPostModalOpen(true)}
                                 loading={loading}
                                 onCinemaMode={setCinemaPost}
+                            />
+                        </motion.div>
+                    )}
+
+                    {view === 'setting' && (
+                        <motion.div
+                            key="setting"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.3 }}
+                        >
+                            <SettingsView
+                                user={currentUserState}
+                                onUpdateUser={handleUpdateUser}
+                                onLogout={onLogout}
                             />
                         </motion.div>
                     )}
@@ -399,7 +427,7 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                 isOpen={isPostModalOpen}
                 onClose={() => setIsPostModalOpen(false)}
                 onSubmit={handleCreatePost}
-                user={currentUser}
+                user={currentUserState}
             />
 
             {/* Create Story Modal */}
