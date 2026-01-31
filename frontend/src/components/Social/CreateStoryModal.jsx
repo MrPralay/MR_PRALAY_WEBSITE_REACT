@@ -77,7 +77,24 @@ const CreateStoryModal = ({ isOpen, onClose, onSubmit, user }) => {
                         exit={{ opacity: 0 }}
                         onClick={onClose}
                         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-                    />
+                    >
+                        {/* Living Aura - Matches the Viewer experience */}
+                        {step === 2 && mediaUrl && (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 1.1 }}
+                                animate={{ opacity: 0.4, scale: 1.3 }}
+                                transition={{ duration: 1 }}
+                                className="absolute inset-0 overflow-hidden blur-[100px] saturate-[2]"
+                            >
+                                {type === 'VIDEO' ? (
+                                    <video src={mediaUrl} autoPlay loop muted playsInline className="w-full h-full object-cover" />
+                                ) : (
+                                    <img src={mediaUrl} alt="Aura" className="w-full h-full object-cover" />
+                                )}
+                            </motion.div>
+                        )}
+                        <div className="absolute inset-0 bg-black/40" />
+                    </motion.div>
 
                     {/* Modal Content - Mobile First Full Screen */}
                     <motion.div

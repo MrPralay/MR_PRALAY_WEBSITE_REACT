@@ -160,6 +160,27 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
             exit={{ opacity: 0, scale: 0.95 }}
             className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center md:py-8"
         >
+            {/* Living Aura - Dynamic Ambient Backdrop */}
+            <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+                <AnimatePresence mode="popLayout">
+                    <motion.div
+                        key={`aura-${currentStory.id}`}
+                        initial={{ opacity: 0, scale: 1.2 }}
+                        animate={{ opacity: 0.4, scale: 1.5 }}
+                        exit={{ opacity: 0, scale: 1.2 }}
+                        transition={{ duration: 0.8 }}
+                        className="absolute inset-0 blur-[120px] saturate-[2.5]"
+                    >
+                        {currentStory?.type === 'VIDEO' ? (
+                            <video src={currentStory.mediaUrl} autoPlay loop muted playsInline className="w-full h-full object-cover" />
+                        ) : (
+                            <img src={currentStory.mediaUrl} alt="Aura" className="w-full h-full object-cover" />
+                        )}
+                    </motion.div>
+                </AnimatePresence>
+                <div className="absolute inset-0 bg-black/40" /> {/* Ambient darkening */}
+            </div>
+
             {/* Mobile Container Ratio */}
             <div className="relative w-full md:max-w-md h-full md:h-[90vh] bg-gray-900 md:rounded-[2rem] overflow-hidden shadow-2xl flex flex-col group">
 
