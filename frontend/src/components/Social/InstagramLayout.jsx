@@ -83,10 +83,8 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                     const data = await res.json();
                     const profileData = data.data || data;
                     if (active) {
-                        // Only update if it's different to prevent potential sync loops
-                        if (profileData.id !== userProfile?.id || profileData.username !== userProfile?.username) {
-                            setUserProfile(profileData);
-                        }
+                        // Refresh profile data to capture bio/privacy changes
+                        setUserProfile(profileData);
                         setPosts(profileData.posts || []);
                     }
                 }

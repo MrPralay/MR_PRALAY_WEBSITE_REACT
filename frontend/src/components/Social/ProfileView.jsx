@@ -110,7 +110,7 @@ const ProfileView = ({ user, currentUser, posts: parentPosts = [], onOpenCreateP
                     <div className="flex flex-col md:flex-row items-center gap-6 mb-10">
                         <div className="flex items-center gap-3">
                             <h2 className="text-4xl font-bold text-white tracking-tighter">{user.username}</h2>
-                            {user.isPrivate ? <Lock className="text-amber-500" size={24} /> : <ShieldCheck className="text-emerald-500" size={24} />}
+                            {user.isPrivate && <Lock className="text-amber-500" size={24} />}
                         </div>
                         <div className="flex gap-3">
                             {isOwnProfile ? (

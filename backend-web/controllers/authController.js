@@ -172,6 +172,8 @@ export const login = async (c) => {
                 name: user.name,
                 image: user.profileImage,
                 bio: user.bio,
+                email: user.email,
+                isPrivate: user.isPrivate,
                 riskScore
             }
         });
@@ -303,6 +305,7 @@ export const getMe = async (c) => {
                 name: user.name,
                 image: user.profileImage,
                 bio: user.bio,
+                email: user.email,
                 riskScore: user.riskScore,
                 isPrivate: user.isPrivate
             }
