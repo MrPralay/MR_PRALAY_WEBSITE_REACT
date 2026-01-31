@@ -2,7 +2,7 @@ import React from 'react';
 import { Home, Compass, Heart, MessageSquare, Monitor, BarChart2, Settings, LogOut, PlusSquare } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-const Sidebar = ({ user, activeView, setView, onLogout, onOpenCreatePost }) => {
+const Sidebar = ({ user, activeView, setView, onLogout, onOpenCreatePost, onMyProfileClick }) => {
     const navItems = [
         { id: 'feed', label: 'Feed', icon: <Home size={22} /> },
         { id: 'explore', label: 'Explore', icon: <Compass size={22} /> },
@@ -17,7 +17,7 @@ const Sidebar = ({ user, activeView, setView, onLogout, onOpenCreatePost }) => {
         <div className="w-80 h-screen fixed left-0 top-0 bg-[#050505] border-r border-white/5 flex flex-col z-40">
             {/* User Profile Summary */}
             <div className="p-10 flex flex-col items-center">
-                <div className="relative mb-4 group cursor-pointer" onClick={() => setView('profile')}>
+                <div className="relative mb-4 group cursor-pointer" onClick={onMyProfileClick}>
                     <div className="story-ring p-[3px]">
                         <img
                             src={user.image || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg"}

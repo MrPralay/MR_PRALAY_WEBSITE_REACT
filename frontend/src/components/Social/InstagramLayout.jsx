@@ -111,6 +111,11 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
         }
     }, [allStories]);
 
+    const handleViewMyProfile = () => {
+        setUserProfile(currentUser);
+        setView('profile');
+    };
+
     const handleCreatePost = async (postData) => {
         try {
             const apiUrl = "https://synapse-backend.pralayd140.workers.dev";
@@ -295,6 +300,7 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                 activeView={view}
                 setView={setView}
                 onLogout={onLogout}
+                onMyProfileClick={handleViewMyProfile}
                 onOpenCreatePost={() => setIsPostModalOpen(true)}
             />
 
