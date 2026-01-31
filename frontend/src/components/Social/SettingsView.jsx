@@ -25,8 +25,8 @@ const SettingsView = ({ user, onUpdateUser, onLogout }) => {
         current: '',
         new: '',
         confirm: '',
-        otp: ''
     });
+    const [otpDigits, setOtpDigits] = useState(['', '', '', '']);
 
     const [otpSent, setOtpSent] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -122,8 +122,47 @@ const SettingsView = ({ user, onUpdateUser, onLogout }) => {
         }
     };
 
+    const handleOtpChange = (index, value) => {
+        if (!/^\d*$/.test(value)) return;
+        const newDigits = [...otpDigits];
+        newDigits[index] = value.slice(-1);
+        setOtpDigits(newDigits);
+
+        // Auto focus next
+        if (value && index < 3) {
+            const nextInput = document.getElementById(`otp-${index + 1}`);
+            nextInput?.focus();
+        }
+    };
+
+    const handleOtpKeyDown = (index, e) => {
+        if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
+            const prevInput = document.getElementById(`otp-${index - 1}`);
+            prevInput?.focus();
+        }
+    };
+
+    const handleOtpPaste = (e) => {
+        e.preventDefault();
+        const data = e.clipboardData.getData('text').slice(0, 4);
+        if (!/^\d+$/.test(data)) return;
+        const newDigits = [...otpDigits];
+        data.split('').forEach((char, i) => {
+            if (i < 4) newDigits[i] = char;
+        });
+        setOtpDigits(newDigits);
+        // Focus last or next available
+        const targetIdx = data.length < 4 ? data.length : 3;
+        document.getElementById(`otp-${targetIdx}`)?.focus();
+    };
+
     const handleResetPassword = async (e) => {
         e.preventDefault();
+        const combinedOtp = otpDigits.join('');
+        if (combinedOtp.length < 4) {
+            showStatus('error', 'Incomplete Neural Code');
+            return;
+        }
         if (passwordData.new !== passwordData.confirm) {
             showStatus('error', 'Neural Mismatch: Passwords do not align');
             return;
@@ -134,8 +173,8 @@ const SettingsView = ({ user, onUpdateUser, onLogout }) => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    email: user.email,
-                    otp: passwordData.otp,
+                    email: formData.email || user.email,
+                    otp: combinedOtp,
                     newPassword: passwordData.new
                 })
             });
@@ -143,7 +182,8 @@ const SettingsView = ({ user, onUpdateUser, onLogout }) => {
             if (data.success) {
                 showStatus('success', 'Neural Key Recalibrated');
                 setOtpSent(false);
-                setPasswordData({ current: '', new: '', confirm: '', otp: '' });
+                setOtpDigits(['', '', '', '']);
+                setPasswordData({ current: '', new: '', confirm: '' });
             } else {
                 showStatus('error', data.error || 'Recalibration Failed');
             }
@@ -309,15 +349,26 @@ const SettingsView = ({ user, onUpdateUser, onLogout }) => {
                                                         className="w-full space-y-6 pt-6 border-t border-white/5"
                                                     >
                                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                            <div className="space-y-2">
-                                                                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Neural OTP</label>
-                                                                <input
-                                                                    type="text"
-                                                                    value={passwordData.otp}
-                                                                    onChange={e => setPasswordData({ ...passwordData, otp: e.target.value })}
-                                                                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm focus:border-emerald-500/50 focus:outline-none transition-all placeholder:text-gray-700"
-                                                                    placeholder="ENTER 4-DIGIT CODE"
-                                                                />
+                                                            <div className="space-y-2 col-span-full md:col-span-1">
+                                                                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Neural Access Code</label>
+                                                                <div className="flex gap-4">
+                                                                    {otpDigits.map((digit, idx) => (
+                                                                        <input
+                                                                            key={idx}
+                                                                            id={`otp-${idx}`}
+                                                                            type="text"
+                                                                            maxLength={1}
+                                                                            autoComplete="one-time-code"
+                                                                            inputMode="numeric"
+                                                                            value={digit}
+                                                                            onPaste={handleOtpPaste}
+                                                                            onChange={e => handleOtpChange(idx, e.target.value)}
+                                                                            onKeyDown={e => handleOtpKeyDown(idx, e)}
+                                                                            className="w-full aspect-square bg-white/5 border border-white/10 rounded-2xl text-center text-xl font-bold text-emerald-500 focus:border-emerald-500/50 focus:bg-emerald-500/5 focus:outline-none transition-all"
+                                                                            placeholder="-"
+                                                                        />
+                                                                    ))}
+                                                                </div>
                                                             </div>
                                                             <div className="space-y-2">
                                                                 <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">New Neural Key</label>
