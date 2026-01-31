@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Grid, Play, Bookmark, User as UserIcon, Settings, ShieldCheck, Plus, Monitor, Lock, Hash, Heart, MessageCircle } from 'lucide-react';
+import { Grid, Play, Bookmark, User as UserIcon, Settings, ShieldCheck, Plus, Monitor, Lock, Hash, Heart, MessageCircle, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Cookies from 'js-cookie';
 
@@ -40,6 +40,23 @@ const ProfileView = ({ user, currentUser, posts: parentPosts = [], onOpenCreateP
                 } finally {
                     if (!isCancelled) setLocalLoading(false);
                 }
+            } else if (activeTab === 'resonance' && !isOwnProfile) {
+                setTabData([]);
+                setLocalLoading(true);
+                try {
+                    // Fetch mutual resonance (posts both users have interacted with/liked)
+                    const res = await fetch(`${apiUrl}/api/user/resonance/${encodeURIComponent(user.username)}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const data = await res.json();
+                    if (!isCancelled) {
+                        setTabData(data.data || []);
+                    }
+                } catch (err) {
+                    if (!isCancelled) console.error("Resonance Sync Failed:", err);
+                } finally {
+                    if (!isCancelled) setLocalLoading(false);
+                }
             } else if (activeTab === 'tagged') {
                 setTabData([]);
             } else {
@@ -62,7 +79,11 @@ const ProfileView = ({ user, currentUser, posts: parentPosts = [], onOpenCreateP
     const tabs = [
         { id: 'posts', label: 'Synapses', icon: <Grid size={16} /> },
         { id: 'reels', label: 'Neural Reels', icon: <Play size={16} /> },
-        ...(isOwnProfile ? [{ id: 'saved', label: 'Registry', icon: <Bookmark size={16} /> }] : []),
+        ...(isOwnProfile ? [
+            { id: 'saved', label: 'Registry', icon: <Bookmark size={16} /> }
+        ] : [
+            { id: 'resonance', label: 'Mutual Resonance', icon: <Zap size={16} /> }
+        ]),
         { id: 'tagged', label: 'Tagged', icon: <UserIcon size={16} /> },
     ];
 
@@ -200,10 +221,18 @@ const ProfileView = ({ user, currentUser, posts: parentPosts = [], onOpenCreateP
                             ) : (
                                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="col-span-full py-40 text-center flex flex-col items-center">
                                     <div className="w-24 h-24 bg-white/5 rounded-[2rem] flex items-center justify-center mb-8 border border-white/5">
-                                        {activeTab === 'posts' ? <Grid size={32} className="text-gray-700" /> : activeTab === 'reels' ? <Play size={32} className="text-gray-700" /> : activeTab === 'saved' ? <Bookmark size={32} className="text-gray-700" /> : <UserIcon size={32} className="text-gray-700" />}
+                                        {activeTab === 'posts' ? <Grid size={32} className="text-gray-700" /> :
+                                            activeTab === 'reels' ? <Play size={32} className="text-gray-700" /> :
+                                                activeTab === 'saved' ? <Bookmark size={32} className="text-gray-700" /> :
+                                                    activeTab === 'resonance' ? <Zap size={32} className="text-gray-700" /> :
+                                                        <UserIcon size={32} className="text-gray-700" />}
                                     </div>
-                                    <h3 className="text-white text-2xl font-bold mb-2 tracking-tight uppercase">Segment Empty</h3>
-                                    <p className="text-gray-600 text-xs font-bold tracking-[0.2em] mb-10 uppercase">Initiate your broadcast for this area.</p>
+                                    <h3 className="text-white text-2xl font-bold mb-2 tracking-tight uppercase">
+                                        {activeTab === 'resonance' ? "Resonance Not Found" : "Segment Empty"}
+                                    </h3>
+                                    <p className="text-gray-600 text-xs font-bold tracking-[0.2em] mb-10 uppercase">
+                                        {activeTab === 'resonance' ? "You haven't entangled with this user's content yet." : "Initiate your broadcast for this area."}
+                                    </p>
                                     {isOwnProfile && activeTab === 'posts' && (
                                         <button onClick={onOpenCreatePost} className="flex items-center gap-3 px-10 py-4 bg-emerald-500 text-black font-bold text-[10px] uppercase tracking-[0.3em] rounded-2xl hover:bg-emerald-400 transition-all shadow-2xl">
                                             <Plus size={16} /> New post
