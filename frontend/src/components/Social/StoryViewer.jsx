@@ -163,14 +163,18 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
                         repeatType: "reverse",
                         ease: "easeInOut"
                     }}
-                    style={{ transformStyle: 'preserve-3d' }}
+                    style={{
+                        transformStyle: 'preserve-3d',
+                        backfaceVisibility: 'hidden',
+                        WebkitBackfaceVisibility: 'hidden'
+                    }}
                     className="relative w-full md:max-w-md h-full md:h-[90vh] flex flex-col group"
                 >
                     {/* Glass Prism Frame - The Legendary Edge Effect */}
                     <div className="absolute -inset-[2px] rounded-[2rem] md:rounded-[2.2rem] bg-gradient-to-tr from-fuchsia-500/20 via-white/40 to-emerald-500/20 opacity-40 blur-[1px] z-0" />
 
                     {/* Main Story Content with Refractive Border */}
-                    <div className="relative flex-1 bg-black md:rounded-[2rem] overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col z-10 border border-white/10 ring-1 ring-white/5 backdrop-blur-sm">
+                    <div className="relative flex-1 bg-black md:rounded-[2rem] overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col z-10 border border-white/10 backdrop-blur-sm" style={{ transform: 'translateZ(1px)', willChange: 'transform' }}>
 
                         {/* Media Display Area */}
                         <div className="absolute inset-0 z-0 bg-black">

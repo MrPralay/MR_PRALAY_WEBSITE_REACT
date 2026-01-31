@@ -96,7 +96,11 @@ const CreateStoryModal = ({ isOpen, onClose, onSubmit, user }) => {
                             repeatType: "reverse",
                             ease: "easeInOut"
                         } : { duration: 0.4 }}
-                        style={{ transformStyle: 'preserve-3d' }}
+                        style={{
+                            transformStyle: 'preserve-3d',
+                            backfaceVisibility: 'hidden',
+                            WebkitBackfaceVisibility: 'hidden'
+                        }}
                         className="relative w-full md:max-w-md h-full md:h-[90vh] flex flex-col group z-10"
                         onClick={(e) => e.stopPropagation()}
                     >
@@ -106,8 +110,7 @@ const CreateStoryModal = ({ isOpen, onClose, onSubmit, user }) => {
                         )}
 
                         {/* Main Modal Content */}
-                        <div className="relative flex-1 bg-[#111]/90 backdrop-blur-md md:rounded-[2rem] border border-white/10 overflow-hidden shadow-2xl flex flex-col z-10 ring-1 ring-white/5">
-
+                        <div className="relative flex-1 bg-[#111]/90 backdrop-blur-md md:rounded-[2rem] border border-white/10 overflow-hidden shadow-2xl flex flex-col z-10" style={{ transform: 'translateZ(1px)', willChange: 'transform' }}>
                             {/* Header overlay */}
                             <div className="absolute top-0 left-0 right-0 z-20 p-6 flex items-center justify-between bg-gradient-to-b from-black/80 to-transparent">
                                 <button onClick={step === 1 ? onClose : () => setStep(1)} className="text-white hover:text-emerald-500 transition-colors">
