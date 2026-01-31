@@ -16,35 +16,43 @@ const ProfileView = ({ user, currentUser, posts: parentPosts = [], onOpenCreateP
     const token = Cookies.get('synapse_token');
 
     useEffect(() => {
+        let isCancelled = false;
+        setLocalLoading(false); // Reset loading state on every tab change
+
         const loadContent = async () => {
             if (activeTab === 'saved') {
+                setTabData([]); // Clear immediately to prevent ghosting
                 setLocalLoading(true);
                 try {
                     const res = await fetch(`${apiUrl}/api/user/saved`, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
                     const data = await res.json();
-                    setTabData(data.data || []);
+                    if (!isCancelled) {
+                        setTabData(data.data || []);
+                    }
                 } catch (err) {
-                    console.error("Registry Sync Failure:", err);
+                    if (!isCancelled) console.error("Registry Sync Failure:", err);
                 } finally {
-                    setLocalLoading(false);
+                    if (!isCancelled) setLocalLoading(false);
                 }
             } else if (activeTab === 'tagged') {
-                setTabData([]); // Tagged feature is logically empty for now
+                setTabData([]);
             } else {
-                // Filter logic for Posts/Reels
                 const filtered = parentPosts.filter(post => {
                     const postType = post.type || 'IMAGE';
                     if (activeTab === 'posts') return postType === 'IMAGE';
                     if (activeTab === 'reels') return postType === 'VIDEO';
                     return true;
                 });
-                setTabData(filtered);
+                if (!isCancelled) {
+                    setTabData(filtered);
+                }
             }
         };
 
         loadContent();
+        return () => { isCancelled = true; };
     }, [activeTab, parentPosts, token]);
 
     const tabs = [

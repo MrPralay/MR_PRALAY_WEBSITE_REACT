@@ -7,15 +7,21 @@ const ProfilePage = ({ user, onLogout }) => {
     const [adminUsers, setAdminUsers] = React.useState([]);
 
     React.useEffect(() => {
+        let isActive = true;
         if (activeTab === 'admin' && user.role === 'ADMIN') {
             const apiUrl = "https://synapse-backend.pralayd140.workers.dev";
             fetch(`${apiUrl}/api/admin/users`, {
                 headers: { 'Authorization': `Bearer ${user.token}` }
             })
                 .then(res => res.json())
-                .then(data => setAdminUsers(data))
-                .catch(err => console.error("Admin Fetch Error:", err));
+                .then(data => {
+                    if (isActive) setAdminUsers(data);
+                })
+                .catch(err => {
+                    if (isActive) console.error("Admin Fetch Error:", err);
+                });
         }
+        return () => { isActive = false; };
     }, [activeTab, user]);
 
     // Determine security status based on risk score
