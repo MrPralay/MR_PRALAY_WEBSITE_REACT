@@ -76,7 +76,7 @@ const CreateStoryModal = ({ isOpen, onClose, onSubmit, user }) => {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={onClose}
-                        className="absolute inset-0 bg-black/95 backdrop-blur-xl"
+                        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
                     />
 
                     {/* Modal Content - Mobile First Full Screen */}
@@ -84,7 +84,7 @@ const CreateStoryModal = ({ isOpen, onClose, onSubmit, user }) => {
                         initial={{ opacity: 0, scale: 0.95, y: 30 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 30 }}
-                        className="relative w-full max-w-sm h-full md:h-[80vh] bg-[#111] border border-white/10 md:rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col"
+                        className="relative w-full md:max-w-md h-full md:h-[90vh] bg-[#111] border border-white/10 md:rounded-[2rem] overflow-hidden shadow-2xl flex flex-col"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Header */}

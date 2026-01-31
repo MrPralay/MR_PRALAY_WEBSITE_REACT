@@ -158,7 +158,7 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="fixed inset-0 z-[70] bg-black flex items-center justify-center md:py-8"
+            className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center md:py-8"
         >
             {/* Mobile Container Ratio */}
             <div className="relative w-full md:max-w-md h-full md:h-[90vh] bg-gray-900 md:rounded-[2rem] overflow-hidden shadow-2xl flex flex-col group">
@@ -217,7 +217,7 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
-                                className="absolute inset-0 z-50 flex flex-col items-center justify-center backdrop-blur-2xl bg-black/40"
+                                className="absolute inset-0 z-50 flex flex-col items-center justify-center backdrop-blur-md bg-black/20"
                             >
                                 {/* Header Skeleton */}
                                 <div className="absolute top-8 left-4 right-4 flex items-center justify-between pointer-events-none">
