@@ -149,11 +149,18 @@ const CreateStoryModal = ({ isOpen, onClose, onSubmit, user }) => {
                             {/* Step 2: Realistic Preview */}
                             {step === 2 && (
                                 <div className="relative w-full h-full bg-black flex items-center justify-center group/preview">
-                                    {type === 'VIDEO' ? (
-                                        <video src={mediaUrl} className="w-full h-full object-cover" autoPlay loop muted playsInline />
-                                    ) : (
-                                        <img src={mediaUrl} className="w-full h-full object-cover" alt="Preview" />
-                                    )}
+                                    <motion.div
+                                        initial={{ opacity: 0.2, scale: 1.1, filter: 'blur(20px)' }}
+                                        animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+                                        transition={{ duration: 0.6 }}
+                                        className="w-full h-full"
+                                    >
+                                        {type === 'VIDEO' ? (
+                                            <video src={mediaUrl} className="w-full h-full object-cover" autoPlay loop muted playsInline />
+                                        ) : (
+                                            <img src={mediaUrl} className="w-full h-full object-cover" alt="Preview" />
+                                        )}
+                                    </motion.div>
 
                                     {/* Glass Preview Badge */}
                                     <div className="absolute bottom-12 left-0 right-0 flex justify-center">

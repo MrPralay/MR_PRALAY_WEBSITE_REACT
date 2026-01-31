@@ -192,7 +192,7 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
                                             ref={videoRef}
                                             key={`video-${currentStory.id}-${retryKey}`}
                                             src={currentStory.mediaUrl}
-                                            className={`w-full h-full object-cover transition-opacity duration-200 ${isMediaLoading ? 'opacity-0' : 'opacity-100'}`}
+                                            className={`w-full h-full object-cover transition-all duration-700 ease-out ${isMediaLoading ? 'opacity-20 blur-xl scale-110' : 'opacity-100 blur-0 scale-100'}`}
                                             autoPlay
                                             loop
                                             muted={isMuted}
@@ -211,7 +211,7 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
                                             ref={imgRef}
                                             key={`img-${currentStory.id}-${retryKey}`}
                                             src={currentStory.mediaUrl}
-                                            className={`w-full h-full object-cover transition-opacity duration-200 ${isMediaLoading ? 'opacity-0' : 'opacity-100'}`}
+                                            className={`w-full h-full object-cover transition-all duration-700 ease-out ${isMediaLoading ? 'opacity-20 blur-xl scale-110' : 'opacity-100 blur-0 scale-100'}`}
                                             alt="Story"
                                             onLoad={() => setIsMediaLoading(false)}
                                             onError={() => {
