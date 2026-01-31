@@ -106,7 +106,6 @@
         transition: transform 1.2s cubic-bezier(0.33, 1, 0.68, 1);
 
         /* Sharpness & Anti-aliasing */
-        image-rendering: -webkit-optimize-contrast;
         -webkit-font-smoothing: antialiased;
     }
 

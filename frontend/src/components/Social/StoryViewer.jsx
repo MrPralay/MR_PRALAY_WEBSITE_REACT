@@ -172,7 +172,10 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete, onUser
                                         style={{
                                             opacity: isMediaLoading ? 0.4 : 1,
                                             filter: isMediaLoading ? 'blur(10px)' : 'none',
-                                            transform: isMediaLoading ? 'scale(1.05)' : 'scale(1)'
+                                            transform: isMediaLoading ? 'scale(1.05)' : 'scale(1)',
+                                            imageRendering: 'auto',
+                                            backfaceVisibility: 'hidden',
+                                            WebkitBackfaceVisibility: 'hidden'
                                         }}
                                         autoPlay
                                         loop
@@ -196,7 +199,10 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete, onUser
                                         style={{
                                             opacity: isMediaLoading ? 0.4 : 1,
                                             filter: isMediaLoading ? 'blur(10px)' : 'none',
-                                            transform: isMediaLoading ? 'scale(1.05)' : 'scale(1)'
+                                            transform: isMediaLoading ? 'scale(1.05)' : 'scale(1)',
+                                            imageRendering: 'auto',
+                                            backfaceVisibility: 'hidden',
+                                            WebkitBackfaceVisibility: 'hidden'
                                         }}
                                         alt="Story"
                                         onLoad={() => setIsMediaLoading(false)}
