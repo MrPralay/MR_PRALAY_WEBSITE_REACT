@@ -74,7 +74,7 @@ export const getSavedItems = async (c) => {
 
 export const updateProfile = async (c) => {
     try {
-        const { name, bio, profileImage } = await c.req.json();
+        const { name, bio, profileImage, username, isPrivate } = await c.req.json();
         const user = c.get('user');
         const prisma = getPrisma(c.env.DATABASE_URL);
 
@@ -93,7 +93,8 @@ export const updateProfile = async (c) => {
                 name: true,
                 bio: true,
                 profileImage: true,
-                riskScore: true
+                riskScore: true,
+                isPrivate: true
             }
         });
 

@@ -3,7 +3,7 @@ import {
     User, Lock, Mail, Shield, Monitor, Zap, Download,
     Bell, Eye, Trash2, Smartphone, Globe, Palette,
     ChevronRight, Key, ShieldCheck, CreditCard, ChevronLeft,
-    LogOut, AlertTriangle, CheckCircle2
+    LogOut, AlertTriangle, CheckCircle2, X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Cookies from 'js-cookie';
@@ -31,6 +31,32 @@ const SettingsView = ({ user, onUpdateUser, onLogout }) => {
     const [otpSent, setOtpSent] = useState(false);
     const [loading, setLoading] = useState(false);
     const [statusMsg, setStatusMsg] = useState({ type: '', text: '' });
+
+    // Vital Sync: Fetch latest user data on mount if email or isPrivate is missing
+    useEffect(() => {
+        const syncIdentity = async () => {
+            if (!token) return;
+            try {
+                const res = await fetch(`${apiUrl}/api/auth/me`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    setFormData({
+                        name: data.user.name || '',
+                        username: data.user.username || '',
+                        email: data.user.email || '',
+                        bio: data.user.bio || '',
+                        isPrivate: data.user.isPrivate || false
+                    });
+                    onUpdateUser(data.user);
+                }
+            } catch (err) {
+                console.error("Identity Sync Failed", err);
+            }
+        };
+        syncIdentity();
+    }, []);
 
     const menuItems = [
         { id: 'profile', label: 'Neural Identity', icon: <User size={20} />, description: 'Edit your core profile and bio' },
@@ -80,7 +106,7 @@ const SettingsView = ({ user, onUpdateUser, onLogout }) => {
             const res = await fetch(`${apiUrl}/api/auth/forgot-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: user.email })
+                body: JSON.stringify({ email: formData.email || user.email })
             });
             const data = await res.json();
             if (data.success) {
