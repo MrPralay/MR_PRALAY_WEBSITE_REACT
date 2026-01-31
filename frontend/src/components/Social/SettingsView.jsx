@@ -207,7 +207,7 @@ const SettingsView = ({ user, onUpdateUser, onLogout }) => {
     };
 
     return (
-        <div className="flex flex-col lg:flex-row h-[calc(100vh-80px)] my-10 max-w-6xl mx-auto bg-black border border-white/10 rounded-[3rem] overflow-hidden shadow-2xl relative">
+        <div className="flex flex-col lg:flex-row h-[calc(100vh-48px)] mt-20 max-w-6xl mx-auto bg-black border border-white/10 rounded-[3rem] overflow-hidden shadow-2xl relative">
             {/* Status Messages */}
             <AnimatePresence>
                 {statusMsg.text && (
@@ -1013,6 +1013,7 @@ const SettingsView = ({ user, onUpdateUser, onLogout }) => {
                                 </section>
                             </motion.div>
                         )}
+
                     </motion.div>
                 </AnimatePresence>
             </div>

@@ -406,7 +406,7 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                         </motion.div>
                     )}
 
-                    {!['feed', 'profile', 'igtv'].includes(view) && (
+                    {!['feed', 'profile', 'igtv', 'setting'].includes(view) && (
                         <motion.div
                             key="other"
                             className="flex items-center justify-center min-h-screen text-gray-500 font-bold uppercase tracking-widest italic"
