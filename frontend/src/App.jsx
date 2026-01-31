@@ -37,10 +37,10 @@ function App() {
     useEffect(() => {
         let scrollTimeout;
         const handleScroll = () => {
-            document.body.classList.add('is-scrolling');
+            document.documentElement.classList.add('is-scrolling');
             clearTimeout(scrollTimeout);
             scrollTimeout = setTimeout(() => {
-                document.body.classList.remove('is-scrolling');
+                document.documentElement.classList.remove('is-scrolling');
             }, 1000);
         };
 

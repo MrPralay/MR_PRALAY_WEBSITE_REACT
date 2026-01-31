@@ -3,8 +3,10 @@
 @tailwind utilities;
 
 @layer base {
-    body {
+    html {
         @apply bg-[#0a0a0a] min-h-screen selection:bg-emerald-500/30;
+        scrollbar-gutter: stable;
+        /* Crucial: Prevents the screen from shifting left when scrollbar appears */
     }
 }
 
@@ -188,8 +190,9 @@
 
 /* Legendary Global Scrollbar - Fluid Stealth System */
 ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 4px;
+    /* Hair-thin for negligible feeling */
+    height: 4px;
 }
 
 ::-webkit-scrollbar-track {
@@ -202,10 +205,11 @@
     transition: background 0.4s ease;
 }
 
-/* Only show thumb when scrolling or hovering the scroll area */
-body.is-scrolling::-webkit-scrollbar-thumb,
-body::-webkit-scrollbar-thumb:hover {
-    background: rgba(16, 185, 129, 0.4); /* Emerald Stealth Overlay */
+/* Only show thumb when scrolling is detected on the root element */
+.is-scrolling::-webkit-scrollbar-thumb,
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(16, 185, 129, 0.6);
+    /* Vibrant Emerald Glow */
     border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
@@ -215,9 +219,9 @@ body::-webkit-scrollbar-thumb:hover {
     scrollbar-color: transparent transparent;
 }
 
-body.is-scrolling,
-body:hover {
-    scrollbar-color: rgba(16, 185, 129, 0.4) transparent;
+.is-scrolling,
+*:hover {
+    scrollbar-color: rgba(16, 185, 129, 0.6) transparent;
 }
 
 /* Custom animations */
