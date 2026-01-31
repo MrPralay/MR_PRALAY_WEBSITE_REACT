@@ -17,28 +17,23 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
     const videoRef = useRef(null);
     const imgRef = useRef(null);
 
-    // Mock multiple stories if only one provided, for the 3-bar UI requirement
     const activeStories = stories?.length > 0 ? stories : [
         { id: 1, type: 'IMAGE', mediaUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&q=80', user: { username: 'synapse_core', image: 'https://i.pravatar.cc/150?u=synapse' }, createdAt: new Date() },
         { id: 2, type: 'IMAGE', mediaUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=800&q=80', user: { username: 'synapse_core', image: 'https://i.pravatar.cc/150?u=synapse' }, createdAt: new Date() },
         { id: 3, type: 'VIDEO', mediaUrl: 'https://assets.mixkit.co/videos/preview/mixkit-futuristic-hologram-interface-907-large.mp4', user: { username: 'synapse_core', image: 'https://i.pravatar.cc/150?u=synapse' }, createdAt: new Date() }
     ];
 
-    // Safety check for index (in case of deletion)
     const safeIndex = Math.min(currentIndex, activeStories.length - 1);
     const currentStory = activeStories[safeIndex >= 0 ? safeIndex : 0];
 
-    // If no stories at all (post-delete edge case), do nothing (parent closes it)
     if (!currentStory && stories?.length === 0) return null;
 
-    // Dynamic Duration Logic
     const [videoDuration, setVideoDuration] = useState(null);
     const effectiveDuration = currentStory?.type === 'VIDEO'
-        ? Math.min(videoDuration || 60000, 60000) // Cap at 60s
+        ? Math.min(videoDuration || 60000, 60000)
         : 5000;
 
     useEffect(() => {
-        // Reset loading state when story changes
         setIsMediaLoading(true);
         setShowLoadingUI(false);
         setVideoDuration(null);
@@ -50,7 +45,6 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
             });
         }, 100);
 
-        // SAFETY OVERRIDE: If story is stuck for 5s, force clear the loader
         const safetyTimeout = setTimeout(() => setIsMediaLoading(false), 5000);
 
         return () => {
@@ -59,14 +53,12 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
         };
     }, [currentStory?.id]);
 
-    // Handle initial load completion
     useEffect(() => {
         if (!isMediaLoading && isFirstStoryLoad) {
             setIsFirstStoryLoad(false);
         }
     }, [isMediaLoading, isFirstStoryLoad]);
 
-    // Neural Re-Link Logic: Auto-retry when connection restored
     useEffect(() => {
         const handleOnline = () => {
             if (isMediaLoading) {
@@ -78,7 +70,6 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
         return () => window.removeEventListener('online', handleOnline);
     }, [isMediaLoading]);
 
-    // Neural Cache Check: Instant detection for pre-fetched media
     useEffect(() => {
         if (!currentStory) return;
 
@@ -95,7 +86,6 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
         return () => clearTimeout(t);
     }, [currentStory?.id, retryKey]);
 
-    // Unified Progress & Buffering Logic
     useEffect(() => {
         if (isPaused || isMediaLoading) {
             if (currentStory?.type === 'VIDEO' && videoRef.current) {
@@ -114,7 +104,6 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
                     if (duration) {
                         const calculatedProgress = (currentTime / duration) * 100;
                         setProgress(calculatedProgress);
-
                         if (calculatedProgress >= 99.9) handleNext();
                     }
                 }
@@ -123,7 +112,6 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
             const interval = setInterval(updateVideoProgress, 30);
             return () => clearInterval(interval);
         } else {
-            // Image Progress Logic
             const interval = setInterval(() => {
                 setProgress((prev) => {
                     if (prev >= 100) {
@@ -154,244 +142,209 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
     };
 
     return (
-        <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center md:py-8"
-        >
-            {/* Living Aura - Dynamic Ambient Backdrop */}
-            <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-                <AnimatePresence mode="popLayout">
-                    <motion.div
-                        key={`aura-${currentStory.id}`}
-                        initial={{ opacity: 0, scale: 1.2 }}
-                        animate={{ opacity: 0.4, scale: 1.5 }}
-                        exit={{ opacity: 0, scale: 1.2 }}
-                        transition={{ duration: 0.8 }}
-                        className="absolute inset-0 blur-[120px] saturate-[2.5]"
-                    >
-                        {currentStory?.type === 'VIDEO' ? (
-                            <video src={currentStory.mediaUrl} autoPlay loop muted playsInline className="w-full h-full object-cover" />
-                        ) : (
-                            <img src={currentStory.mediaUrl} alt="Aura" className="w-full h-full object-cover" />
-                        )}
-                    </motion.div>
-                </AnimatePresence>
-                <div className="absolute inset-0 bg-black/40" /> {/* Ambient darkening */}
-            </div>
+        <AnimatePresence>
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[70] bg-black/90 backdrop-blur-xl flex items-center justify-center p-0 md:p-8 perspective-[1500px]"
+            >
+                {/* 3D Floating Glass Slab Container */}
+                <motion.div
+                    animate={{
+                        rotateY: [-4, 4],
+                        rotateX: [2, -2],
+                        y: [-10, 10],
+                        scale: [1, 1.02]
+                    }}
+                    transition={{
+                        duration: 6,
+                        repeat: Infinity,
+                        repeatType: "reverse",
+                        ease: "easeInOut"
+                    }}
+                    style={{ transformStyle: 'preserve-3d' }}
+                    className="relative w-full md:max-w-md h-full md:h-[90vh] flex flex-col group"
+                >
+                    {/* Glass Prism Frame - The Legendary Edge Effect */}
+                    <div className="absolute -inset-[2px] rounded-[2rem] md:rounded-[2.2rem] bg-gradient-to-tr from-fuchsia-500/20 via-white/40 to-emerald-500/20 opacity-40 blur-[1px] z-0" />
 
-            {/* Mobile Container Ratio */}
-            <div className="relative w-full md:max-w-md h-full md:h-[90vh] bg-gray-900 md:rounded-[2rem] overflow-hidden shadow-2xl flex flex-col group">
+                    {/* Main Story Content with Refractive Border */}
+                    <div className="relative flex-1 bg-black md:rounded-[2rem] overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col z-10 border border-white/10 ring-1 ring-white/5 backdrop-blur-sm">
 
-                {/* Story Image/Video Area with Transitions */}
-                <div className="absolute inset-0 z-0 bg-black">
-                    <AnimatePresence mode="popLayout">
-                        <motion.div
-                            key={currentStory.id}
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.15 }}
-                            className="absolute inset-0"
-                        >
-                            {currentStory?.type === 'VIDEO' ? (
-                                <video
-                                    ref={videoRef}
-                                    key={`video-${currentStory.id}-${retryKey}`}
-                                    src={currentStory.mediaUrl}
-                                    className={`w-full h-full object-cover transition-opacity duration-200 ${isMediaLoading ? 'opacity-0' : 'opacity-100'}`}
-                                    autoPlay
-                                    loop
-                                    muted={isMuted}
-                                    playsInline
-                                    onLoadedMetadata={(e) => setVideoDuration(e.target.duration * 1000)}
-                                    onLoadedData={() => setIsMediaLoading(false)}
-                                    onCanPlay={() => setIsMediaLoading(false)}
-                                    onWaiting={() => setIsMediaLoading(true)}
-                                    onPlaying={() => setIsMediaLoading(false)}
-                                    onError={() => {
-                                        // If net is off, wait for online event. If net is on, retry once.
-                                        if (navigator.onLine) setTimeout(() => setRetryKey(k => k + 1), 2000);
-                                    }}
-                                />
-                            ) : (
-                                <img
-                                    ref={imgRef}
-                                    key={`img-${currentStory.id}-${retryKey}`}
-                                    src={currentStory.mediaUrl}
-                                    className={`w-full h-full object-cover transition-opacity duration-200 ${isMediaLoading ? 'opacity-0' : 'opacity-100'}`}
-                                    alt="Story"
-                                    onLoad={() => setIsMediaLoading(false)}
-                                    onError={() => {
-                                        if (navigator.onLine) setTimeout(() => setRetryKey(k => k + 1), 2000);
-                                    }}
-                                />
-                            )}
-                        </motion.div>
-                    </AnimatePresence>
-
-                    {/* Neural Loading Spinner - Only shows if it takes too long */}
-                    <AnimatePresence>
-                        {showLoadingUI && isMediaLoading && (
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                className="absolute inset-0 z-50 flex flex-col items-center justify-center backdrop-blur-md bg-black/20"
-                            >
-                                {/* Header Skeleton */}
-                                <div className="absolute top-8 left-4 right-4 flex items-center justify-between pointer-events-none">
-                                    <div className="flex items-center gap-3 animate-pulse">
-                                        <div className="w-8 h-8 rounded-full bg-white/10" />
-                                        <div className="space-y-2">
-                                            <div className="w-20 h-2 bg-white/10 rounded-full" />
-                                            <div className="w-10 h-1.5 bg-white/10 rounded-full" />
-                                        </div>
-                                    </div>
-                                    <div className="w-6 h-6 rounded-full bg-white/10 animate-pulse" />
-                                </div>
-
-                                {/* Main Sync UI */}
-                                <div className="flex flex-col items-center justify-center">
-                                    <motion.div
-                                        animate={{ rotate: 360 }}
-                                        transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
-                                        className="w-10 h-10 border-2 border-white/10 border-t-white rounded-full mb-4 shadow-[0_0_15px_rgba(255,255,255,0.2)]"
-                                    />
-                                    <p className="text-white text-[7px] uppercase tracking-[0.4em] font-bold opacity-40 animate-pulse">Neural Sync</p>
-                                </div>
-
-                                {/* Footer Skeleton */}
-                                <div className="absolute bottom-8 left-4 right-4 animate-pulse pointer-events-none">
-                                    <div className="w-full h-12 rounded-full border border-white/10 bg-white/5" />
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-
-                    {/* Overlays */}
-                    <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80 pointer-events-none z-10" />
-
-                </div>
-
-                {/* Progress Bars */}
-                <div className="absolute top-4 left-4 right-4 z-20 flex gap-1">
-                    {activeStories.map((_, idx) => (
-                        <div key={idx} className="h-[2px] flex-1 bg-white/30 rounded-full overflow-hidden">
-                            <motion.div
-                                className="h-full bg-white"
-                                initial={{ width: idx < currentIndex ? '100%' : '0%' }}
-                                animate={{ width: idx === currentIndex ? `${progress}%` : idx < currentIndex ? '100%' : '0%' }}
-                                transition={{ ease: 'linear', duration: idx === currentIndex && !isPaused ? 0.05 : 0 }}
-                            />
-                        </div>
-                    ))}
-                </div>
-
-                {/* Header Info */}
-                <div className="absolute top-8 left-4 right-4 z-20 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <img src={currentStory.user?.profileImage || currentStory.user?.image || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg"} className="w-8 h-8 rounded-full border border-white/20" alt="User" />
-                        <div className="flex items-center gap-2">
-                            <span className="text-white font-bold text-sm tracking-wide">{currentStory.user?.username}</span>
-                            <span className="text-gray-400 text-xs font-medium">31s</span>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-4 relative">
-                        <button
-                            className="text-white hover:text-gray-300 transition-colors"
-                            onClick={() => setIsMenuOpen(!isMenuOpen)}
-                        >
-                            <MoreHorizontal size={24} />
-                        </button>
-                        <button onClick={onClose} className="text-white hover:text-gray-300"><X size={24} /></button>
-
-                        {/* Dropdown Menu */}
-                        <AnimatePresence>
-                            {isMenuOpen && (
+                        {/* Media Display Area */}
+                        <div className="absolute inset-0 z-0 bg-black">
+                            <AnimatePresence mode="popLayout">
                                 <motion.div
-                                    initial={{ opacity: 0, scale: 0.9, y: -10 }}
-                                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                                    exit={{ opacity: 0, scale: 0.9, y: -10 }}
-                                    className="absolute top-10 right-0 bg-[#111] border border-white/10 rounded-xl overflow-hidden shadow-2xl min-w-[160px] z-50 flex flex-col"
+                                    key={currentStory.id}
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    transition={{ duration: 0.15 }}
+                                    className="absolute inset-0"
                                 >
-                                    <button
-                                        onClick={() => {
-                                            navigator.clipboard.writeText(currentStory.mediaUrl);
-                                            setIsMenuOpen(false);
-                                            alert("Link Copied!");
-                                        }}
-                                        className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/5 text-xs font-bold uppercase tracking-wider text-left transition-colors"
-                                    >
-                                        <Copy size={14} className="text-emerald-500" />
-                                        Copy Link
-                                    </button>
-                                    <div className="h-[1px] bg-white/5" />
-                                    <button
-                                        onClick={() => {
-                                            setIsMenuOpen(false);
-                                            if (onDelete) onDelete(currentStory.id);
-                                        }}
-                                        className="flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-500/10 text-xs font-bold uppercase tracking-wider text-left transition-colors"
-                                    >
-                                        <Trash2 size={14} />
-                                        Delete
-                                    </button>
+                                    {currentStory?.type === 'VIDEO' ? (
+                                        <video
+                                            ref={videoRef}
+                                            key={`video-${currentStory.id}-${retryKey}`}
+                                            src={currentStory.mediaUrl}
+                                            className={`w-full h-full object-cover transition-opacity duration-200 ${isMediaLoading ? 'opacity-0' : 'opacity-100'}`}
+                                            autoPlay
+                                            loop
+                                            muted={isMuted}
+                                            playsInline
+                                            onLoadedMetadata={(e) => setVideoDuration(e.target.duration * 1000)}
+                                            onLoadedData={() => setIsMediaLoading(false)}
+                                            onCanPlay={() => setIsMediaLoading(false)}
+                                            onWaiting={() => setIsMediaLoading(true)}
+                                            onPlaying={() => setIsMediaLoading(false)}
+                                            onError={() => {
+                                                if (navigator.onLine) setTimeout(() => setRetryKey(k => k + 1), 2000);
+                                            }}
+                                        />
+                                    ) : (
+                                        <img
+                                            ref={imgRef}
+                                            key={`img-${currentStory.id}-${retryKey}`}
+                                            src={currentStory.mediaUrl}
+                                            className={`w-full h-full object-cover transition-opacity duration-200 ${isMediaLoading ? 'opacity-0' : 'opacity-100'}`}
+                                            alt="Story"
+                                            onLoad={() => setIsMediaLoading(false)}
+                                            onError={() => {
+                                                if (navigator.onLine) setTimeout(() => setRetryKey(k => k + 1), 2000);
+                                            }}
+                                        />
+                                    )}
                                 </motion.div>
-                            )}
-                        </AnimatePresence>
+                            </AnimatePresence>
+
+                            {/* Loading State Overlay */}
+                            <AnimatePresence>
+                                {showLoadingUI && isMediaLoading && (
+                                    <motion.div
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        className="absolute inset-0 z-[60] flex flex-col items-center justify-center backdrop-blur-md bg-black/20"
+                                    >
+                                        <div className="absolute top-8 left-4 right-4 flex items-center justify-between">
+                                            <div className="flex items-center gap-3 animate-pulse">
+                                                <div className="w-8 h-8 rounded-full bg-white/10" />
+                                                <div className="space-y-2">
+                                                    <div className="w-20 h-2 bg-white/10 rounded-full" />
+                                                    <div className="w-10 h-1.5 bg-white/10 rounded-full" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <motion.div
+                                            animate={{ rotate: 360 }}
+                                            transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
+                                            className="w-10 h-10 border-2 border-white/10 border-t-white rounded-full mb-4"
+                                        />
+                                        <p className="text-white text-[7px] uppercase tracking-[0.4em] font-bold opacity-40">Neural Sync</p>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+
+                            {/* Premium Vingette & Overlays */}
+                            <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80 pointer-events-none z-10" />
+                        </div>
+
+                        {/* Top Progress Bars */}
+                        <div className="absolute top-4 left-4 right-4 z-20 flex gap-1">
+                            {activeStories.map((_, idx) => (
+                                <div key={idx} className="h-[2px] flex-1 bg-white/30 rounded-full overflow-hidden">
+                                    <motion.div
+                                        className="h-full bg-white"
+                                        initial={{ width: idx < currentIndex ? '100%' : '0%' }}
+                                        animate={{ width: idx === currentIndex ? `${progress}%` : idx < currentIndex ? '100%' : '0%' }}
+                                        transition={{ ease: 'linear', duration: idx === currentIndex && !isPaused ? 0.05 : 0 }}
+                                    />
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Story Header */}
+                        <div className="absolute top-8 left-4 right-4 z-20 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <img src={currentStory.user?.profileImage || currentStory.user?.image || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg"} className="w-8 h-8 rounded-full border border-white/20" alt="User" />
+                                <div className="flex items-center gap-2">
+                                    <span className="text-white font-bold text-sm tracking-wide">{currentStory.user?.username}</span>
+                                    <span className="text-gray-400 text-xs font-medium">31s</span>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-4 relative">
+                                <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-white hover:text-gray-300 transition-colors">
+                                    <MoreHorizontal size={24} />
+                                </button>
+                                <button onClick={onClose} className="text-white hover:text-gray-300 transition-colors"><X size={24} /></button>
+
+                                <AnimatePresence>
+                                    {isMenuOpen && (
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0.9, y: -10 }}
+                                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                                            exit={{ opacity: 0, scale: 0.9, y: -10 }}
+                                            className="absolute top-10 right-0 bg-[#111] border border-white/10 rounded-xl overflow-hidden shadow-2xl min-w-[160px] z-50 flex flex-col"
+                                        >
+                                            <button onClick={() => { navigator.clipboard.writeText(currentStory.mediaUrl); setIsMenuOpen(false); alert("Link Copied!"); }}
+                                                className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/5 text-xs font-bold uppercase tracking-wider text-left transition-colors"
+                                            >
+                                                <Copy size={14} className="text-emerald-500" /> Copy Link
+                                            </button>
+                                            <div className="h-[1px] bg-white/5" />
+                                            <button onClick={() => { setIsMenuOpen(false); if (onDelete) onDelete(currentStory.id); }}
+                                                className="flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-500/10 text-xs font-bold uppercase tracking-wider text-left transition-colors"
+                                            >
+                                                <Trash2 size={14} /> Delete
+                                            </button>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+                        </div>
+
+                        {/* Navigation Areas */}
+                        <div className="absolute inset-0 z-10 flex">
+                            <div className="w-1/3 h-full cursor-pointer" onClick={handlePrev} onMouseDown={() => setIsPaused(true)} onMouseUp={() => setIsPaused(false)} onTouchStart={() => setIsPaused(true)} onTouchEnd={() => setIsPaused(false)} />
+                            <div className="w-2/3 h-full cursor-pointer" onClick={handleNext} onMouseDown={() => setIsPaused(true)} onMouseUp={() => setIsPaused(false)} onTouchStart={() => setIsPaused(true)} onTouchEnd={() => setIsPaused(false)} />
+                        </div>
+
+                        {/* Control Footer */}
+                        <div className="absolute bottom-6 left-4 right-4 z-20 flex items-center gap-4">
+                            <div className="flex-1">
+                                <input
+                                    type="text"
+                                    placeholder="Send message..."
+                                    className="w-full bg-black/20 border border-white/20 rounded-full py-3 px-6 text-white text-sm placeholder-white/70 focus:outline-none focus:border-white/50 backdrop-blur-md"
+                                />
+                            </div>
+                            <button onClick={() => setIsLiked(!isLiked)} className="text-white hover:scale-110 transition-transform">
+                                <Heart size={28} fill={isLiked ? "white" : "none"} />
+                            </button>
+                            <button className="text-white hover:scale-110 transition-transform">
+                                <Send size={24} className="-rotate-45" />
+                            </button>
+                        </div>
+
+                        {/* View Counters */}
+                        <div className="absolute bottom-24 right-4 z-20 flex items-center gap-1.5 text-white/50 bg-black/20 backdrop-blur-sm px-3 py-1 rounded-full border border-white/5">
+                            <Eye size={12} />
+                            <span className="text-[10px] font-bold tracking-wider">0 viewers</span>
+                        </div>
+
+                        {/* Video Controls */}
+                        {currentStory?.type === 'VIDEO' && (
+                            <div className="absolute bottom-32 right-4 z-50">
+                                <button onClick={() => setIsMuted(!isMuted)} className="p-2 bg-black/40 rounded-full backdrop-blur-md text-white/80 hover:text-white border border-white/10 shadow-lg transition-all">
+                                    {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+                                </button>
+                            </div>
+                        )}
                     </div>
-                </div>
-
-                {/* Navigation Hotspots */}
-                <div className="absolute inset-0 z-10 flex">
-                    <div className="w-1/3 h-full" onClick={handlePrev} onMouseDown={() => setIsPaused(true)} onMouseUp={() => setIsPaused(false)} onTouchStart={() => setIsPaused(true)} onTouchEnd={() => setIsPaused(false)} />
-                    <div className="w-2/3 h-full" onClick={handleNext} onMouseDown={() => setIsPaused(true)} onMouseUp={() => setIsPaused(false)} onTouchStart={() => setIsPaused(true)} onTouchEnd={() => setIsPaused(false)} />
-                </div>
-
-                {/* Footer Controls */}
-                <div className="absolute bottom-6 left-4 right-4 z-20 flex items-center gap-4">
-                    <div className="flex-1 relative">
-                        <input
-                            type="text"
-                            placeholder="Send message..."
-                            className="w-full bg-transparent border border-white/20 rounded-full py-3 px-6 text-white text-sm placeholder-white/70 focus:outline-none focus:border-white/50 backdrop-blur-md"
-                        />
-                    </div>
-
-                    <button onClick={() => setIsLiked(!isLiked)} className="text-white hover:scale-110 transition-transform">
-                        <Heart size={28} fill={isLiked ? "white" : "none"} />
-                    </button>
-
-                    <button className="text-white hover:scale-110 transition-transform">
-                        <Send size={24} className="-rotate-45" />
-                    </button>
-                </div>
-
-                {/* View Count */}
-                <div className="absolute bottom-24 right-4 z-20 flex items-center gap-1.5 text-white/50 bg-black/20 backdrop-blur-sm px-3 py-1 rounded-full border border-white/5">
-                    <Eye size={12} />
-                    <span className="text-[10px] font-bold tracking-wider">0 viewers</span>
-                </div>
-
-                {/* Volume Control (Moved here to be above hotspots) */}
-                {currentStory?.type === 'VIDEO' && (
-                    <div
-                        className="absolute bottom-32 right-4 z-50 pointer-events-auto"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <button
-                            onClick={() => setIsMuted(!isMuted)}
-                            className="p-2 bg-black/40 rounded-full backdrop-blur-md text-white/80 hover:text-white hover:bg-black/60 transition-all shadow-lg border border-white/10"
-                        >
-                            {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
-                        </button>
-                    </div>
-                )}
-
-            </div>
-        </motion.div>
+                </motion.div>
+            </motion.div>
+        </AnimatePresence>
     );
 };
 
