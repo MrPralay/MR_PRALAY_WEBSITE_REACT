@@ -155,7 +155,7 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
                         rotateY: [-4, 4],
                         rotateX: [2, -2],
                         y: [-10, 10],
-                        scale: [1, 1.02]
+                        scale: 1
                     }}
                     transition={{
                         duration: 6,
@@ -192,7 +192,12 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
                                             ref={videoRef}
                                             key={`video-${currentStory.id}-${retryKey}`}
                                             src={currentStory.mediaUrl}
-                                            className={`w-full h-full object-cover transition-all duration-700 ease-out ${isMediaLoading ? 'opacity-20 blur-xl scale-110' : 'opacity-100 blur-0 scale-100'}`}
+                                            className={`w-full h-full object-cover transition-all duration-700 ease-out`}
+                                            style={{
+                                                opacity: isMediaLoading ? 0.2 : 1,
+                                                filter: isMediaLoading ? 'blur(20px)' : 'none',
+                                                transform: isMediaLoading ? 'scale(1.1)' : 'scale(1)'
+                                            }}
                                             autoPlay
                                             loop
                                             muted={isMuted}
@@ -211,7 +216,12 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete }) => {
                                             ref={imgRef}
                                             key={`img-${currentStory.id}-${retryKey}`}
                                             src={currentStory.mediaUrl}
-                                            className={`w-full h-full object-cover transition-all duration-700 ease-out ${isMediaLoading ? 'opacity-20 blur-xl scale-110' : 'opacity-100 blur-0 scale-100'}`}
+                                            className={`w-full h-full object-cover transition-all duration-700 ease-out`}
+                                            style={{
+                                                opacity: isMediaLoading ? 0.2 : 1,
+                                                filter: isMediaLoading ? 'blur(20px)' : 'none',
+                                                transform: isMediaLoading ? 'scale(1.1)' : 'scale(1)'
+                                            }}
                                             alt="Story"
                                             onLoad={() => setIsMediaLoading(false)}
                                             onError={() => {
