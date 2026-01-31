@@ -16,11 +16,15 @@ const ProfileView = ({ user, currentUser, posts: parentPosts = [], onOpenCreateP
     const token = Cookies.get('synapse_token');
 
     useEffect(() => {
+        setActiveTab('posts');
+    }, [user.id]);
+
+    useEffect(() => {
         let isCancelled = false;
         setLocalLoading(false); // Reset loading state on every tab change
 
         const loadContent = async () => {
-            if (activeTab === 'saved') {
+            if (activeTab === 'saved' && isOwnProfile) {
                 setTabData([]); // Clear immediately to prevent ghosting
                 setLocalLoading(true);
                 try {
@@ -58,7 +62,7 @@ const ProfileView = ({ user, currentUser, posts: parentPosts = [], onOpenCreateP
     const tabs = [
         { id: 'posts', label: 'Synapses', icon: <Grid size={16} /> },
         { id: 'reels', label: 'Neural Reels', icon: <Play size={16} /> },
-        { id: 'saved', label: 'Registry', icon: <Bookmark size={16} /> },
+        ...(isOwnProfile ? [{ id: 'saved', label: 'Registry', icon: <Bookmark size={16} /> }] : []),
         { id: 'tagged', label: 'Tagged', icon: <UserIcon size={16} /> },
     ];
 
