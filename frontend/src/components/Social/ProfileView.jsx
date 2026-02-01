@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Grid, Play, Bookmark, User as UserIcon, Settings, ShieldCheck, Plus, Monitor, Lock, Hash, Heart, MessageCircle, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Cookies from 'js-cookie';
+import EditNeuralProfileModal from './EditNeuralProfileModal';
 
 const ProfileView = ({ user, currentUser, posts: parentPosts = [], onOpenCreatePost, loading: parentLoading, onCinemaMode }) => {
     const [activeTab, setActiveTab] = useState('posts');
     const [tabData, setTabData] = useState([]);
     const [localLoading, setLocalLoading] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
     const isLoading = parentLoading || localLoading;
 
@@ -115,7 +117,7 @@ const ProfileView = ({ user, currentUser, posts: parentPosts = [], onOpenCreateP
                         <div className="flex gap-3">
                             {isOwnProfile ? (
                                 <>
-                                    <button className="px-8 py-3 bg-white text-black text-[10px] font-bold rounded-2xl hover:bg-gray-200 transition-all uppercase tracking-[0.2em] shadow-xl hover:scale-105 active:scale-95">Edit Neural Link</button>
+                                    <button onClick={() => setIsEditModalOpen(true)} className="px-8 py-3 bg-white text-black text-[10px] font-bold rounded-2xl hover:bg-gray-200 transition-all uppercase tracking-[0.2em] shadow-xl hover:scale-105 active:scale-95">Edit Neural Link</button>
                                     <button className="p-3 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-all">
                                         <Settings size={20} className="text-gray-400" />
                                     </button>
@@ -259,6 +261,12 @@ const ProfileView = ({ user, currentUser, posts: parentPosts = [], onOpenCreateP
                     </div>
                 )}
             </div>
+
+            <EditNeuralProfileModal
+                isOpen={isEditModalOpen}
+                onClose={() => setIsEditModalOpen(false)}
+                user={user}
+            />
         </div>
     );
 };
