@@ -4,6 +4,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import PostCard from './PostCard';
 import Cookies from 'js-cookie';
 
+const isVideo = (url) => {
+    if (!url) return false;
+    return url.match(/\.(mp4|webm|mov|m4v|m3u8|ogv)$|video/i);
+};
+
 const PostSkeleton = () => (
     <div className="relative bg-white/[0.02] border border-white/5 rounded-[2.5rem] overflow-hidden mb-12 animate-pulse">
         <div className="flex items-center justify-between p-6 px-8">
@@ -92,12 +97,23 @@ const StoriesSlider = ({ stories, onStoryClick, onUserProfileClick }) => {
                         className={`flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer ${!item.hasStory ? 'opacity-70' : ''}`}
                         onClick={() => handleClick(item)}
                     >
-                        <div className={`w-[78px] h-[78px] rounded-full p-[2px] ${item.hasStory ? 'bg-gradient-to-tr from-yellow-400 to-fuchsia-600' : 'border-2 border-gray-700'}`}>
-                            <img
-                                src={item.user?.profileImage || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg"}
-                                className={`w-full h-full rounded-full ${item.hasStory ? 'border-2 border-black' : 'grayscale'} object-cover`}
-                                alt="Story"
-                            />
+                        <div className={`w-[78px] h-[78px] rounded-full p-[2px] ${item.hasStory ? 'bg-gradient-to-tr from-yellow-400 to-fuchsia-600' : 'border-2 border-gray-700'} bg-black overflow-hidden`}>
+                            {isVideo(item.user?.profileImage) ? (
+                                <video
+                                    src={item.user?.profileImage}
+                                    className={`w-full h-full rounded-full ${item.hasStory ? 'border-2 border-black' : 'grayscale'} object-cover`}
+                                    autoPlay
+                                    muted
+                                    loop
+                                    playsInline
+                                />
+                            ) : (
+                                <img
+                                    src={item.user?.profileImage || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg"}
+                                    className={`w-full h-full rounded-full ${item.hasStory ? 'border-2 border-black' : 'grayscale'} object-cover`}
+                                    alt="Story"
+                                />
+                            )}
                         </div>
                         <span className="text-[10px] text-gray-300 font-medium truncate w-[78px] text-center">{item.user?.username || 'User'}</span>
                     </motion.div>
@@ -113,7 +129,7 @@ const StoriesSlider = ({ stories, onStoryClick, onUserProfileClick }) => {
     );
 };
 
-const FeedView = ({ posts, stories = [], suggestedUsers = [], onCreateClick, loading, onCinemaMode, myStories = [], onStoryClick, onUserProfileClick, onMyStoryClick }) => {
+const FeedView = ({ posts, stories = [], suggestedUsers = [], onCreateClick, loading, onCinemaMode, myStories = [], onStoryClick, onUserProfileClick, onMyStoryClick, currentUser }) => {
     const maxVisible = 5;
 
     const combinedList = React.useMemo(() => {
@@ -172,12 +188,23 @@ const FeedView = ({ posts, stories = [], suggestedUsers = [], onCreateClick, loa
                                 className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer group relative"
                             >
                                 {myStories.length > 0 ? (
-                                    <div className="w-[78px] h-[78px] rounded-full p-[2px] bg-gradient-to-tr from-yellow-400 to-fuchsia-600 relative">
-                                        <img
-                                            src={myStories[myStories.length - 1].user?.profileImage || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg"}
-                                            className="w-full h-full rounded-full border-2 border-black object-cover"
-                                            alt="My Story"
-                                        />
+                                    <div className="w-[78px] h-[78px] rounded-full p-[2px] bg-gradient-to-tr from-yellow-400 to-fuchsia-600 relative bg-black overflow-hidden">
+                                        {isVideo(myStories[myStories.length - 1].user?.profileImage) ? (
+                                            <video
+                                                src={myStories[myStories.length - 1].user?.profileImage}
+                                                className="w-full h-full rounded-full border-2 border-black object-cover"
+                                                autoPlay
+                                                muted
+                                                loop
+                                                playsInline
+                                            />
+                                        ) : (
+                                            <img
+                                                src={myStories[myStories.length - 1].user?.profileImage || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg"}
+                                                className="w-full h-full rounded-full border-2 border-black object-cover"
+                                                alt="My Story"
+                                            />
+                                        )}
                                         <div
                                             onClick={(e) => { e.stopPropagation(); onCreateClick(); }}
                                             className="absolute bottom-0 right-0 translate-x-[10%] translate-y-[10%] bg-blue-500 rounded-full p-1 border-2 border-black z-10 hover:scale-110 transition-transform"
@@ -186,12 +213,23 @@ const FeedView = ({ posts, stories = [], suggestedUsers = [], onCreateClick, loa
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="relative w-[78px] h-[78px]">
-                                        <img
-                                            src={Cookies.get('synapse_user_image') || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg"}
-                                            className="w-full h-full rounded-full border-2 border-white/10 object-cover opacity-80 group-hover:opacity-100 transition-opacity"
-                                            alt="Add Story"
-                                        />
+                                    <div className="relative w-[78px] h-[78px] bg-black overflow-hidden rounded-full">
+                                        {isVideo(currentUser?.profileImage || currentUser?.image || Cookies.get('synapse_user_image')) ? (
+                                            <video
+                                                src={currentUser?.profileImage || currentUser?.image || Cookies.get('synapse_user_image')}
+                                                className="w-full h-full rounded-full border-2 border-white/10 object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+                                                autoPlay
+                                                muted
+                                                loop
+                                                playsInline
+                                            />
+                                        ) : (
+                                            <img
+                                                src={currentUser?.profileImage || currentUser?.image || Cookies.get('synapse_user_image') || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg"}
+                                                className="w-full h-full rounded-full border-2 border-white/10 object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+                                                alt="Add Story"
+                                            />
+                                        )}
                                         <div className="absolute bottom-0 right-1 bg-blue-500 rounded-full p-1 border-2 border-black">
                                             <Plus size={16} className="text-white" />
                                         </div>

@@ -5,10 +5,66 @@ import {
     X, Camera, Video, Maximize2, Sliders, Image as ImageIcon,
     Check, ChevronRight, User, Shield, Briefcase, Zap,
     Activity, Layout, Sun, Aperture, Droplet, Scan, Fingerprint,
-    Cpu, Globe, Terminal, Sparkles, AlertCircle
+    Cpu, Globe, Terminal, Sparkles, AlertCircle, Clock
 } from 'lucide-react';
+import Cookies from 'js-cookie';
+
+const createImage = (url) =>
+    new Promise((resolve, reject) => {
+        const image = new Image();
+        image.addEventListener('load', () => resolve(image));
+        image.addEventListener('error', (error) => reject(error));
+        image.setAttribute('crossOrigin', 'anonymous');
+        image.src = url;
+    });
+
+async function getCroppedImg(imageSrc, pixelCrop, rotation = 0) {
+    const image = await createImage(imageSrc);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    const maxSize = Math.max(image.width, image.height);
+    const safeArea = 2 * ((maxSize / 2) * Math.sqrt(2));
+
+    canvas.width = safeArea;
+    canvas.height = safeArea;
+
+    ctx.translate(safeArea / 2, safeArea / 2);
+    ctx.rotate((rotation * Math.PI) / 180);
+    ctx.translate(-safeArea / 2, -safeArea / 2);
+
+    ctx.drawImage(
+        image,
+        safeArea / 2 - image.width * 0.5,
+        safeArea / 2 - image.height * 0.5
+    );
+    const data = ctx.getImageData(0, 0, safeArea, safeArea);
+
+    canvas.width = pixelCrop.width;
+    canvas.height = pixelCrop.height;
+
+    ctx.putImageData(
+        data,
+        0 - safeArea / 2 + image.width * 0.5 - pixelCrop.x,
+        0 - safeArea / 2 + image.height * 0.5 - pixelCrop.y
+    );
+
+    return new Promise((resolve) => {
+        canvas.toBlob((file) => {
+            resolve(file);
+        }, 'image/jpeg');
+    });
+}
+
+
 
 const EditNeuralProfileModal = ({ isOpen, onClose, user, onUpdate }) => {
+    const isVideo = (url) => {
+        if (!url) return false;
+        if (url.startsWith('blob:')) return url.includes('video') || (mediaType === 'video');
+        return url.match(/\.(mp4|webm|mov|m4v|m3u8|ogv)$|video/i);
+    };
+
     // Identity State
     const [identity, setIdentity] = useState({
         name: user.name || '',
@@ -32,14 +88,17 @@ const EditNeuralProfileModal = ({ isOpen, onClose, user, onUpdate }) => {
     const [rotation, setRotation] = useState(0);
     const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
 
-    // Filters & Adjustments
     const [adjustments, setAdjustments] = useState({
         brightness: 100,
         contrast: 100,
         saturation: 100,
         sepia: 0,
-        grayscale: 0
+        grayscale: 0,
+        balance: 0
     });
+
+    const [videoRange, setVideoRange] = useState({ start: 0, end: 10 });
+    const [videoDuration, setVideoDuration] = useState(0);
 
     const fileInputRef = useRef(null);
     const videoInputRef = useRef(null);
@@ -53,23 +112,167 @@ const EditNeuralProfileModal = ({ isOpen, onClose, user, onUpdate }) => {
             const file = e.target.files[0];
             setMediaFile(file);
             setMediaType(type);
-            setMediaUrl(URL.createObjectURL(file));
+            const url = URL.createObjectURL(file);
+            setMediaUrl(url);
             setCrop({ x: 0, y: 0 });
             setZoom(1);
-            setAdjustments({ brightness: 100, contrast: 100, saturation: 100, sepia: 0, grayscale: 0 });
+            setAdjustments({ brightness: 100, contrast: 100, saturation: 100, sepia: 0, grayscale: 0, balance: 0 });
+
+            if (type === 'video') {
+                const video = document.createElement('video');
+                video.src = url;
+                video.onloadedmetadata = () => {
+                    setVideoDuration(video.duration);
+                    setVideoRange({ start: 0, end: Math.min(10, video.duration) });
+                };
+            }
         }
     };
 
-    const handleSave = () => {
-        const updatedProfile = {
-            ...user,
-            ...identity,
-        };
-        if (onUpdate) onUpdate(updatedProfile);
-        onClose();
+    useEffect(() => {
+        if (isOpen) {
+            setMediaFile(null);
+            setMediaUrl(null);
+            setMediaType(null);
+            setCrop({ x: 0, y: 0 });
+            setZoom(1);
+            setRotation(0);
+            setCroppedAreaPixels(null);
+            setAdjustments({
+                brightness: 100,
+                contrast: 100,
+                saturation: 100,
+                sepia: 0,
+                grayscale: 0,
+                balance: 0
+            });
+            setVideoRange({ start: 0, end: 10 });
+            setVideoDuration(0);
+        }
+    }, [isOpen]);
+
+    useEffect(() => {
+        let interval;
+        if (mediaType === 'video' && mediaUrl) {
+            interval = setInterval(() => {
+                const videoElements = document.querySelectorAll('video');
+                videoElements.forEach(v => {
+                    if (v.src.includes(mediaUrl) || (v.firstChild && v.firstChild.src && v.firstChild.src.includes(mediaUrl))) {
+                        if (v.currentTime < videoRange.start || v.currentTime > videoRange.end) {
+                            v.currentTime = videoRange.start;
+                        }
+                    }
+                });
+            }, 200);
+        }
+        return () => clearInterval(interval);
+    }, [mediaType, mediaUrl, videoRange]);
+
+    const handleIdentitySync = async () => {
+        setIsAnalyzing(true);
+        try {
+            const apiUrl = "https://synapse-backend.pralayd140.workers.dev";
+            const token = Cookies.get('synapse_token');
+
+            const updatedProfileData = {
+                ...identity,
+                profileImage: user.profileImage // Keep current image, ignore staged media
+            };
+
+            const res = await fetch(`${apiUrl}/api/user/update`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(updatedProfileData)
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                if (onUpdate) onUpdate(data.data);
+                onClose();
+            } else {
+                console.error("Identity Matrix Sync Failed:", data.error);
+            }
+        } catch (err) {
+            console.error("Critical Neural Error:", err);
+        } finally {
+            setIsAnalyzing(false);
+        }
     };
 
-    const filterStyle = `brightness(${adjustments.brightness}%) contrast(${adjustments.contrast}%) saturate(${adjustments.saturation}%) sepia(${adjustments.sepia}%) grayscale(${adjustments.grayscale}%)`;
+    const handleSave = async () => {
+        setIsAnalyzing(true);
+        try {
+            const apiUrl = "https://synapse-backend.pralayd140.workers.dev";
+            const token = Cookies.get('synapse_token');
+            let profileImageUrl = user.profileImage;
+
+            if (mediaFile) {
+                let fileToUpload = mediaFile;
+
+                if (mediaType === 'image' && croppedAreaPixels) {
+                    const croppedImageBlob = await getCroppedImg(mediaUrl, croppedAreaPixels, rotation);
+                    fileToUpload = new File([croppedImageBlob], mediaFile.name, { type: 'image/jpeg' });
+                }
+
+                const uploadUrlRes = await fetch(`${apiUrl}/api/social/upload-url`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        fileName: fileToUpload.name,
+                        fileType: fileToUpload.type
+                    })
+                });
+
+                if (uploadUrlRes.ok) {
+                    const { uploadUrl, publicUrl } = await uploadUrlRes.json();
+                    const storageRes = await fetch(uploadUrl, {
+                        method: 'PUT',
+                        body: fileToUpload,
+                        headers: { 'Content-Type': fileToUpload.type }
+                    });
+
+                    if (storageRes.ok) {
+                        profileImageUrl = publicUrl;
+                    }
+                }
+            }
+
+            const updatedProfileData = {
+                ...identity,
+                profileImage: profileImageUrl,
+                videoTrim: mediaType === 'video' ? videoRange : null
+            };
+
+            const res = await fetch(`${apiUrl}/api/user/update`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(updatedProfileData)
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                if (onUpdate) onUpdate(data.data);
+                onClose();
+            } else {
+                console.error("Neural Matrix Sync Failed:", data.error);
+            }
+        } catch (err) {
+            console.error("Critical Neural Error:", err);
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
+
+    const filterStyle = `brightness(${adjustments.brightness}%) contrast(${adjustments.contrast}%) saturate(${adjustments.saturation}%) sepia(${adjustments.sepia}%) grayscale(${adjustments.grayscale}%) hue-rotate(${adjustments.balance}deg)`;
 
     return (
         <AnimatePresence>
@@ -272,7 +475,7 @@ const EditNeuralProfileModal = ({ isOpen, onClose, user, onUpdate }) => {
                             {/* Fixed Footer: Identity Commit Action */}
                             <div className="p-8 md:p-12 border-t border-white/5 bg-[#030303]/80 backdrop-blur-md">
                                 <button
-                                    onClick={handleSave}
+                                    onClick={handleIdentitySync}
                                     className="w-full py-4 bg-white/5 hover:bg-emerald-500/10 border border-white/10 hover:border-emerald-500/50 rounded-xl transition-all duration-300 group flex items-center justify-between px-6"
                                 >
                                     <div className="flex items-center gap-3">
@@ -332,11 +535,22 @@ const EditNeuralProfileModal = ({ isOpen, onClose, user, onUpdate }) => {
                                             {/* Avatar (Larger & More Heroic) */}
                                             <div className="relative group/avatar scale-110 my-2">
                                                 <div className="w-32 h-32 rounded-full border border-white/10 p-1.5 relative bg-gradient-to-b from-white/5 to-transparent">
-                                                    <div className="w-full h-full rounded-full overflow-hidden relative border border-black shadow-2xl">
-                                                        <img
-                                                            src={user.profileImage || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg"}
-                                                            className="w-full h-full object-cover group-hover/avatar:scale-105 transition-transform duration-700 ease-out"
-                                                        />
+                                                    <div className="w-full h-full rounded-full overflow-hidden relative border border-black shadow-2xl bg-black">
+                                                        {isVideo(mediaUrl || user.profileImage) ? (
+                                                            <video
+                                                                src={mediaUrl || user.profileImage}
+                                                                className="w-full h-full object-cover group-hover/avatar:scale-105 transition-transform duration-700 ease-out"
+                                                                autoPlay
+                                                                muted
+                                                                loop
+                                                                playsInline
+                                                            />
+                                                        ) : (
+                                                            <img
+                                                                src={mediaUrl || user.profileImage || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg"}
+                                                                className="w-full h-full object-cover group-hover/avatar:scale-105 transition-transform duration-700 ease-out"
+                                                            />
+                                                        )}
                                                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-all duration-300">
                                                             <div className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20">
                                                                 <Scan size={18} className="text-white" />
@@ -427,19 +641,40 @@ const EditNeuralProfileModal = ({ isOpen, onClose, user, onUpdate }) => {
                                         </div>
 
                                         {/* Floating Zoom Dial */}
-                                        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-md border border-white/10 px-6 py-3 rounded-full flex items-center gap-4 z-20 shadow-2xl">
+                                        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-md border border-white/10 px-6 py-3 rounded-full flex items-center gap-4 z-20 shadow-2xl transition-all hover:bg-black/80 hover:border-emerald-500/30">
                                             <Maximize2 size={14} className="text-emerald-500" />
                                             <input
                                                 type="range" min="1" max="3" step="0.1" value={zoom}
                                                 onChange={e => setZoom(Number(e.target.value))}
                                                 className="w-32 h-1 bg-white/20 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-emerald-500"
                                             />
-                                            <span className="text-[10px] text-emerald-500 font-mono w-8 text-right">{zoom.toFixed(1)}x</span>
+                                            <span className="text-[10px] text-emerald-500 font-mono w-8 text-right font-bold">{zoom.toFixed(1)}x</span>
                                         </div>
                                     </div>
 
                                     {/* Editor Control Deck */}
                                     <div className="p-8 bg-[#0a0a0a] border-t border-white/5 relative z-20">
+                                        {mediaType === 'video' && (
+                                            <div className="mb-8 max-w-[440px] mx-auto bg-black/40 backdrop-blur-xl border border-white/10 px-6 py-4 rounded-2xl flex flex-col gap-3 shadow-2xl transition-all hover:bg-black/60 hover:border-blue-500/30">
+                                                <div className="flex justify-between items-center px-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <Clock size={12} className="text-blue-400" />
+                                                        <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Neural Timing</span>
+                                                    </div>
+                                                    <span className="text-[10px] text-blue-400 font-mono font-bold tracking-tighter">{videoRange.start.toFixed(1)}s <span className="text-gray-600">→</span> {videoRange.end.toFixed(1)}s</span>
+                                                </div>
+                                                <input
+                                                    type="range" min="0" max={Math.max(0, videoDuration - 1)} step="0.1"
+                                                    value={videoRange.start}
+                                                    onChange={e => {
+                                                        const start = Number(e.target.value);
+                                                        const end = Math.min(start + 10, videoDuration);
+                                                        setVideoRange({ start, end });
+                                                    }}
+                                                    className="w-full h-1 bg-white/10 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-400 [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(96,165,250,0.5)]"
+                                                />
+                                            </div>
+                                        )}
                                         <div className="flex items-center justify-between mb-8">
                                             <div className="flex items-center gap-2">
                                                 <Sliders size={16} className="text-emerald-500" />
@@ -458,14 +693,14 @@ const EditNeuralProfileModal = ({ isOpen, onClose, user, onUpdate }) => {
                                                 { label: 'Brightness', icon: <Sun size={12} />, value: adjustments.brightness, key: 'brightness', color: 'bg-emerald-500' },
                                                 { label: 'Contrast', icon: <Aperture size={12} />, value: adjustments.contrast, key: 'contrast', color: 'bg-blue-500' },
                                                 { label: 'Saturation', icon: <Droplet size={12} />, value: adjustments.saturation, key: 'saturation', color: 'bg-purple-500' },
-                                                { label: 'Sepia', icon: <Activity size={12} />, value: adjustments.sepia, key: 'sepia', color: 'bg-amber-500', max: 100 }
+                                                { label: 'Balance', icon: <Sparkles size={12} />, value: adjustments.balance, key: 'balance', color: 'bg-indigo-500', max: 360, unit: '°' }
                                             ].map((adj) => (
                                                 <div key={adj.key} className="space-y-3 group">
                                                     <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider">
                                                         <span className="flex items-center gap-2 text-gray-500 group-hover:text-white transition-colors">
                                                             {adj.icon} {adj.label}
                                                         </span>
-                                                        <span className="text-gray-400 font-mono">{adj.value}%</span>
+                                                        <span className="text-gray-400 font-mono">{adj.value}{adj.unit || '%'}</span>
                                                     </div>
                                                     <input
                                                         type="range" min="0" max={adj.max || "200"} value={adj.value}

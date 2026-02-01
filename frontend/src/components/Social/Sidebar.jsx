@@ -2,6 +2,11 @@ import React from 'react';
 import { Home, Compass, Heart, MessageSquare, Monitor, BarChart2, Settings, LogOut, PlusSquare } from 'lucide-react';
 import { motion } from 'framer-motion';
 
+const isVideo = (url) => {
+    if (!url) return false;
+    return url.match(/\.(mp4|webm|mov|m4v|m3u8|ogv)$|video/i);
+};
+
 const Sidebar = ({ user, activeView, setView, onLogout, onOpenCreatePost, onMyProfileClick }) => {
     const navItems = [
         { id: 'feed', label: 'Feed', icon: <Home size={22} /> },
@@ -18,12 +23,23 @@ const Sidebar = ({ user, activeView, setView, onLogout, onOpenCreatePost, onMyPr
             {/* User Profile Summary */}
             <div className="p-10 flex flex-col items-center">
                 <div className="relative mb-4 group cursor-pointer" onClick={onMyProfileClick}>
-                    <div className="story-ring p-[3px]">
-                        <img
-                            src={user.image || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg"}
-                            alt={user.username}
-                            className="w-20 h-20 rounded-full object-cover border-4 border-black group-hover:scale-105 transition-transform"
-                        />
+                    <div className="story-ring p-[3px] bg-black overflow-hidden rounded-full">
+                        {isVideo(user.profileImage || user.image) ? (
+                            <video
+                                src={user.profileImage || user.image}
+                                className="w-20 h-20 rounded-full object-cover border-4 border-black group-hover:scale-105 transition-transform"
+                                autoPlay
+                                muted
+                                loop
+                                playsInline
+                            />
+                        ) : (
+                            <img
+                                src={user.profileImage || user.image || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg"}
+                                alt={user.username}
+                                className="w-20 h-20 rounded-full object-cover border-4 border-black group-hover:scale-105 transition-transform"
+                            />
+                        )}
                     </div>
                 </div>
                 <h3 className="text-white font-bold text-lg">{user.name || user.username}</h3>

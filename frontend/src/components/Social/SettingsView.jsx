@@ -4,7 +4,7 @@ import {
     Bell, Eye, Trash2, Smartphone, Globe, Palette,
     ChevronRight, Key, ShieldCheck, CreditCard, ChevronLeft,
     LogOut, AlertTriangle, CheckCircle2, X, TrendingUp,
-    Activity, Clock, ShieldAlert, Cpu, EyeOff, Ghost, CheckCheck
+    Activity, Clock, ShieldAlert, Cpu, EyeOff, Ghost, CheckCheck, Sparkles
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Cookies from 'js-cookie';
@@ -70,7 +70,7 @@ const SettingsView = ({ user, onUpdateUser, onLogout }) => {
     }, []);
 
     const menuItems = [
-        { id: 'profile', label: 'Neural Identity', icon: <User size={20} />, description: 'Edit your core profile and bio' },
+        { id: 'profile', label: 'Professional Deck', icon: <Sparkles size={20} />, description: 'Creator tools and professional signals' },
         { id: 'security', label: 'Security Core', icon: <Shield size={20} />, description: 'Passwords, OTP and Login activity' },
         { id: 'privacy', label: 'Privacy Link', icon: <Eye size={20} />, description: 'Manage account visibility and status' },
         { id: 'analytics', label: 'Neural Analytics', icon: <TrendingUp size={20} />, description: 'Track resonance and visitor frequency' },
@@ -300,61 +300,75 @@ const SettingsView = ({ user, onUpdateUser, onLogout }) => {
                                 className="space-y-12"
                             >
                                 <section>
-                                    <motion.h3 variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }} className="text-2xl font-bold text-white mb-8 tracking-tight">Neural Identity Edit</motion.h3>
-                                    <form onSubmit={handleUpdateProfile} className="space-y-6">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <motion.div variants={{ hidden: { opacity: 0, x: -20 }, visible: { opacity: 1, x: 0 } }} className="space-y-2">
-                                                <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest ml-1">Full Designation</label>
-                                                <input
-                                                    type="text"
-                                                    value={formData.name}
-                                                    onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm focus:border-emerald-500/50 focus:bg-emerald-500/5 focus:outline-none transition-all"
-                                                    placeholder="Your Name"
-                                                />
-                                            </motion.div>
-                                            <motion.div variants={{ hidden: { opacity: 0, x: 20 }, visible: { opacity: 1, x: 0 } }} className="space-y-2">
-                                                <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest ml-1">Unique Username</label>
-                                                <input
-                                                    type="text"
-                                                    value={formData.username}
-                                                    onChange={e => setFormData({ ...formData, username: e.target.value })}
-                                                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm focus:border-emerald-500/50 focus:bg-emerald-500/5 focus:outline-none transition-all"
-                                                    placeholder="username"
-                                                />
-                                            </motion.div>
+                                    <div className="flex items-center justify-between mb-8">
+                                        <motion.h3 variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }} className="text-2xl font-bold text-white tracking-tight">Professional Deck</motion.h3>
+                                        <div className="px-4 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-full flex items-center gap-2">
+                                            <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-pulse" />
+                                            <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest">Creator Mode Active</span>
                                         </div>
-                                        <motion.div variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }} className="space-y-2">
-                                            <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest ml-1">Neural Bio</label>
-                                            <textarea
-                                                value={formData.bio}
-                                                onChange={e => setFormData({ ...formData, bio: e.target.value })}
-                                                rows={4}
-                                                className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm focus:border-emerald-500/50 focus:bg-emerald-500/5 focus:outline-none transition-all resize-none"
-                                                placeholder="Enter your profile description..."
-                                            />
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        {/* Verification Status Card */}
+                                        <motion.div variants={{ hidden: { opacity: 0, scale: 0.95 }, visible: { opacity: 1, scale: 1 } }} className="p-8 bg-gradient-to-br from-white/5 to-transparent border border-white/10 rounded-[2.5rem] relative overflow-hidden group">
+                                            <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform">
+                                                <ShieldCheck size={48} className="text-emerald-500" />
+                                            </div>
+                                            <h4 className="text-white font-bold text-lg mb-2">Signal Verification</h4>
+                                            <p className="text-gray-500 text-xs font-medium mb-6">Confirm your neural identity to receive the verified creator surge.</p>
+                                            <button className="px-6 py-2.5 bg-indigo-500 text-black text-[10px] font-bold uppercase tracking-widest rounded-xl hover:bg-indigo-400 transition-all shadow-lg shadow-indigo-500/20">
+                                                {user.isProfessional ? 'Verified Status Active' : 'Request Verification'}
+                                            </button>
                                         </motion.div>
-                                        <motion.button
-                                            variants={{ hidden: { opacity: 0 }, visible: { opacity: 1 } }}
-                                            whileHover={{ scale: 1.02, boxShadow: '0 0 20px rgba(16, 185, 129, 0.2)' }}
-                                            whileActive={{ scale: 0.98 }}
-                                            type="submit"
-                                            disabled={loading}
-                                            className="px-12 py-4 bg-emerald-500 text-black font-bold text-xs uppercase tracking-[0.3em] rounded-2xl hover:bg-emerald-400 transition-all shadow-lg disabled:opacity-50"
-                                        >
-                                            {loading ? 'Synchronizing...' : 'Save Changes'}
-                                        </motion.button>
-                                    </form>
+
+                                        {/* Monetization Pulse Card */}
+                                        <motion.div variants={{ hidden: { opacity: 0, scale: 0.95 }, visible: { opacity: 1, scale: 1 } }} className="p-8 bg-gradient-to-br from-white/5 to-transparent border border-white/10 rounded-[2.5rem] relative overflow-hidden group">
+                                            <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform">
+                                                <CreditCard size={48} className="text-blue-500" />
+                                            </div>
+                                            <h4 className="text-white font-bold text-lg mb-2">Monetization Pulse</h4>
+                                            <p className="text-gray-500 text-xs font-medium mb-6">Track your earnings and digital synapse revenue streams.</p>
+                                            <div className="flex items-center gap-4">
+                                                <span className="text-white font-mono font-bold text-xl">$0.00</span>
+                                                <span className="text-[10px] text-gray-600 font-bold uppercase tracking-widest">Awaiting Payout</span>
+                                            </div>
+                                        </motion.div>
+                                    </div>
                                 </section>
 
                                 <motion.section variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }} className="pt-12 border-t border-white/5">
+                                    <h4 className="text-white font-bold text-lg mb-8 flex items-center gap-3">
+                                        <Zap size={20} className="text-amber-500" />
+                                        Advanced Creator Tools
+                                    </h4>
+
+                                    <div className="space-y-4">
+                                        {[
+                                            { label: 'High-Res Transmissions', desc: 'Enable 4K neural video uploads (Requires Pro)', active: true },
+                                            { label: 'Anonymous Shield', desc: 'Hide viewer count on your recently broadcasted reels', active: false },
+                                            { label: 'Deep Analytics Surge', desc: 'Interactive resonance maps for every post and story', active: true }
+                                        ].map((tool, idx) => (
+                                            <div key={idx} className="p-6 bg-white/[0.02] border border-white/5 rounded-2xl flex items-center justify-between group hover:bg-white/5 transition-all">
+                                                <div>
+                                                    <h5 className="text-white font-bold text-sm mb-1">{tool.label}</h5>
+                                                    <p className="text-gray-500 text-[10px] font-medium uppercase tracking-widest opacity-60">{tool.desc}</p>
+                                                </div>
+                                                <div className={`w-12 h-6 rounded-full relative cursor-pointer transition-colors ${tool.active ? 'bg-emerald-500' : 'bg-white/10'}`}>
+                                                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${tool.active ? 'right-1' : 'left-1'}`} />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </motion.section>
+
+                                <motion.section variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }} className="pt-12 border-t border-white/5">
                                     <div className="flex items-center gap-4 mb-8">
-                                        <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-500">
+                                        <div className="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-500">
                                             <Globe size={20} />
                                         </div>
                                         <div>
-                                            <h4 className="text-white font-bold text-lg tracking-tight">Neural Link Matrix</h4>
-                                            <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Manage external synapses in real-time</p>
+                                            <h4 className="text-white font-bold text-lg tracking-tight">Professional Nexus Links</h4>
+                                            <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Connect your external professional synapses</p>
                                         </div>
                                     </div>
 
@@ -376,8 +390,8 @@ const SettingsView = ({ user, onUpdateUser, onLogout }) => {
                                                             newLinks[idx] = e.target.value;
                                                             setFormData({ ...formData, links: newLinks });
                                                         }}
-                                                        className="flex-1 bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm focus:border-blue-500/50 focus:bg-blue-500/5 focus:outline-none transition-all"
-                                                        placeholder="https://your-synapse.com"
+                                                        className="flex-1 bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm focus:border-indigo-500/50 focus:bg-indigo-500/5 focus:outline-none transition-all"
+                                                        placeholder="https://portfolio.nova.com"
                                                     />
                                                     <button
                                                         onClick={() => {
@@ -396,9 +410,21 @@ const SettingsView = ({ user, onUpdateUser, onLogout }) => {
                                             whileHover={{ scale: 1.02 }}
                                             whileActive={{ scale: 0.98 }}
                                             onClick={() => setFormData({ ...formData, links: [...formData.links, ''] })}
-                                            className="w-full py-4 border border-dashed border-white/10 rounded-2xl text-gray-500 text-[10px] font-bold uppercase tracking-widest hover:border-blue-500/50 hover:text-blue-500 hover:bg-blue-500/5 transition-all flex items-center justify-center gap-2"
+                                            className="w-full py-4 border border-dashed border-white/10 rounded-2xl text-gray-500 text-[10px] font-bold uppercase tracking-widest hover:border-indigo-500/50 hover:text-indigo-500 hover:bg-indigo-500/5 transition-all flex items-center justify-center gap-2"
                                         >
-                                            <X size={14} className="rotate-45" /> Add New Network Branch
+                                            <X size={14} className="rotate-45" /> Add Professional Synapse
+                                        </motion.button>
+                                    </div>
+
+                                    <div className="mt-12 flex justify-end">
+                                        <motion.button
+                                            whileHover={{ scale: 1.05 }}
+                                            whileActive={{ scale: 0.95 }}
+                                            onClick={handleUpdateProfile}
+                                            disabled={loading}
+                                            className="px-12 py-4 bg-white text-black font-bold text-xs uppercase tracking-[0.3em] rounded-2xl hover:bg-gray-200 transition-all shadow-xl disabled:opacity-50"
+                                        >
+                                            {loading ? 'Propagating Changes...' : 'Save Creator Settings'}
                                         </motion.button>
                                     </div>
                                 </motion.section>

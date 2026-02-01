@@ -4,7 +4,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Cookies from 'js-cookie';
 import EditNeuralProfileModal from './EditNeuralProfileModal';
 
-const ProfileView = ({ user, currentUser, posts: parentPosts = [], onOpenCreatePost, loading: parentLoading, onCinemaMode }) => {
+const isVideo = (url) => {
+    if (!url) return false;
+    return url.match(/\.(mp4|webm|mov|m4v|m3u8|ogv)$|video/i);
+};
+
+const ProfileView = ({ user, currentUser, posts: parentPosts = [], onOpenCreatePost, loading: parentLoading, onCinemaMode, onUpdateUser }) => {
     const [activeTab, setActiveTab] = useState('posts');
     const [tabData, setTabData] = useState([]);
     const [localLoading, setLocalLoading] = useState(false);
@@ -97,13 +102,24 @@ const ProfileView = ({ user, currentUser, posts: parentPosts = [], onOpenCreateP
                     <motion.div
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        className="story-ring p-[5px] w-36 h-36 md:w-52 md:h-52 relative z-10"
+                        className="story-ring p-[5px] w-36 h-36 md:w-52 md:h-52 relative z-10 bg-black overflow-hidden rounded-full"
                     >
-                        <img
-                            src={user.profileImage || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg"}
-                            className="w-full h-full rounded-full border-4 border-black object-cover"
-                            alt={user.username}
-                        />
+                        {isVideo(user.profileImage) ? (
+                            <video
+                                src={user.profileImage}
+                                className="w-full h-full rounded-full border-4 border-black object-cover"
+                                autoPlay
+                                muted
+                                loop
+                                playsInline
+                            />
+                        ) : (
+                            <img
+                                src={user.profileImage || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg"}
+                                className="w-full h-full rounded-full border-4 border-black object-cover"
+                                alt={user.username}
+                            />
+                        )}
                     </motion.div>
                     <div className="absolute inset-0 bg-emerald-500/20 blur-[60px] rounded-full -z-10 group-hover:bg-emerald-500/30 transition-all duration-700"></div>
                 </div>
@@ -266,6 +282,7 @@ const ProfileView = ({ user, currentUser, posts: parentPosts = [], onOpenCreateP
                 isOpen={isEditModalOpen}
                 onClose={() => setIsEditModalOpen(false)}
                 user={user}
+                onUpdate={onUpdateUser}
             />
         </div>
     );

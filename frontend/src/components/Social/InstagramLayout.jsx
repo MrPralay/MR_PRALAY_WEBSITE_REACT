@@ -117,11 +117,25 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
     };
 
     const handleUpdateUser = (newData) => {
-        const updated = { ...currentUserState, ...newData };
+        // Normalize image fields to ensure consistency across components
+        const profileImage = newData.profileImage || newData.image || currentUserState.profileImage || currentUserState.image;
+        const updated = {
+            ...currentUserState,
+            ...newData,
+            image: profileImage,
+            profileImage: profileImage
+        };
+
         setCurrentUserState(updated);
         localStorage.setItem('synapse_user_data', JSON.stringify(updated));
+
+        // Synchronize cookies for components using legacy cookie-based fetching
+        if (profileImage) {
+            Cookies.set('synapse_user_image', profileImage, { expires: 7 });
+        }
+
         // Reset userProfile if looking at own profile to reflect changes
-        if (userProfile.id === updated.id) {
+        if (userProfile?.id === updated.id || userProfile?.userId === updated.id) {
             setUserProfile(updated);
         }
     };
@@ -340,6 +354,7 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                                 onCinemaMode={setCinemaPost}
                                 myStories={myStories}
                                 onMyStoryClick={handleMyStoryClick}
+                                currentUser={currentUserState}
                                 onStoryClick={(item) => {
                                     // Group stories by user and show all stories of the clicked user
                                     const userStories = allStories.filter(s => s.userId === item.userId);
@@ -368,6 +383,7 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                                 onOpenCreatePost={() => setIsPostModalOpen(true)}
                                 loading={loading}
                                 onCinemaMode={setCinemaPost}
+                                onUpdateUser={handleUpdateUser}
                             />
                         </motion.div>
                     )}

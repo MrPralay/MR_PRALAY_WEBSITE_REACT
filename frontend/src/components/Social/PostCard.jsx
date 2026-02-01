@@ -3,6 +3,11 @@ import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Download, Lock, U
 import { motion, AnimatePresence } from 'framer-motion';
 import Cookies from 'js-cookie';
 
+const isVideo = (url) => {
+    if (!url) return false;
+    return url.match(/\.(mp4|webm|mov|m4v|m3u8|ogv)$|video/i);
+};
+
 const PostCard = ({ post, onInteraction, onCinemaMode }) => {
     const [isLiked, setIsLiked] = useState(post.isLiked || false);
     const [isSaved, setIsSaved] = useState(post.isSaved || false);
@@ -151,12 +156,23 @@ const PostCard = ({ post, onInteraction, onCinemaMode }) => {
             <div className="flex items-center justify-between p-6 px-8">
                 <div className="flex items-center gap-4">
                     <div className="relative">
-                        <div className="w-12 h-12 rounded-full border-2 border-emerald-500/30 p-[2px] transition-transform group-hover:rotate-12">
-                            <img
-                                src={post.user?.profileImage || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg"}
-                                className="w-full h-full rounded-full object-cover border-2 border-black"
-                                alt={post.user?.username}
-                            />
+                        <div className="w-12 h-12 rounded-full border-2 border-emerald-500/30 p-[2px] transition-transform group-hover:rotate-12 bg-black overflow-hidden">
+                            {isVideo(post.user?.profileImage) ? (
+                                <video
+                                    src={post.user?.profileImage}
+                                    className="w-full h-full rounded-full object-cover border-2 border-black"
+                                    autoPlay
+                                    muted
+                                    loop
+                                    playsInline
+                                />
+                            ) : (
+                                <img
+                                    src={post.user?.profileImage || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg"}
+                                    className="w-full h-full rounded-full object-cover border-2 border-black"
+                                    alt={post.user?.username}
+                                />
+                            )}
                         </div>
                         <div className="absolute -bottom-1 -right-1 bg-emerald-500 w-4 h-4 rounded-full border-2 border-black flex items-center justify-center">
                             <ShieldCheck size={8} className="text-black" />
@@ -339,11 +355,22 @@ const PostCard = ({ post, onInteraction, onCinemaMode }) => {
                     >
                         <div className="p-8">
                             <div className="flex items-center gap-4 mb-8">
-                                <img
-                                    src={Cookies.get('synapse_user_image') || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg"}
-                                    className="w-8 h-8 rounded-full border border-white/10"
-                                    alt="self"
-                                />
+                                {isVideo(Cookies.get('synapse_user_image')) ? (
+                                    <video
+                                        src={Cookies.get('synapse_user_image')}
+                                        className="w-8 h-8 rounded-full border border-white/10 object-cover"
+                                        autoPlay
+                                        muted
+                                        loop
+                                        playsInline
+                                    />
+                                ) : (
+                                    <img
+                                        src={Cookies.get('synapse_user_image') || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg"}
+                                        className="w-8 h-8 rounded-full border border-white/10 object-cover"
+                                        alt="self"
+                                    />
+                                )}
                                 <div className="flex-1 relative">
                                     <input
                                         type="text"
