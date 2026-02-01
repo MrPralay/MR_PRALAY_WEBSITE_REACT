@@ -19,20 +19,35 @@ const PostCard = ({ post, onInteraction, onCinemaMode }) => {
     const [isPlaying, setIsPlaying] = useState(true);
     const [isMuted, setIsMuted] = useState(true);
     const [isInView, setIsInView] = useState(false);
+    const [isMediaLoaded, setIsMediaLoaded] = useState(false);
     const videoRef = useRef(null);
     const containerRef = useRef(null);
 
     useEffect(() => {
+        // Neural Animation Delay: Enforce a slight delay before triggering cinematic effects
+        // This prevents the "instant motion" jarring effect on page load/refresh
+        let timeoutId;
+        const ANIMATION_START_DELAY = 1000; // 1 second delay after mounting before any animation can start
+        const mountTime = Date.now();
+
         const observer = new IntersectionObserver(
             (entries) => {
                 entries.forEach(entry => {
+                    const timeSinceMount = Date.now() - mountTime;
+                    const initialDelay = Math.max(0, ANIMATION_START_DELAY - timeSinceMount);
+
                     if (entry.isIntersecting) {
-                        if (videoRef.current) {
-                            videoRef.current.play().catch(() => { });
-                            setIsPlaying(true);
-                        }
-                        setIsInView(true);
+                        clearTimeout(timeoutId);
+                        // Delay the activation of cinematic mode
+                        timeoutId = setTimeout(() => {
+                            if (videoRef.current) {
+                                videoRef.current.play().catch(() => { });
+                                setIsPlaying(true);
+                            }
+                            setIsInView(true);
+                        }, initialDelay + 150); // Plus small debounce
                     } else {
+                        clearTimeout(timeoutId);
                         if (videoRef.current) videoRef.current.pause();
                         setIsPlaying(false);
                         setIsInView(false);
@@ -48,6 +63,7 @@ const PostCard = ({ post, onInteraction, onCinemaMode }) => {
 
         return () => {
             if (containerRef.current) observer.unobserve(containerRef.current);
+            clearTimeout(timeoutId);
         };
     }, []);
 
@@ -190,8 +206,30 @@ const PostCard = ({ post, onInteraction, onCinemaMode }) => {
                 </button>
             </div>
 
-            {/* Media Canvas */}
-            <div className="relative aspect-square md:aspect-[16/10] bg-black/60 post-media-container flex items-center justify-center">
+            {/* Media Canvas - Neural Masking Applied */}
+            <div className="relative aspect-square md:aspect-[16/10] bg-black/60 post-media-container flex items-center justify-center overflow-hidden">
+                {/* 1. Underlying Neural Atmosphere (Profile Ambient Placeholder) */}
+                <div className={`absolute inset-0 bg-black z-0 overflow-hidden transition-opacity duration-1000 ${isMediaLoaded ? 'opacity-0' : 'opacity-100'}`}>
+                    {/* Reuse Profile Pic for Instant Ambient Color */}
+                    {post.user?.profileImage && (
+                        isVideo(post.user.profileImage) ? (
+                            <video
+                                src={post.user.profileImage}
+                                className="absolute inset-0 w-full h-full object-cover opacity-40 blur-[40px] scale-150"
+                                autoPlay muted loop playsInline
+                            />
+                        ) : (
+                            <img
+                                src={post.user.profileImage}
+                                className="absolute inset-0 w-full h-full object-cover opacity-40 blur-[40px] scale-150"
+                                alt=""
+                            />
+                        )
+                    )}
+                    {/* Shimmer Overlay for kinetic feel */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.1] to-transparent animate-shimmer" style={{ backgroundSize: '200% 100%', animation: 'shimmer 1.5s infinite linear' }} />
+                </div>
+
                 {!isUnlocked ? (
                     <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/40 backdrop-blur-3xl p-8 text-center group">
                         <div className="p-6 bg-amber-500/10 rounded-[2rem] mb-6 mb-8 group-hover:scale-110 transition-transform">
@@ -227,10 +265,11 @@ const PostCard = ({ post, onInteraction, onCinemaMode }) => {
                                 <video
                                     ref={videoRef}
                                     src={post.mediaUrl}
-                                    className={`post-media-fix object-cover ${isInView ? 'active-cinematic' : ''}`}
+                                    className={`post-media-fix object-cover transition-opacity duration-700 ${isInView ? 'active-cinematic' : ''} ${isMediaLoaded ? 'opacity-100' : 'opacity-0'}`}
                                     loop
                                     muted={isMuted}
                                     playsInline
+                                    onCanPlay={() => setIsMediaLoaded(true)}
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover/video:opacity-100 transition-opacity flex flex-col justify-end p-8">
                                     <div className="flex items-center gap-4">
@@ -254,11 +293,13 @@ const PostCard = ({ post, onInteraction, onCinemaMode }) => {
                         ) : (
                             <img
                                 src={post.mediaUrl}
-                                className={`post-media-fix object-cover cursor-zoom-in ${isInView ? 'active-cinematic' : ''}`}
+                                className={`post-media-fix object-cover cursor-zoom-in transition-opacity duration-700 ${isInView ? 'active-cinematic' : ''} ${isMediaLoaded ? 'opacity-100' : 'opacity-0'}`}
                                 alt="Neural Visual"
                                 onDoubleClick={handleCinemaModeClick}
+                                onLoad={() => setIsMediaLoaded(true)}
                                 onError={(e) => {
                                     e.target.src = "https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?w=800&q=80";
+                                    setIsMediaLoaded(true);
                                 }}
                             />
                         )}

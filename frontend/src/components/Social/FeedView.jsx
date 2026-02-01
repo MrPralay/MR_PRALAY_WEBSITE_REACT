@@ -91,8 +91,15 @@ const StoriesSlider = ({ stories, onStoryClick, onUserProfileClick }) => {
                     <motion.div
                         key={item.id || item.user?.username || i}
                         layout
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
+                        initial={{ opacity: 0, scale: 0.6, rotateY: 90 }} // Scale 0.6 adds to the "bubble growth" feel
+                        animate={{ opacity: 1, scale: 1, rotateY: 0 }}
+                        transition={{
+                            type: "spring",
+                            stiffness: 95,      // Bubble energetic pop
+                            damping: 14,        // Soft elastic bounce (Butter smooth wobbles)
+                            mass: 1.1,
+                            delay: i * 0.06     // Fast ripple
+                        }}
                         exit={{ opacity: 0, scale: 0.8 }}
                         className={`flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer ${!item.hasStory ? 'opacity-70' : ''}`}
                         onClick={() => handleClick(item)}
@@ -133,7 +140,13 @@ const FeedView = ({ posts, stories = [], suggestedUsers = [], onCreateClick, loa
     const maxVisible = 5;
 
     const combinedList = React.useMemo(() => {
-        const otherStories = stories.filter(s => !myStories.find(ms => ms.id === s.id));
+        // 1. Filter out 'Me' from Stories (Fix duplicate story circle)
+        const otherStories = stories.filter(s => {
+            const isMe = currentUser && (s.userId === currentUser.id || s.userId === currentUser.userId);
+            const inMyStories = myStories.find(ms => ms.id === s.id);
+            return !isMe && !inMyStories;
+        });
+
         const userMap = new Map();
         otherStories.forEach(story => {
             if (!userMap.has(story.userId)) {
@@ -142,17 +155,27 @@ const FeedView = ({ posts, stories = [], suggestedUsers = [], onCreateClick, loa
         });
         const uniqueUserStories = Array.from(userMap.values());
 
+        // Helper to check if a suggestion is 'Me'
+        const isStartUser = (u) => currentUser && (u.id === currentUser.id || u.username === currentUser.username);
+
         if (uniqueUserStories.length === 0) {
-            return suggestedUsers.map(user => ({
-                id: `user-${user.id}`,
-                user: user,
-                hasStory: false
-            }));
+            // 2. Filter out 'Me' from Suggestions (Fix duplicate profile circle)
+            return suggestedUsers
+                .filter(u => !isStartUser(u))
+                .map(user => ({
+                    id: `user-${user.id}`,
+                    user: user,
+                    hasStory: false
+                }));
         } else if (uniqueUserStories.length >= maxVisible) {
             return uniqueUserStories;
         } else {
             const storyUserIds = new Set(uniqueUserStories.map(s => s.userId));
-            const filteredSuggested = suggestedUsers.filter(u => !storyUserIds.has(u.id));
+            // Filter suggestions: Must not be in stories AND must not be 'Me'
+            const filteredSuggested = suggestedUsers.filter(u =>
+                !storyUserIds.has(u.id) && !isStartUser(u)
+            );
+
             const remainingSlots = maxVisible - uniqueUserStories.length;
             const fillingProfiles = filteredSuggested.slice(0, remainingSlots).map(user => ({
                 id: `user-${user.id}`,
@@ -161,7 +184,7 @@ const FeedView = ({ posts, stories = [], suggestedUsers = [], onCreateClick, loa
             }));
             return [...uniqueUserStories, ...fillingProfiles];
         }
-    }, [stories, suggestedUsers, myStories]);
+    }, [stories, suggestedUsers, myStories, currentUser]);
 
     return (
         <div className="flex-1 max-w-2xl mx-auto py-8 px-4">
@@ -188,26 +211,28 @@ const FeedView = ({ posts, stories = [], suggestedUsers = [], onCreateClick, loa
                                 className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer group relative"
                             >
                                 {myStories.length > 0 ? (
-                                    <div className="w-[78px] h-[78px] rounded-full p-[2px] bg-gradient-to-tr from-yellow-400 to-fuchsia-600 relative bg-black overflow-hidden">
-                                        {isVideo(myStories[myStories.length - 1].user?.profileImage) ? (
-                                            <video
-                                                src={myStories[myStories.length - 1].user?.profileImage}
-                                                className="w-full h-full rounded-full border-2 border-black object-cover"
-                                                autoPlay
-                                                muted
-                                                loop
-                                                playsInline
-                                            />
-                                        ) : (
-                                            <img
-                                                src={myStories[myStories.length - 1].user?.profileImage || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg"}
-                                                className="w-full h-full rounded-full border-2 border-black object-cover"
-                                                alt="My Story"
-                                            />
-                                        )}
+                                    <div className="relative w-[78px] h-[78px]">
+                                        <div className="w-full h-full rounded-full p-[2px] bg-gradient-to-tr from-yellow-400 to-fuchsia-600 bg-black overflow-hidden">
+                                            {isVideo(myStories[myStories.length - 1].user?.profileImage) ? (
+                                                <video
+                                                    src={myStories[myStories.length - 1].user?.profileImage}
+                                                    className="w-full h-full rounded-full border-2 border-black object-cover"
+                                                    autoPlay
+                                                    muted
+                                                    loop
+                                                    playsInline
+                                                />
+                                            ) : (
+                                                <img
+                                                    src={myStories[myStories.length - 1].user?.profileImage || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg"}
+                                                    className="w-full h-full rounded-full border-2 border-black object-cover"
+                                                    alt="My Story"
+                                                />
+                                            )}
+                                        </div>
                                         <div
                                             onClick={(e) => { e.stopPropagation(); onCreateClick(); }}
-                                            className="absolute bottom-0 right-0 translate-x-[10%] translate-y-[10%] bg-blue-500 rounded-full p-1 border-2 border-black z-10 hover:scale-110 transition-transform"
+                                            className="absolute bottom-0 right-0 bg-blue-500 rounded-full p-1 border-2 border-black z-10 hover:scale-110 transition-transform"
                                         >
                                             <Plus size={14} className="text-white" />
                                         </div>

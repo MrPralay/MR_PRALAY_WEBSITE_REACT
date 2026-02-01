@@ -269,7 +269,21 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete, onUser
                                 if (onUserProfileClick) onUserProfileClick(currentStory.user);
                             }}
                         >
-                            <img src={currentStory.user?.profileImage || currentStory.user?.image || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg"} className="w-8 h-8 rounded-full border border-white/20 group-hover:scale-105 transition-transform" alt="User" />
+                            <div className="w-8 h-8 rounded-full border border-white/20 overflow-hidden group-hover:scale-105 transition-transform bg-black">
+                                {currentStory.user?.profileImage && currentStory.user.profileImage.match(/\.(mp4|webm|mov|m4v|m3u8|ogv)$|video/i) ? (
+                                    <video
+                                        src={currentStory.user.profileImage}
+                                        className="w-full h-full object-cover"
+                                        autoPlay muted loop playsInline
+                                    />
+                                ) : (
+                                    <img
+                                        src={currentStory.user?.profileImage || currentStory.user?.image || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg"}
+                                        className="w-full h-full object-cover"
+                                        alt="User"
+                                    />
+                                )}
+                            </div>
                             <div className="flex items-center gap-2">
                                 <span className="text-white font-bold text-sm tracking-wide group-hover:text-emerald-400 transition-colors">{currentStory.user?.username}</span>
                                 <span className="text-gray-400 text-xs font-medium">31s</span>

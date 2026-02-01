@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Grid, Play, Bookmark, User as UserIcon, Settings, ShieldCheck, Plus, Monitor, Lock, Hash, Heart, MessageCircle, Zap } from 'lucide-react';
+import { Grid, Play, Bookmark, User as UserIcon, Settings, ShieldCheck, Plus, Monitor, Lock, Hash, Heart, MessageCircle, Zap, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Cookies from 'js-cookie';
 import EditNeuralProfileModal from './EditNeuralProfileModal';
@@ -9,7 +9,7 @@ const isVideo = (url) => {
     return url.match(/\.(mp4|webm|mov|m4v|m3u8|ogv)$|video/i);
 };
 
-const ProfileView = ({ user, currentUser, posts: parentPosts = [], onOpenCreatePost, loading: parentLoading, onCinemaMode, onUpdateUser }) => {
+const ProfileView = ({ user, currentUser, posts: parentPosts = [], onOpenCreatePost, loading: parentLoading, onCinemaMode, onUpdateUser, onClose }) => {
     const [activeTab, setActiveTab] = useState('posts');
     const [tabData, setTabData] = useState([]);
     const [localLoading, setLocalLoading] = useState(false);
@@ -95,7 +95,21 @@ const ProfileView = ({ user, currentUser, posts: parentPosts = [], onOpenCreateP
     ];
 
     return (
-        <div className="flex-1 max-w-5xl mx-auto py-16 px-6 md:px-12">
+        <div className="flex-1 max-w-5xl mx-auto py-16 px-6 md:px-12 relative">
+            {/* Animated Back Arrow for All Profile Views */}
+            {onClose && (
+                <motion.button
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    whileHover={{ x: -5, scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={onClose}
+                    className="absolute top-12 right-6 md:-right-8 p-3 bg-white/5 border border-white/10 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors z-50 backdrop-blur-md group"
+                >
+                    <ArrowLeft size={24} className="group-hover:-translate-x-1 transition-transform" />
+                </motion.button>
+            )}
+
             {/* Header (Refined Pro Typography) */}
             <div className="flex flex-col md:flex-row gap-12 md:gap-24 items-center md:items-start mb-24">
                 <div className="relative group">

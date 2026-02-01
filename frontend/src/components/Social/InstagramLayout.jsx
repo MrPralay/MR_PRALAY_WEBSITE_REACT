@@ -11,13 +11,14 @@ import SettingsView from './SettingsView';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import Cookies from 'js-cookie';
+import { saveToCache, loadFromCache } from '../../utils/synapseCache';
 
 const InstagramLayout = ({ currentUser, onLogout }) => {
     const [view, setView] = useState(() => localStorage.getItem('synapse_social_tab') || 'feed'); // feed, profile, explore, etc.
     const [posts, setPosts] = useState([]);
     const [currentUserState, setCurrentUserState] = useState(currentUser);
     const [userProfile, setUserProfile] = useState(currentUser);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true); // Default to true to force skeleton on initial load/refresh
     const [isPostModalOpen, setIsPostModalOpen] = useState(false);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const [cinemaPost, setCinemaPost] = useState(null);
@@ -35,14 +36,83 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
         localStorage.setItem('synapse_social_tab', view);
     }, [view]);
 
+    // Enhanced Navigation Handler (Prevents view-flash glitches)
+    const handleNavigation = (newView) => {
+        if (newView === view) return;
+        setLoading(true); // Instant skeleton
+        setView(newView);
+    };
+
     // Data loading from API
+    // Data loading from API (Enhanced with Neural Cache)
+    // Data loading from API (Enhanced with Neural Cache & Kinetic Skeleton)
     useEffect(() => {
         let active = true;
         const fetchData = async () => {
             if (!active) return;
-            setLoading(true);
-            setPosts([]);
 
+            // 1. FORCE LOADING STATE (Visual feedback for 'very fast refresh')
+            // This ensures user sees skeleton for at least 600ms even if we have cache
+            setLoading(true);
+
+            // Critical: Wait for the skeleton animation to play a bit
+            const CACHE_REVEAL_DELAY = 600;
+            const startTime = Date.now();
+
+            // 2. LOAD CACHE (Synchronous logic, but held from view until delay passes)
+            let cachedFeed = [];
+            let cachedProfile = null;
+            let hasCachedData = false;
+
+            try {
+                // Stories & Suggestions Cache
+                const cachedStories = loadFromCache('synapse_stories');
+                if (cachedStories && active) {
+                    setAllStories(cachedStories);
+                    const mine = cachedStories.filter(s => s.userId === currentUserState.id || s.userId === currentUserState.userId);
+                    setMyStories(mine);
+                }
+                const cachedSuggested = loadFromCache('synapse_suggested');
+                if (cachedSuggested && active) setSuggestedUsers(cachedSuggested);
+
+                // Feed/content Cache Pre-load
+                if (view === 'feed' || view === 'igtv') {
+                    cachedFeed = loadFromCache('synapse_feed_posts');
+                    if (cachedFeed && Array.isArray(cachedFeed)) hasCachedData = true;
+                } else if (view === 'profile') {
+                    const profileId = userProfile?.username || currentUser.username;
+                    const cProfile = loadFromCache(`synapse_profile_${profileId}`);
+                    if (cProfile) {
+                        cachedProfile = cProfile;
+                        hasCachedData = true;
+                    }
+                }
+            } catch (e) { console.warn("Cache Read Error", e); }
+
+
+            // 3. ARTIFICIAL DELAY (To guarantee skeleton visibility)
+            // We calculate how much time passed since we started this function
+            const elapsed = Date.now() - startTime;
+            const remaining = Math.max(0, CACHE_REVEAL_DELAY - elapsed);
+
+            if (active && remaining > 0) {
+                await new Promise(r => setTimeout(r, remaining));
+            }
+
+            if (!active) return;
+
+            // 4. REVEAL CACHE (Now safe to show)
+            if (hasCachedData) {
+                if ((view === 'feed' || view === 'igtv') && Array.isArray(cachedFeed)) {
+                    setPosts(cachedFeed);
+                } else if (view === 'profile' && cachedProfile) {
+                    setUserProfile(cachedProfile);
+                    setPosts(cachedProfile.posts || []);
+                }
+                setLoading(false); // Hide skeleton as we have cache
+            }
+
+            // 5. SILENT NETWORK UPDATE (Stale-while-revalidate)
             try {
                 const apiUrl = "https://synapse-backend.pralayd140.workers.dev";
                 const token = Cookies.get('synapse_token');
@@ -54,26 +124,34 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                     }
                 };
 
-                // ALWAYS FETCH STORIES AND SUGGESTED USERS TO KEEP STATE SYNCED (especially after uploads in setting view)
+                // Fetch Stories
                 const storyRes = await fetch(`${apiUrl}/api/social/stories`, fetchOptions);
                 const storyData = await storyRes.json();
                 if (active && storyData.success) {
                     setAllStories(storyData.data);
-                    // Set current user's stories for the "My Story" button
+                    saveToCache('synapse_stories', storyData.data);
+
                     const mine = storyData.data.filter(s => s.userId === currentUserState.id || s.userId === currentUserState.userId);
                     setMyStories(mine);
                 }
 
+                // Fetch Suggestions
                 const userRes = await fetch(`${apiUrl}/api/user/suggested?limit=10`, fetchOptions);
                 const userData = await userRes.json();
                 if (active && userData.success) {
                     setSuggestedUsers(userData.data);
+                    saveToCache('synapse_suggested', userData.data);
                 }
 
+                // Fetch Main Content
                 if (view === 'feed' || view === 'igtv') {
                     const res = await fetch(`${apiUrl}/api/social/feed`, fetchOptions);
                     const data = await res.json();
-                    if (active) setPosts(Array.isArray(data) ? data : []);
+                    if (active) {
+                        const newPosts = Array.isArray(data) ? data : [];
+                        setPosts(newPosts);
+                        saveToCache('synapse_feed_posts', newPosts);
+                    }
                 } else if (view === 'profile') {
                     const profileToFetch = userProfile?.username || currentUser.username;
                     const res = await fetch(`${apiUrl}/api/user/profile/${encodeURIComponent(profileToFetch)}`, fetchOptions);
@@ -83,6 +161,7 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                         // Refresh profile data to capture bio/privacy changes
                         setUserProfile(profileData);
                         setPosts(profileData.posts || []);
+                        saveToCache(`synapse_profile_${profileToFetch}`, profileData);
                     }
                 }
             } catch (err) {
@@ -113,7 +192,7 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
 
     const handleViewMyProfile = () => {
         setUserProfile(currentUserState);
-        setView('profile');
+        handleNavigation('profile');
     };
 
     const handleUpdateUser = (newData) => {
@@ -322,7 +401,7 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
             <Sidebar
                 user={currentUserState}
                 activeView={view}
-                setView={setView}
+                setView={handleNavigation}
                 onLogout={onLogout}
                 onMyProfileClick={handleViewMyProfile}
                 onOpenCreatePost={() => setIsPostModalOpen(true)}
@@ -362,7 +441,7 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                                 }}
                                 onUserProfileClick={(user) => {
                                     setUserProfile(user);
-                                    setView('profile');
+                                    handleNavigation('profile');
                                 }}
                             />
                         </motion.div>
@@ -384,6 +463,7 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                                 loading={loading}
                                 onCinemaMode={setCinemaPost}
                                 onUpdateUser={handleUpdateUser}
+                                onClose={() => handleNavigation('feed')}
                             />
                         </motion.div>
                     )}
@@ -468,7 +548,7 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                         onUserProfileClick={(user) => {
                             setViewingStory(false);
                             setUserProfile(user);
-                            setView('profile');
+                            handleNavigation('profile');
                         }}
                     />
                 )}
