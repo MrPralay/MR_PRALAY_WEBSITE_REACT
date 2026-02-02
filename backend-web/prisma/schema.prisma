@@ -33,6 +33,8 @@ model User {
   followers     Follow[]      @relation("Following")
   following     Follow[]      @relation("Follower")
   sessions      Session[]
+  storyViews    StoryView[]
+  storyMessages StoryMessage[]
   isVerified    Boolean       @default(false)
   isPrivate     Boolean       @default(false)
   otp           String?
@@ -102,6 +104,29 @@ model Story {
   user      User      @relation(fields: [userId], references: [id])
   expiresAt DateTime
   createdAt DateTime  @default(now())
+  views     StoryView[]
+  messages  StoryMessage[]
+}
+
+model StoryView {
+  id        Int      @id @default(autoincrement())
+  storyId   Int
+  userId    Int
+  story     Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  viewedAt  DateTime @default(now())
+
+  @@unique([storyId, userId])
+}
+
+model StoryMessage {
+  id        Int      @id @default(autoincrement())
+  content   String
+  storyId   Int
+  userId    Int
+  story     Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
 }
 
 model SavedPost {

@@ -1,8 +1,45 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Heart, Send, MoreHorizontal, Eye, Trash2, Copy, Volume2, VolumeX } from 'lucide-react';
+import { X, Heart, Send, MoreHorizontal, Eye, Trash2, Copy, Volume2, VolumeX, Lock, Share, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Cookies from 'js-cookie';
 
-const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete, onUserProfileClick }) => {
+// Helper Component for Profile Media (Image or Video)
+// Defined outside to prevent re-renders during progress updates
+const UserAvatar = ({ user, className, staticOnly = false }) => {
+    const src = user?.profileImage || user?.image || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg";
+    const isVideo = src.match(/\.(mp4|webm|mov|m4v|m3u8|ogv)$/i);
+
+    // Optimization: If floating/animating (staticOnly), don't render heavy video.
+    // Show stylish Initials intead to prevent flickering.
+    if (isVideo && staticOnly) {
+        const initial = (user?.username || "U").charAt(0).toUpperCase();
+        const colors = ['bg-pink-500', 'bg-purple-500', 'bg-indigo-500', 'bg-emerald-500', 'bg-orange-500'];
+        const randomColor = colors[initial.charCodeAt(0) % colors.length];
+
+        return (
+            <div className={`w-full h-full ${randomColor} flex items-center justify-center`}>
+                <span className="text-white font-bold text-[10px]">{initial}</span>
+            </div>
+        );
+    }
+
+    if (isVideo) {
+        return (
+            <video
+                src={src}
+                className={className}
+                autoPlay
+                muted
+                loop
+                playsInline
+                style={{ objectFit: 'cover' }}
+            />
+        );
+    }
+    return <img src={src} className={className} alt={user?.username || "User"} style={{ objectFit: 'cover' }} />;
+};
+
+const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete, onUserProfileClick, currentUser }) => {
     const [currentIndex, setCurrentIndex] = useState(initialStoryIndex);
     const [progress, setProgress] = useState(0);
     const [isPaused, setIsPaused] = useState(false);
@@ -17,14 +54,25 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete, onUser
     const videoRef = useRef(null);
     const imgRef = useRef(null);
 
-    const activeStories = stories?.length > 0 ? stories : [
-        { id: 1, type: 'IMAGE', mediaUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&q=80', user: { username: 'synapse_core', image: 'https://i.pravatar.cc/150?u=synapse' }, createdAt: new Date() },
-        { id: 2, type: 'IMAGE', mediaUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=800&q=80', user: { username: 'synapse_core', image: 'https://i.pravatar.cc/150?u=synapse' }, createdAt: new Date() },
-        { id: 3, type: 'VIDEO', mediaUrl: 'https://assets.mixkit.co/videos/preview/mixkit-futuristic-hologram-interface-907-large.mp4', user: { username: 'synapse_core', image: 'https://i.pravatar.cc/150?u=synapse' }, createdAt: new Date() }
-    ];
+    const [isDetailsLoading, setIsDetailsLoading] = useState(false);
 
+    // New State for Viewers & Messages
+    const [viewers, setViewers] = useState([]);
+    const [floatingMessages, setFloatingMessages] = useState([]);
+    const [allMessages, setAllMessages] = useState([]);
+    const [showViewersModal, setShowViewersModal] = useState(false);
+    const [messageInput, setMessageInput] = useState("");
+    const [showFloatingBatch, setShowFloatingBatch] = useState([]);
+
+    const activeStories = stories?.length > 0 ? stories : [];
     const safeIndex = Math.min(currentIndex, activeStories.length - 1);
     const currentStory = activeStories[safeIndex >= 0 ? safeIndex : 0];
+
+    // Helper: Identity Check
+    const isOwner = currentStory && currentUser && (
+        String(currentStory.userId) === String(currentUser.id) ||
+        String(currentStory.userId) === String(currentUser.userId)
+    );
 
     if (!currentStory && stories?.length === 0) return null;
 
@@ -33,6 +81,160 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete, onUser
         ? Math.min(videoDuration || 60000, 60000)
         : 5000;
 
+    const LIVE_API = "https://synapse-backend.pralayd140.workers.dev";
+    const token = Cookies.get('synapse_token');
+
+    // --- Effects ---
+
+    const [sessionError, setSessionError] = useState(false);
+
+    // 1. Mark Viewed & Fetch Details (Optimized: SWR Cache Strategy)
+    // 1. Mark Viewed & Fetch Details (Optimized: SWR + SessionStorage + Auto-Pause)
+    // 1. Mark Viewed & Fetch Details (Optimized: SWR + SessionStorage + Auto-Pause)
+    useEffect(() => {
+        if (!currentStory || !token) return;
+
+        let active = true;
+        const storyId = currentStory.id;
+        const cacheKey = `synapse_story_details_${storyId}`;
+
+        // Helper: Filter out self from lists (Frontend Failsafe)
+        const filterSelf = (list) => {
+            if (!list) return [];
+            const myId = String(currentUser.id || currentUser.userId);
+            // Check top level userId or nested user.id
+            return list.filter(item => {
+                const itemId = String(item.userId || item.user?.id);
+                return itemId !== myId;
+            });
+        };
+
+        // --- STEP 1: INSTANT CACHE HIT (Persist across Refresh) ---
+        let cachedData = null;
+        try {
+            const raw = sessionStorage.getItem(cacheKey);
+            if (raw) cachedData = JSON.parse(raw);
+        } catch (e) { }
+
+        if (cachedData) {
+            setViewers(filterSelf(cachedData.viewers));
+            setAllMessages(filterSelf(cachedData.messages));
+            setIsDetailsLoading(false); // Immediate Data
+        } else {
+            // Cold Start: Pause Story & Show Loading
+            setViewers([]);
+            setAllMessages([]);
+            setIsDetailsLoading(true);
+        }
+
+        // Reset Inputs
+        setFloatingMessages([]);
+        setShowFloatingBatch([]);
+        setMessageInput("");
+        setSessionError(false);
+
+        // --- STEP 2: PARALLEL NETWORK REFRESH (Background) ---
+
+        const markViewed = async () => {
+            try {
+                const userId = currentUser.id || currentUser.userId;
+                if (userId) {
+                    await fetch(`${LIVE_API}/api/social/stories/${storyId}/view`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                }
+            } catch (e) { console.error("View Sync Weakness", e); }
+        };
+
+        const fetchDetails = async () => {
+            try {
+                const res = await fetch(`${LIVE_API}/api/social/stories/${storyId}/details`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (res.status === 403) {
+                    if (active) setSessionError(true);
+                    throw new Error("Session Expired");
+                }
+
+                const data = await res.json();
+                if (active && data.success) {
+                    // Update Cache (Persistence) with RAW data (or filtered? Better raw in case user changes?) 
+                    // Let's store raw, filter on read/set.
+                    try {
+                        sessionStorage.setItem(cacheKey, JSON.stringify({
+                            viewers: data.viewers || [],
+                            messages: data.messages || []
+                        }));
+                    } catch (e) { }
+
+                    // Update State
+                    setViewers(filterSelf(data.viewers));
+                    setAllMessages(filterSelf(data.messages));
+                    setIsDetailsLoading(false); // Unpause story
+                }
+            } catch (e) {
+                console.error("Details fetch failed", e);
+            } finally {
+                if (active && !sessionStorage.getItem(cacheKey)) setIsDetailsLoading(false);
+            }
+        };
+
+        markViewed();
+
+        if (isOwner) {
+            fetchDetails();
+        } else {
+            setIsDetailsLoading(false);
+        }
+
+        return () => { active = false; };
+
+    }, [currentStory?.id, isOwner, token, currentUser]);
+
+    // 2. Playback Logic (Owner & Messages)
+    useEffect(() => {
+        if (allMessages.length === 0) return;
+
+        let index = 0;
+        let isCancelled = false;
+
+        const processBatch = () => {
+            if (isCancelled) return;
+
+            // If we've shown all, restart or stop? User said "continue untill finishes".
+            // Implementation: Loop through them once.
+            if (index >= allMessages.length) return;
+
+            const batch = allMessages.slice(index, index + 3);
+
+            // Apply floating animation to this batch
+            // Use callback to append safely or replace? 
+            // User: "float recent 3... then take 5 sec rest then again float next 3"
+            // We replace the current batch to show the new ones floating up
+            setShowFloatingBatch(batch.map(m => ({
+                ...m,
+                uniqueId: Math.random(), // Force re-render for animation
+                delay: Math.random() * 0.5
+            })));
+
+            index += 3;
+
+            // Wait 5s total (animation + rest) before next batch
+            setTimeout(processBatch, 5000);
+        };
+
+        // Start delay
+        const initialDelay = setTimeout(processBatch, 1000);
+
+        return () => {
+            isCancelled = true;
+            clearTimeout(initialDelay);
+        };
+    }, [allMessages, isOwner, isDetailsLoading]);
+
+    // 3. Media Loading Logic (Existing)
     useEffect(() => {
         setIsMediaLoading(true);
         setShowLoadingUI(false);
@@ -86,8 +288,12 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete, onUser
         return () => clearTimeout(t);
     }, [currentStory?.id, retryKey]);
 
+
+
+    // 2. Playback Logic (Timer)
     useEffect(() => {
-        if (isPaused || isMediaLoading) {
+        // Auto-Pause if system loading or user interaction
+        if (isPaused || isMediaLoading || showViewersModal) {
             if (currentStory?.type === 'VIDEO' && videoRef.current) {
                 videoRef.current.pause();
             }
@@ -98,7 +304,7 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete, onUser
             videoRef.current.play().catch(() => { });
 
             const updateVideoProgress = () => {
-                if (videoRef.current && !isPaused && !isMediaLoading) {
+                if (videoRef.current && !isPaused && !isMediaLoading && !showViewersModal) {
                     const duration = videoRef.current.duration;
                     const currentTime = videoRef.current.currentTime;
                     if (duration) {
@@ -123,14 +329,15 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete, onUser
             }, 50);
             return () => clearInterval(interval);
         }
-    }, [currentIndex, isPaused, isMediaLoading, effectiveDuration, currentStory?.id]);
+    }, [currentIndex, isPaused, isMediaLoading, effectiveDuration, currentStory?.id, showViewersModal]);
 
     const handleNext = () => {
         if (currentIndex < activeStories.length - 1) {
             setCurrentIndex(prev => prev + 1);
             setProgress(0);
         } else {
-            onClose();
+            // Defer closing to avoid "Cannot update while rendering" error
+            setTimeout(onClose, 0);
         }
     };
 
@@ -140,6 +347,37 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete, onUser
             setProgress(0);
         }
     };
+
+    const handleSendMessage = async () => {
+        if (!messageInput.trim()) return;
+
+        const tempMessage = {
+            id: 'temp-' + Date.now(),
+            uniqueId: Math.random(),
+            content: messageInput,
+            user: currentUser,
+            isSelf: true
+        };
+
+        // Animate immediately
+        setShowFloatingBatch(prev => [...prev, tempMessage]);
+        setMessageInput("");
+
+        try {
+            await fetch(`${LIVE_API}/api/social/stories/${currentStory.id}/reply`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ content: tempMessage.content })
+            });
+        } catch (e) {
+            console.error("Failed to send message", e);
+        }
+    };
+
+
 
     return (
         <AnimatePresence>
@@ -168,14 +406,9 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete, onUser
                                         ref={videoRef}
                                         key={`video-${currentStory.id}-${retryKey}`}
                                         src={currentStory.mediaUrl}
-                                        className="w-full h-full object-cover transition-all duration-700 ease-out"
+                                        className="w-full h-full object-contain bg-black"
                                         style={{
-                                            opacity: isMediaLoading ? 0.4 : 1,
-                                            filter: isMediaLoading ? 'blur(10px)' : 'none',
-                                            transform: isMediaLoading ? 'scale(1.05)' : 'scale(1)',
-                                            imageRendering: 'auto',
-                                            backfaceVisibility: 'hidden',
-                                            WebkitBackfaceVisibility: 'hidden'
+                                            opacity: isMediaLoading ? 0 : 1, // Clean cut, no blur
                                         }}
                                         autoPlay
                                         loop
@@ -195,14 +428,9 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete, onUser
                                         ref={imgRef}
                                         key={`img-${currentStory.id}-${retryKey}`}
                                         src={currentStory.mediaUrl}
-                                        className="w-full h-full object-cover transition-all duration-700 ease-out"
+                                        className="w-full h-full object-contain bg-black"
                                         style={{
-                                            opacity: isMediaLoading ? 0.4 : 1,
-                                            filter: isMediaLoading ? 'blur(10px)' : 'none',
-                                            transform: isMediaLoading ? 'scale(1.05)' : 'scale(1)',
-                                            imageRendering: 'auto',
-                                            backfaceVisibility: 'hidden',
-                                            WebkitBackfaceVisibility: 'hidden'
+                                            opacity: isMediaLoading ? 0 : 1,
                                         }}
                                         alt="Story"
                                         onLoad={() => setIsMediaLoading(false)}
@@ -213,6 +441,46 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete, onUser
                                 )}
                             </motion.div>
                         </AnimatePresence>
+
+                        {/* Floating Messages Layer - GPU Accelerated */}
+                        <div className="absolute inset-0 z-[25] pointer-events-none flex flex-col justify-end pb-32 px-6 overflow-hidden">
+                            <AnimatePresence>
+                                {showFloatingBatch.map((msg, i) => (
+                                    <motion.div
+                                        key={msg.id || msg.uniqueId}
+                                        initial={{ opacity: 0, y: 100, scale: 0.9 }}
+                                        animate={{
+                                            opacity: [0, 1, 1, 0],
+                                            y: [-20, -180 - (i * 40)],
+                                            scale: [0.9, 1, 1, 0.95],
+                                            // Removed dynamic filter blur for pure performance
+                                        }}
+                                        transition={{
+                                            duration: 3.5,
+                                            times: [0, 0.1, 0.8, 1],
+                                            ease: [0.25, 0.1, 0.25, 1],
+                                            delay: i * 0.25
+                                        }}
+                                        // Removed backdrop-blur-xl. Used solid semi-transparent black for stability.
+                                        className="absolute bottom-0 flex items-center gap-3 bg-black/80 px-4 py-3 rounded-full border border-white/10 mb-4 max-w-[85%] will-change-transform shadow-2xl"
+                                        style={{
+                                            left: `${10 + (i * 2)}%`,
+                                            transform: 'translate3d(0,0,0)', // Strict 3D lock
+                                            backfaceVisibility: 'hidden', // Anti-flicker
+                                            WebkitFontSmoothing: 'subpixel-antialiased'
+                                        }}
+                                    >
+                                        <div className="w-8 h-8 rounded-full border border-white/20 overflow-hidden shrink-0">
+                                            <UserAvatar user={msg.user} className="w-full h-full" staticOnly={true} />
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="text-white font-bold text-xs truncate max-w-[100px] drop-shadow-md">{msg.user?.username}</span>
+                                            <span className="text-white/90 text-sm truncate max-w-[150px] drop-shadow-md">{msg.content}</span>
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </AnimatePresence>
+                        </div>
 
                         {/* Loading State Overlay */}
                         <AnimatePresence>
@@ -254,7 +522,7 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete, onUser
                                     className="h-full bg-white"
                                     initial={{ width: idx < currentIndex ? '100%' : '0%' }}
                                     animate={{ width: idx === currentIndex ? `${progress}%` : idx < currentIndex ? '100%' : '0%' }}
-                                    transition={{ ease: 'linear', duration: idx === currentIndex && !isPaused ? 0.05 : 0 }}
+                                    transition={{ ease: 'linear', duration: idx === currentIndex && !isPaused && !showViewersModal ? 0.05 : 0 }}
                                 />
                             </div>
                         ))}
@@ -286,14 +554,13 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete, onUser
                             </div>
                             <div className="flex items-center gap-2">
                                 <span className="text-white font-bold text-sm tracking-wide group-hover:text-emerald-400 transition-colors">{currentStory.user?.username}</span>
-                                <span className="text-gray-400 text-xs font-medium">31s</span>
                             </div>
                         </div>
                         <div className="flex items-center gap-4 relative">
                             <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-white hover:text-gray-300 transition-colors">
                                 <MoreHorizontal size={24} />
                             </button>
-                            <button onClick={onClose} className="text-white hover:text-gray-300 transition-colors"><X size={24} /></button>
+                            <button onClick={() => setTimeout(onClose, 0)} className="text-white hover:text-gray-300 transition-colors"><X size={24} /></button>
 
                             <AnimatePresence>
                                 {isMenuOpen && (
@@ -309,11 +576,13 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete, onUser
                                             <Copy size={14} className="text-emerald-500" /> Copy Link
                                         </button>
                                         <div className="h-[1px] bg-white/5" />
-                                        <button onClick={() => { setIsMenuOpen(false); if (onDelete) onDelete(currentStory.id); }}
-                                            className="flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-500/10 text-xs font-bold uppercase tracking-wider text-left transition-colors"
-                                        >
-                                            <Trash2 size={14} /> Delete
-                                        </button>
+                                        {isOwner && (
+                                            <button onClick={() => { setIsMenuOpen(false); if (onDelete) onDelete(currentStory.id); }}
+                                                className="flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-500/10 text-xs font-bold uppercase tracking-wider text-left transition-colors"
+                                            >
+                                                <Trash2 size={14} /> Delete
+                                            </button>
+                                        )}
                                     </motion.div>
                                 )}
                             </AnimatePresence>
@@ -326,30 +595,135 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete, onUser
                         <div className="w-2/3 h-full cursor-pointer" onClick={handleNext} onMouseDown={() => setIsPaused(true)} onMouseUp={() => setIsPaused(false)} onTouchStart={() => setIsPaused(true)} onTouchEnd={() => setIsPaused(false)} />
                     </div>
 
-                    {/* Control Footer */}
-                    <div className="absolute bottom-6 left-4 right-4 z-20 flex items-center gap-4">
-                        <div className="flex-1">
-                            <input
-                                type="text"
-                                placeholder="Send message..."
-                                className="w-full bg-black/20 border border-white/20 rounded-full py-3 px-6 text-white text-sm placeholder-white/70 focus:outline-none focus:border-white/50 backdrop-blur-md"
-                            />
+                    {/* Control Footer (Hidden for Owner) */}
+                    {!isOwner && (
+                        <div className="absolute bottom-6 left-4 right-4 z-20 flex items-center gap-4">
+                            <div className="flex-1 relative">
+                                <input
+                                    type="text"
+                                    value={messageInput}
+                                    onChange={(e) => { setMessageInput(e.target.value); setIsPaused(true); }}
+                                    onBlur={() => setIsPaused(false)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleSendMessage();
+                                    }}
+                                    placeholder="Send message..."
+                                    className="w-full bg-black/20 border border-white/20 rounded-full py-3 px-6 text-white text-sm placeholder-white/70 focus:outline-none focus:border-white/50 backdrop-blur-md"
+                                />
+                            </div>
+                            <button onClick={() => setIsLiked(!isLiked)} className="text-white hover:scale-110 transition-transform">
+                                <Heart size={28} fill={isLiked ? "white" : "none"} />
+                            </button>
+                            <button onClick={handleSendMessage} className="text-white hover:scale-110 transition-transform">
+                                <Send size={24} className="-rotate-45" />
+                            </button>
                         </div>
-                        <button onClick={() => setIsLiked(!isLiked)} className="text-white hover:scale-110 transition-transform">
-                            <Heart size={28} fill={isLiked ? "white" : "none"} />
-                        </button>
-                        <button className="text-white hover:scale-110 transition-transform">
-                            <Send size={24} className="-rotate-45" />
-                        </button>
-                    </div>
+                    )}
 
-                    {/* View Counters */}
-                    <div className="absolute bottom-24 right-4 z-20 flex items-center gap-1.5 text-white/50 bg-black/20 backdrop-blur-sm px-3 py-1 rounded-full border border-white/5">
-                        <Eye size={12} />
-                        <span className="text-[10px] font-bold tracking-wider">0 viewers</span>
-                    </div>
+                    {/* View Counters & Owner Controls */}
+                    {isOwner && (
+                        <>
+                            <div
+                                onClick={(e) => { e.stopPropagation(); setShowViewersModal(true); }}
+                                className="absolute bottom-6 left-4 z-30 flex items-center gap-2 cursor-pointer group"
+                            >
 
-                    {/* Video Controls */}
+                                <div className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 group-hover:bg-white/20 transition-colors">
+                                    <Users size={16} className="text-white/90" />
+                                </div>
+                                <div className="flex items-center gap-1.5 text-white/80 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 group-hover:bg-white/10 transition-colors">
+                                    {isDetailsLoading ? (
+                                        <Eye size={14} className="animate-pulse opacity-50" />
+                                    ) : sessionError ? (
+                                        <div className="w-4 h-4 rounded-full bg-red-500/50 flex items-center justify-center border border-red-500"><X size={10} className="text-white" /></div>
+                                    ) : (
+                                        <Eye size={14} />
+                                    )}
+                                    <span className={`text-xs font-bold tracking-wide ${isDetailsLoading ? "opacity-50" : ""}`}>
+                                        {isDetailsLoading ? "..." : sessionError ? "Auth Error" : `${viewers.length} views`}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Owner Share Button (Bottom Right) */}
+                            <div className="absolute bottom-6 right-4 z-30">
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (navigator.share) {
+                                            navigator.share({ title: 'Synapse Story', url: currentStory.mediaUrl }).catch(() => { });
+                                        } else {
+                                            navigator.clipboard.writeText(currentStory.mediaUrl); alert("Link Copied!");
+                                        }
+                                    }}
+                                    className="flex items-center gap-2 bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 text-white font-bold text-xs hover:bg-white/10 transition-colors"
+                                >
+                                    <Share size={14} />
+                                    <span>Share</span>
+                                </button>
+                            </div>
+                        </>
+                    )}
+
+                    {/* Viewers Modal */}
+                    <AnimatePresence>
+                        {showViewersModal && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 100 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: 100 }}
+                                className="absolute bottom-0 left-0 right-0 h-[60%] bg-[#111] rounded-t-[2rem] z-[100] border-t border-white/10 shadow-2xl flex flex-col"
+                            >
+                                <div className="p-4 border-b border-white/5 flex items-center justify-between">
+                                    <h3 className="text-white font-bold text-lg px-2">Story Views</h3>
+                                    <button onClick={() => setShowViewersModal(false)} className="p-2 hover:bg-white/5 rounded-full text-white">
+                                        <X size={20} />
+                                    </button>
+                                </div>
+                                <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                                    {sessionError ? (
+                                        <div className="flex flex-col items-center justify-center h-full text-center p-6 space-y-4">
+                                            <div className="p-4 rounded-full bg-red-500/10 border border-red-500/20 text-red-400">
+                                                <Lock size={32} />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-white font-bold text-lg">Recall Failed</h4>
+                                                <p className="text-gray-500 text-xs mt-1">Your neural link (session) has expired.<br />Please terminate and re-initialize (Log In again).</p>
+                                            </div>
+                                        </div>
+                                    ) : viewers.length === 0 ? (
+                                        <div className="text-center text-gray-500 py-10 text-sm">No views yet</div>
+                                    ) : (
+                                        viewers.map((view, i) => (
+                                            <motion.div
+                                                key={i}
+                                                initial={{ opacity: 0, x: -20 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                transition={{ delay: i * 0.05 }}
+                                                className="flex items-center gap-4 p-2 hover:bg-white/5 rounded-xl transition-colors cursor-pointer"
+                                                onClick={() => onUserProfileClick(view.user)}
+                                            >
+                                                <div className="w-10 h-10 rounded-full border border-white/10 overflow-hidden bg-black/40">
+                                                    <UserAvatar user={view.user} className="w-full h-full" />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className="text-white font-bold text-sm">{view.user?.username || "Unknown Entity"}</p>
+                                                    <p className="text-gray-400 text-xs">{view.user?.name}</p>
+                                                </div>
+                                                {view.viewedAt && (
+                                                    <span className="text-gray-500 text-[10px] font-mono">
+                                                        {new Date(view.viewedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </span>
+                                                )}
+                                            </motion.div>
+                                        ))
+                                    )}
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    {/* Video Mute Control */}
                     {currentStory?.type === 'VIDEO' && (
                         <div className="absolute bottom-32 right-4 z-50">
                             <button onClick={() => setIsMuted(!isMuted)} className="p-2 bg-black/40 rounded-full backdrop-blur-md text-white/80 hover:text-white border border-white/10 shadow-lg transition-all">
@@ -359,7 +733,7 @@ const StoryViewer = ({ stories, initialStoryIndex = 0, onClose, onDelete, onUser
                     )}
                 </div>
             </motion.div>
-        </AnimatePresence>
+        </AnimatePresence >
     );
 };
 

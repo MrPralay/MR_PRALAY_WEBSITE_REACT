@@ -190,6 +190,49 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
         }
     }, [allStories]);
 
+    // Neural Pre-fetcher: Silently fetch details for OWN stories to ensure instant analytics on click
+    useEffect(() => {
+        if (!myStories || myStories.length === 0) return;
+
+        const token = Cookies.get('synapse_token');
+        if (!token) return;
+
+        const prefetchDetails = async () => {
+            // Initialize global cache if needed
+            if (!window._synapseStoryCache) window._synapseStoryCache = new Map();
+
+            try {
+                // Fetch in parallel but detached from UI
+                myStories.forEach(async (story) => {
+                    // Skip if already cached
+                    if (window._synapseStoryCache.has(story.id)) return;
+
+                    try {
+                        const res = await fetch(`https://synapse-backend.pralayd140.workers.dev/api/social/stories/${story.id}/details`, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+
+                        if (res.ok) {
+                            const data = await res.json();
+                            if (data.success) {
+                                window._synapseStoryCache.set(story.id, {
+                                    viewers: data.viewers || [],
+                                    messages: data.messages || []
+                                });
+                            }
+                        }
+                    } catch (e) {
+                        // Silent fail is fine, 'StoryViewer' handles the real fetch
+                    }
+                });
+            } catch (err) { }
+        };
+
+        // Delay pre-fetch slightly to prioritize Feed/Media loading
+        const t = setTimeout(prefetchDetails, 2000);
+        return () => clearTimeout(t);
+    }, [myStories]);
+
     const handleViewMyProfile = () => {
         setUserProfile(currentUserState);
         handleNavigation('profile');
@@ -545,6 +588,7 @@ const InstagramLayout = ({ currentUser, onLogout }) => {
                         initialStoryIndex={0}
                         onClose={() => setViewingStory(false)}
                         onDelete={handleDeleteStory}
+                        currentUser={currentUserState}
                         onUserProfileClick={(user) => {
                             setViewingStory(false);
                             setUserProfile(user);

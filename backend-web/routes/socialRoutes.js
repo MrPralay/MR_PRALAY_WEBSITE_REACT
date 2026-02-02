@@ -9,7 +9,10 @@ import {
     getComments,
     getStories,
     createStory,
-    deleteStory
+    deleteStory,
+    viewStory,
+    replyToStory,
+    getStoryDetails
 } from '../controllers/socialController.js';
 import authenticateToken from '../middleware/authMiddleware.js';
 
@@ -30,5 +33,8 @@ social.post('/posts/:id/save', authenticateToken, toggleSave);
 social.get('/stories', getStories);
 social.post('/stories', authenticateToken, createStory);
 social.delete('/stories/:id', authenticateToken, deleteStory);
+social.post('/stories/:id/view', authenticateToken, viewStory);
+social.post('/stories/:id/reply', authenticateToken, replyToStory);
+social.get('/stories/:id/details', authenticateToken, getStoryDetails);
 
 export default social;

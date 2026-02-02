@@ -325,3 +325,121 @@ export const deleteStory = async (c) => {
         return c.json({ success: false, error: "Termination failed" }, 500);
     }
 };
+
+export const viewStory = async (c) => {
+    try {
+        const storyId = parseInt(c.req.param('id'));
+        const user = c.get('user');
+        const prisma = getPrisma(c.env.DATABASE_URL);
+
+        // Optimization: Don't fetch story body just to check owner, but we need ownerId.
+        // Assuming we might need to check if story exists anyway.
+        const story = await prisma.story.findUnique({
+            where: { id: storyId },
+            select: { userId: true }
+        });
+
+        if (!story) return c.json({ success: false, error: "Story not found" }, 404);
+
+        // Filter: Don't count owner's own view
+        if (story.userId === user.userId) {
+            return c.json({ success: true, ignored: true });
+        }
+
+        await prisma.storyView.upsert({
+            where: {
+                storyId_userId: {
+                    storyId: storyId,
+                    userId: user.userId
+                }
+            },
+            update: { viewedAt: new Date() },
+            create: {
+                storyId: storyId,
+                userId: user.userId
+            }
+        });
+
+        return c.json({ success: true });
+    } catch (error) {
+        console.error("View Sync Error:", error);
+        return c.json({ success: false, error: "Failed to record view" }, 500);
+    }
+};
+
+export const replyToStory = async (c) => {
+    try {
+        const storyId = parseInt(c.req.param('id'));
+        const { content } = await c.req.json();
+        const user = c.get('user');
+        const prisma = getPrisma(c.env.DATABASE_URL);
+
+        if (!content) return c.json({ success: false, error: "Content required" }, 400);
+
+        const message = await prisma.storyMessage.create({
+            data: {
+                content,
+                storyId,
+                userId: user.userId
+            },
+            include: {
+                user: {
+                    select: { username: true, profileImage: true }
+                }
+            }
+        });
+
+        return c.json({ success: true, data: message });
+    } catch (error) {
+        console.error("Reply Error:", error);
+        return c.json({ success: false, error: "Failed to send reply" }, 500);
+    }
+};
+
+export const getStoryDetails = async (c) => {
+    try {
+        const storyId = parseInt(c.req.param('id'));
+        const user = c.get('user');
+        const prisma = getPrisma(c.env.DATABASE_URL);
+
+        const story = await prisma.story.findUnique({ where: { id: storyId } });
+        if (!story) return c.json({ success: false, error: "Story not found" }, 404);
+
+        if (story.userId !== user.userId) {
+            return c.json({ success: false, error: "Unauthorized" }, 403);
+        }
+
+        const [viewers, messages] = await Promise.all([
+            prisma.storyView.findMany({
+                where: {
+                    storyId,
+                    userId: { not: story.userId } // Filter out owner
+                },
+                include: {
+                    user: {
+                        select: { id: true, username: true, name: true, profileImage: true }
+                    }
+                },
+                orderBy: { viewedAt: 'desc' }
+            }),
+            prisma.storyMessage.findMany({
+                where: {
+                    storyId,
+                    userId: { not: story.userId } // Filter out owner
+                },
+                include: {
+                    user: {
+                        select: { id: true, username: true, profileImage: true }
+                    }
+                },
+                orderBy: { createdAt: 'desc' },
+                take: 50
+            })
+        ]);
+
+        return c.json({ success: true, viewers, messages });
+    } catch (error) {
+        console.error("Story Details Error:", error);
+        return c.json({ success: false, error: "Failed to fetch details" }, 500);
+    }
+};
