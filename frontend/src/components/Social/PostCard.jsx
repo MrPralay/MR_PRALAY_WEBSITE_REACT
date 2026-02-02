@@ -23,6 +23,13 @@ const PostCard = ({ post, onInteraction, onCinemaMode }) => {
     const videoRef = useRef(null);
     const containerRef = useRef(null);
 
+    // Pick a random Neural Mask (from the 6 photos you saved)
+    // We use useMemo so it stays the same for this post during a session but changes on refresh
+    const neuralMask = React.useMemo(() => {
+        const maskNumber = Math.floor(Math.random() * 6) + 1;
+        return `/assets/neural-masks/mask_${maskNumber}.webp`;
+    }, []);
+
     useEffect(() => {
         // Neural Animation Delay: Enforce a slight delay before triggering cinematic effects
         // This prevents the "instant motion" jarring effect on page load/refresh
@@ -208,26 +215,18 @@ const PostCard = ({ post, onInteraction, onCinemaMode }) => {
 
             {/* Media Canvas - Neural Masking Applied */}
             <div className="relative aspect-square md:aspect-[16/10] bg-black/60 post-media-container flex items-center justify-center overflow-hidden">
-                {/* 1. Underlying Neural Atmosphere (Profile Ambient Placeholder) */}
-                <div className={`absolute inset-0 bg-black z-0 overflow-hidden transition-opacity duration-1000 ${isMediaLoaded ? 'opacity-0' : 'opacity-100'}`}>
-                    {/* Reuse Profile Pic for Instant Ambient Color */}
-                    {post.user?.profileImage && (
-                        isVideo(post.user.profileImage) ? (
-                            <video
-                                src={post.user.profileImage}
-                                className="absolute inset-0 w-full h-full object-cover opacity-40 blur-[40px] scale-150"
-                                autoPlay muted loop playsInline
-                            />
-                        ) : (
-                            <img
-                                src={post.user.profileImage}
-                                className="absolute inset-0 w-full h-full object-cover opacity-40 blur-[40px] scale-150"
-                                alt=""
-                            />
-                        )
-                    )}
+                {/* 1. Underlying Neural Atmosphere (Professional Random Mask) */}
+                <div
+                    className={`absolute inset-0 bg-[#0a0a0a] z-10 overflow-hidden transition-opacity duration-1000 ${isMediaLoaded ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+                >
+                    <img
+                        src={`${neuralMask}?v=1`}
+                        className="absolute inset-0 w-full h-full object-cover opacity-90 blur-[20px] scale-110"
+                        alt=""
+                        onLoad={() => console.log("Neural Mask Loaded")}
+                    />
                     {/* Shimmer Overlay for kinetic feel */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.1] to-transparent animate-shimmer" style={{ backgroundSize: '200% 100%', animation: 'shimmer 1.5s infinite linear' }} />
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.05] to-transparent animate-shimmer z-20" style={{ backgroundSize: '200% 100%', animation: 'shimmer 1.5s infinite linear' }} />
                 </div>
 
                 {!isUnlocked ? (
