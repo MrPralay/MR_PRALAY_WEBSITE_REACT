@@ -238,25 +238,27 @@ const FeedView = ({ posts, stories = [], suggestedUsers = [], onCreateClick, loa
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="relative w-[78px] h-[78px] bg-black overflow-hidden rounded-full">
-                                        {isVideo(currentUser?.profileImage || currentUser?.image || Cookies.get('synapse_user_image')) ? (
-                                            <video
-                                                src={currentUser?.profileImage || currentUser?.image || Cookies.get('synapse_user_image')}
-                                                className="w-full h-full rounded-full border-2 border-white/10 object-cover opacity-80 group-hover:opacity-100 transition-opacity"
-                                                autoPlay
-                                                muted
-                                                loop
-                                                playsInline
-                                            />
-                                        ) : (
-                                            <img
-                                                src={currentUser?.profileImage || currentUser?.image || Cookies.get('synapse_user_image') || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg"}
-                                                className="w-full h-full rounded-full border-2 border-white/10 object-cover opacity-80 group-hover:opacity-100 transition-opacity"
-                                                alt="Add Story"
-                                            />
-                                        )}
-                                        <div className="absolute bottom-0 right-1 bg-blue-500 rounded-full p-1 border-2 border-black">
-                                            <Plus size={16} className="text-white" />
+                                    <div className="relative w-[78px] h-[78px]">
+                                        <div className="w-full h-full bg-black overflow-hidden rounded-full">
+                                            {isVideo(currentUser?.profileImage || currentUser?.image || Cookies.get('synapse_user_image')) ? (
+                                                <video
+                                                    src={currentUser?.profileImage || currentUser?.image || Cookies.get('synapse_user_image')}
+                                                    className="w-full h-full rounded-full border-2 border-white/10 object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+                                                    autoPlay
+                                                    muted
+                                                    loop
+                                                    playsInline
+                                                />
+                                            ) : (
+                                                <img
+                                                    src={currentUser?.profileImage || currentUser?.image || Cookies.get('synapse_user_image') || "https://www.svgrepo.com/show/508699/landscape-placeholder.svg"}
+                                                    className="w-full h-full rounded-full border-2 border-white/10 object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+                                                    alt="Add Story"
+                                                />
+                                            )}
+                                        </div>
+                                        <div className="absolute bottom-0 right-0 bg-blue-500 rounded-full p-1 border-2 border-black z-10 shadow-lg hover:scale-110 transition-transform">
+                                            <Plus size={14} className="text-white" />
                                         </div>
                                     </div>
                                 )}
