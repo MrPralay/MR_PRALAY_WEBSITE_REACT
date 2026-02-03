@@ -86,6 +86,7 @@
     .post-card {
         @apply bg-[#111] border border-white/5 rounded-3xl overflow-hidden mb-8;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        transform-style: preserve-3d;
     }
 
     .post-media-fix {
@@ -96,22 +97,27 @@
         height: 175% !important;
         margin: 0 !important;
 
-        /* Persistent Hardware Acceleration */
+        /* Forced GPU Acceleration & Butter Smoothness */
+        transform: translate3d(-50%, -50%, 0.1px) rotate(0.01deg);
         backface-visibility: hidden;
         -webkit-backface-visibility: hidden;
-        transform: translate3d(-50%, -50%, 0) rotate(0.01deg);
+        perspective: 1000px;
+        transform-style: preserve-3d;
+
+        /* Performance Throttling: Only hint changes when we definitely need them */
         will-change: transform;
 
-        /* Smooth Entry/Exit Glide */
-        transition: transform 1.2s cubic-bezier(0.33, 1, 0.68, 1);
-
-        /* Sharpness & Anti-aliasing */
+        /* Higher Fidelity Rendering with Performance balance */
+        image-rendering: -webkit-optimize-contrast;
         -webkit-font-smoothing: antialiased;
+
+        /* Ultra-Premium Butter Glide */
+        transition: transform 1.8s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.8s ease-in-out;
     }
 
-    /* Trigger animation when post is in view */
+    /* Trigger animation ONLY when post is in view & active */
     .post-media-fix.active-cinematic {
-        animation: cinematic-breath-pan 12s cubic-bezier(0.45, 0, 0.55, 1) infinite !important;
+        animation: cinematic-breath-pan 12s cubic-bezier(0.4, 0, 0.2, 1) infinite !important;
     }
 
     @keyframes cinematic-breath-pan {
@@ -164,6 +170,7 @@
         z-index: 1;
         transform: translateZ(0);
         backface-visibility: hidden;
+        will-change: transform, opacity;
     }
 
     .stats-item {
@@ -241,4 +248,20 @@
 
 .floating {
     animation: float 6s ease-in-out infinite;
+}
+
+/* Standardized Neural Skeleton Shimmer */
+.animate-skeleton-shimmer {
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.8s infinite linear;
+}
+
+@keyframes skeleton-shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
 }

@@ -290,8 +290,8 @@ const FeedView = ({ posts, stories = [], suggestedUsers = [], onCreateClick, loa
                         <PostSkeleton />
                     </>
                 ) : posts.length > 0 ? (
-                    posts.map((post) => (
-                        <PostCard key={post.id} post={post} onCinemaMode={onCinemaMode} />
+                    posts.map((post, i) => (
+                        <PostCard key={post.id} post={post} index={i} onCinemaMode={onCinemaMode} />
                     ))
                 ) : (
                     <div className="py-20 text-center">

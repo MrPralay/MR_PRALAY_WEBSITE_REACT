@@ -8,7 +8,7 @@ const isVideo = (url) => {
     return url.match(/\.(mp4|webm|mov|m4v|m3u8|ogv)$|video/i);
 };
 
-const PostCard = ({ post, onInteraction, onCinemaMode }) => {
+const PostCard = ({ post, onInteraction, onCinemaMode, index = 0 }) => {
     const [isLiked, setIsLiked] = useState(post.isLiked || false);
     const [isSaved, setIsSaved] = useState(post.isSaved || false);
     const [likesCount, setLikesCount] = useState(post._count?.likes || 0);
@@ -170,10 +170,23 @@ const PostCard = ({ post, onInteraction, onCinemaMode }) => {
 
     return (
         <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
+            initial={{ opacity: 0, y: 20, scale: 0.98 }}
+            whileInView={{ opacity: 1, y: 0, scale: 1 }}
+            viewport={{ once: true, margin: "0px 0px -100px 0px" }}
+            transition={{
+                type: "spring",
+                stiffness: 70,   // Organic movement
+                damping: 18,     // Smooth settling without vibration
+                mass: 0.8,       // Light, snappy feel
+                delay: index < 5 ? index * 0.06 : 0, // Tight ripple
+            }}
             ref={containerRef}
-            className="group relative bg-white/[0.02] border border-white/5 rounded-[2.5rem] overflow-hidden mb-12 last:mb-0 hover:border-emerald-500/20 transition-all duration-500 hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)]"
+            style={{
+                backfaceVisibility: 'hidden',
+                WebkitBackfaceVisibility: 'hidden',
+                transformStyle: 'preserve-3d',
+            }}
+            className="group relative bg-[#0f0f0f] border border-white/5 rounded-[2.5rem] overflow-hidden mb-12 last:mb-0 hover:border-emerald-500/20 transition-[border-color,box-shadow] duration-500"
         >
             {/* Post Header */}
             <div className="flex items-center justify-between p-6 px-8">
@@ -214,20 +227,27 @@ const PostCard = ({ post, onInteraction, onCinemaMode }) => {
             </div>
 
             {/* Media Canvas - Neural Masking Applied */}
-            <div className="relative aspect-square md:aspect-[16/10] bg-black/60 post-media-container flex items-center justify-center overflow-hidden">
-                {/* 1. Underlying Neural Atmosphere (Professional Random Mask) */}
-                <div
-                    className={`absolute inset-0 bg-[#0a0a0a] z-10 overflow-hidden transition-opacity duration-1000 ${isMediaLoaded ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
-                >
-                    <img
-                        src={`${neuralMask}?v=1`}
-                        className="absolute inset-0 w-full h-full object-cover opacity-90 blur-[20px] scale-110"
-                        alt=""
-                        onLoad={() => console.log("Neural Mask Loaded")}
-                    />
-                    {/* Shimmer Overlay for kinetic feel */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.05] to-transparent animate-shimmer z-20" style={{ backgroundSize: '200% 100%', animation: 'shimmer 1.5s infinite linear' }} />
-                </div>
+            <div className="relative aspect-square md:aspect-[16/10] bg-[#0d0d0d] post-media-container flex items-center justify-center overflow-hidden">
+                {/* 1. Underlying Neural Atmosphere (Immediate Neural Mask) */}
+                <AnimatePresence>
+                    {!isMediaLoaded && (
+                        <motion.div
+                            initial={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.8, ease: "easeInOut" }}
+                            className="absolute inset-0 z-10 overflow-hidden bg-[#0d0d0d]"
+                        >
+                            <img
+                                src={`${neuralMask}?v=1`}
+                                className="absolute inset-0 w-full h-full object-cover opacity-80 blur-[12px] scale-110 grayscale"
+                                alt=""
+                                decoding="async"
+                            />
+                            {/* Synchronized Project Shimmer - Instant Start */}
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent animate-skeleton-shimmer z-20" />
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
                 {!isUnlocked ? (
                     <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/40 backdrop-blur-3xl p-8 text-center group">
@@ -264,10 +284,11 @@ const PostCard = ({ post, onInteraction, onCinemaMode }) => {
                                 <video
                                     ref={videoRef}
                                     src={post.mediaUrl}
-                                    className={`post-media-fix object-cover transition-opacity duration-700 ${isInView ? 'active-cinematic' : ''} ${isMediaLoaded ? 'opacity-100' : 'opacity-0'}`}
+                                    className={`post-media-fix object-cover transition-opacity duration-700 ${(isInView && isMediaLoaded) ? 'active-cinematic' : ''} ${isMediaLoaded ? 'opacity-100' : 'opacity-0'}`}
                                     loop
                                     muted={isMuted}
                                     playsInline
+                                    preload="metadata"
                                     onCanPlay={() => setIsMediaLoaded(true)}
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover/video:opacity-100 transition-opacity flex flex-col justify-end p-8">
@@ -292,10 +313,12 @@ const PostCard = ({ post, onInteraction, onCinemaMode }) => {
                         ) : (
                             <img
                                 src={post.mediaUrl}
-                                className={`post-media-fix object-cover cursor-zoom-in transition-opacity duration-700 ${isInView ? 'active-cinematic' : ''} ${isMediaLoaded ? 'opacity-100' : 'opacity-0'}`}
+                                className={`post-media-fix object-cover cursor-zoom-in transition-opacity duration-700 ${(isInView && isMediaLoaded) ? 'active-cinematic' : ''} ${isMediaLoaded ? 'opacity-100' : 'opacity-0'}`}
                                 alt="Neural Visual"
                                 onDoubleClick={handleCinemaModeClick}
                                 onLoad={() => setIsMediaLoaded(true)}
+                                decoding="async"
+                                loading="lazy"
                                 onError={(e) => {
                                     e.target.src = "https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?w=800&q=80";
                                     setIsMediaLoaded(true);
