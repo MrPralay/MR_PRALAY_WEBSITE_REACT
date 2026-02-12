@@ -14,6 +14,10 @@ AI_BACKEND_URL = "https://your-ai-backend.onrender.com"
 # Supabase Storage is handled via S3-Compatible API in code, no wrangler binding needed.
 
 # Local development environment
+[dev]
+ip = "0.0.0.0"
+port = 8787
+
 [env.dev]
 vars = { JWT_SECRET = "synapse_x_quantum_secure_2026" }
 

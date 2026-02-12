@@ -5,8 +5,8 @@
     "description": "SynapseX Neural Core",
     "main": "server.js",
     "scripts": {
-        "dev": "wrangler dev --env dev",
-        "dev-local": "JWT_SECRET=\"synapse_x_quantum_secure_2026\" wrangler dev",
+        "dev": "wrangler dev --env dev --ip 0.0.0.0",
+        "dev-local": "JWT_SECRET=\"synapse_x_quantum_secure_2026\" wrangler dev --ip 0.0.0.0",
         "deploy": "wrangler deploy"
     },
     "dependencies": {

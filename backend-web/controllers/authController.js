@@ -311,6 +311,7 @@ export const getMe = async (c) => {
             }
         });
     } catch (error) {
-        return c.json({ success: false, error: "Session expired" }, 401);
+        console.error(`[getMe Auth Failure]: ${error.message}`);
+        return c.json({ success: false, error: "Session expired", debug: error.message }, 401);
     }
 };

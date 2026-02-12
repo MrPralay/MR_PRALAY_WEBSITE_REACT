@@ -32,7 +32,7 @@ function App() {
         console.log('👀 View changed to:', view);
     }, [view]);
 
-    const LIVE_API = "https://synapse-backend.pralayd140.workers.dev";
+    const LIVE_API = import.meta.env.VITE_API_URL || "https://synapse-backend.pralayd140.workers.dev";
 
     useEffect(() => {
         let scrollTimeout;
@@ -154,11 +154,21 @@ function App() {
         });
         setUser(userData);
         if (token) {
-            Cookies.set('synapse_token', token, { expires: 7, secure: true, sameSite: 'Lax' });
+            const isSecure = window.location.protocol === 'https:';
+            Cookies.set('synapse_token', token, {
+                expires: 7,
+                secure: isSecure,
+                sameSite: isSecure ? 'None' : 'Lax'
+            });
             console.log('🍪 Token cookie synchronized');
         }
         if (loginData.sessionId) {
-            Cookies.set('session_id', loginData.sessionId, { expires: 7, secure: true, sameSite: 'Lax' });
+            const isSecure = window.location.protocol === 'https:';
+            Cookies.set('session_id', loginData.sessionId, {
+                expires: 7,
+                secure: isSecure,
+                sameSite: isSecure ? 'None' : 'Lax'
+            });
             console.log('🍪 Session ID cookie set');
         }
         // Set user data in localStorage (The "Nametag")

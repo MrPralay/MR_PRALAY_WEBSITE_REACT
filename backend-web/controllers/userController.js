@@ -1,8 +1,25 @@
 import getPrisma from '../prisma/db.js';
+import jwt from 'jsonwebtoken';
+import { getCookie } from 'hono/cookie';
 
 export const getProfile = async (c) => {
     const username = c.req.param('username');
     try {
+        // Extract current user if authenticated (optional auth)
+        let currentUser = c.get('user');
+        if (!currentUser) {
+            const cookieToken = getCookie(c, 'synapse_token');
+            const authHeader = c.req.header('authorization');
+            const headerToken = authHeader && authHeader.split(' ')[1];
+            const token = cookieToken || headerToken;
+
+            if (token) {
+                try {
+                    currentUser = jwt.verify(token, c.env.JWT_SECRET || 'fallback_secret');
+                } catch (e) { /* invalid token is fine for public profile */ }
+            }
+        }
+
         const prisma = getPrisma(c.env.DATABASE_URL);
         const user = await prisma.user.findUnique({
             where: { username },
@@ -30,7 +47,12 @@ export const getProfile = async (c) => {
                         followers: true,
                         following: true
                     }
-                }
+                },
+                // Include followers to check if current user follows this profile
+                followers: currentUser ? {
+                    where: { followerId: currentUser.userId },
+                    select: { id: true }
+                } : false
             }
         });
 
@@ -38,7 +60,14 @@ export const getProfile = async (c) => {
             return c.json({ success: false, error: "Identity not found" }, 404);
         }
 
-        return c.json({ success: true, data: user });
+        // Add isFollowing flag
+        const profileData = {
+            ...user,
+            isFollowing: (user.followers?.length || 0) > 0,
+            followers: undefined // remove raw array
+        };
+
+        return c.json({ success: true, data: profileData });
     } catch (error) {
         console.error("Profile Error:", error);
         return c.json({ success: false, error: "Search failed" }, 500);
@@ -153,5 +182,54 @@ export const getSuggestedUsers = async (c) => {
     } catch (error) {
         console.error("Suggested Users Error:", error);
         return c.json({ success: false, error: "Failed to fetch user signatures" }, 500);
+    }
+};
+
+export const toggleFollow = async (c) => {
+    try {
+        const targetId = parseInt(c.req.param('id'));
+        const user = c.get('user'); // From authMiddleware
+        const prisma = getPrisma(c.env.DATABASE_URL);
+
+        console.log(`[FOLLOW DEBUG] Toggle follow request:`, {
+            currentUserId: user.userId,
+            targetId,
+            userObject: user
+        });
+
+        if (user.userId === targetId) {
+            return c.json({ success: false, error: "Cannot follow yourself" }, 400);
+        }
+
+        const existingFollow = await prisma.follow.findUnique({
+            where: {
+                followerId_followingId: {
+                    followerId: user.userId,
+                    followingId: targetId
+                }
+            }
+        });
+
+        console.log(`[FOLLOW DEBUG] Existing follow:`, existingFollow);
+
+        if (existingFollow) {
+            await prisma.follow.delete({
+                where: { id: existingFollow.id }
+            });
+            console.log(`[FOLLOW DEBUG] Unfollowed user ${targetId}`);
+            return c.json({ success: true, action: 'unfollowed' });
+        } else {
+            const newFollow = await prisma.follow.create({
+                data: {
+                    followerId: user.userId,
+                    followingId: targetId
+                }
+            });
+            console.log(`[FOLLOW DEBUG] Followed user ${targetId}:`, newFollow);
+            return c.json({ success: true, action: 'followed' });
+        }
+    } catch (error) {
+        console.error("Follow Toggle Error:", error);
+        return c.json({ success: false, error: "Neural link modification failed" }, 500);
     }
 };

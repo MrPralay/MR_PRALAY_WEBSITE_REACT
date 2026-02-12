@@ -46,7 +46,7 @@ const OTPBox = ({ email, onVerified, onBack }) => {
         setStatus({ type: 'loading', message: 'Decrypting Neural Code...' });
 
         try {
-            const apiUrl = "https://synapse-backend.pralayd140.workers.dev";
+            const apiUrl = import.meta.env.VITE_API_URL || "https://synapse-backend.pralayd140.workers.dev";
             const response = await fetch(`${apiUrl}/api/auth/verify-otp`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -124,8 +124,8 @@ const OTPBox = ({ email, onVerified, onBack }) => {
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, y: 10 }}
                                     className={`p-4 rounded-xl text-xs font-semibold flex items-center gap-2 ${status.type === 'error' ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
-                                            status.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
-                                                'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                                        status.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                                            'bg-blue-500/10 text-blue-400 border border-blue-500/20'
                                         }`}
                                 >
                                     {status.type === 'loading' && <RefreshCw className="w-4 h-4 animate-spin" />}

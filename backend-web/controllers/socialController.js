@@ -1,10 +1,26 @@
 import getPrisma from '../prisma/db.js';
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import jwt from 'jsonwebtoken';
+import { getCookie } from 'hono/cookie';
 
 export const getFeed = async (c) => {
     try {
-        const user = c.get('user');
+        let user = c.get('user');
+
+        // Manual extraction if middleware skipped (optional auth)
+        if (!user) {
+            const cookieToken = getCookie(c, 'synapse_token');
+            const authHeader = c.req.header('authorization');
+            const headerToken = authHeader && authHeader.split(' ')[1];
+            const token = cookieToken || headerToken;
+
+            if (token) {
+                try {
+                    user = jwt.verify(token, c.env.JWT_SECRET || 'fallback_secret');
+                } catch (e) { /* invalid token is fine for public feed */ }
+            }
+        }
         const prisma = getPrisma(c.env.DATABASE_URL);
 
         const posts = await prisma.post.findMany({
@@ -16,7 +32,14 @@ export const getFeed = async (c) => {
                         id: true,
                         username: true,
                         name: true,
-                        profileImage: true
+                        profileImage: true,
+                        _count: {
+                            select: { followers: true }
+                        },
+                        followers: user ? {
+                            where: { followerId: user.userId },
+                            select: { id: true }
+                        } : false
                     }
                 },
                 _count: {
@@ -38,13 +61,29 @@ export const getFeed = async (c) => {
         });
 
         // Transform to include helpful flags
-        const formattedPosts = posts.map(post => ({
-            ...post,
-            isLiked: (post.likes?.length || 0) > 0,
-            isSaved: (post.savedBy?.length || 0) > 0,
-            likes: undefined, // remove raw array
-            savedBy: undefined // remove raw array
-        }));
+        const formattedPosts = posts.map(post => {
+            const isFollowing = (post.user?.followers?.length || 0) > 0;
+            console.log(`[FOLLOW DEBUG] Post by ${post.user?.username} (ID: ${post.user?.id}):`, {
+                hasFollowersArray: !!post.user?.followers,
+                followersLength: post.user?.followers?.length || 0,
+                isFollowing,
+                currentUserId: user?.userId,
+                followers: post.user?.followers
+            });
+
+            return {
+                ...post,
+                isLiked: (post.likes?.length || 0) > 0,
+                isSaved: (post.savedBy?.length || 0) > 0,
+                isFollowing,
+                user: {
+                    ...post.user,
+                    followers: undefined // remove raw array
+                },
+                likes: undefined, // remove raw array
+                savedBy: undefined // remove raw array
+            };
+        });
 
         return c.json(formattedPosts);
     } catch (error) {

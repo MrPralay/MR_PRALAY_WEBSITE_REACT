@@ -14,6 +14,7 @@ import {
     replyToStory,
     getStoryDetails
 } from '../controllers/socialController.js';
+import { toggleFollow } from '../controllers/userController.js';
 import authenticateToken from '../middleware/authMiddleware.js';
 
 const social = new Hono();
@@ -28,6 +29,7 @@ social.post('/posts/:id/like', authenticateToken, toggleLike);
 social.post('/posts/:id/comment', authenticateToken, addComment);
 social.get('/posts/:id/comments', getComments);
 social.post('/posts/:id/save', authenticateToken, toggleSave);
+social.post('/users/:id/follow', authenticateToken, toggleFollow);
 
 // Story System
 social.get('/stories', getStories);
