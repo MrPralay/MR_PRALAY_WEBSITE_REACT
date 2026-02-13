@@ -18,7 +18,13 @@ export const getFeed = async (c) => {
             if (token) {
                 try {
                     user = jwt.verify(token, c.env.JWT_SECRET || 'fallback_secret');
-                } catch (e) { /* invalid token is fine for public feed */ }
+                    console.log(`[Feed Auth] User verified manually: ${user.username} (${user.userId})`);
+                } catch (e) {
+                    console.warn(`[Feed Auth Warning] Invalid token in public feed request: ${e.message}`);
+                    // invalid token is fine for public feed 
+                }
+            } else {
+                console.log("[Feed Auth] No token provided - serving guest feed");
             }
         }
         const prisma = getPrisma(c.env.DATABASE_URL);
@@ -49,10 +55,6 @@ export const getFeed = async (c) => {
                         savedBy: true
                     }
                 },
-                likes: user ? {
-                    where: { userId: user.userId },
-                    select: { id: true }
-                } : false,
                 savedBy: user ? {
                     where: { userId: user.userId },
                     select: { id: true }
@@ -60,22 +62,61 @@ export const getFeed = async (c) => {
             }
         });
 
+        const postIds = posts.map(p => p.id);
+
+        // Optimized Batch Fetch: Get all recent likes for all posts in ONE query
+        const allRecentLikes = await prisma.like.findMany({
+            where: { postId: { in: postIds } },
+            orderBy: { createdAt: 'desc' },
+            include: {
+                user: {
+                    select: { id: true, username: true, name: true }
+                }
+            }
+        });
+
+        // Group likes by postId (max 3 per post for intelligence)
+        const likesMap = new Map();
+        allRecentLikes.forEach(like => {
+            if (!likesMap.has(like.postId)) likesMap.set(like.postId, []);
+            if (likesMap.get(like.postId).length < 3) {
+                likesMap.get(like.postId).push(like);
+            }
+        });
+
+        // Batch fetch current user's likes for these posts to determine isLiked status
+        let userLikes = new Set();
+        if (user) {
+            const currentLikes = await prisma.like.findMany({
+                where: {
+                    userId: user.userId,
+                    postId: { in: postIds }
+                },
+                select: { postId: true }
+            });
+            userLikes = new Set(currentLikes.map(l => l.postId));
+        }
+
         // Transform to include helpful flags
         const formattedPosts = posts.map(post => {
             const isFollowing = (post.user?.followers?.length || 0) > 0;
-            console.log(`[FOLLOW DEBUG] Post by ${post.user?.username} (ID: ${post.user?.id}):`, {
-                hasFollowersArray: !!post.user?.followers,
-                followersLength: post.user?.followers?.length || 0,
-                isFollowing,
-                currentUserId: user?.userId,
-                followers: post.user?.followers
-            });
+            const currentIsLiked = userLikes.has(post.id);
+            const postLikes = likesMap.get(post.id) || [];
+
+            // Absolute latest liker
+            const absoluteLatest = postLikes[0]?.user?.username || postLikes[0]?.user?.name || null;
+
+            // Latest liker who is NOT the current user (for unheart fallback)
+            const otherLikers = postLikes.filter(l => l.user.id !== user?.userId);
+            const latestOtherLiker = otherLikers[0]?.user?.username || otherLikers[0]?.user?.name || null;
 
             return {
                 ...post,
-                isLiked: (post.likes?.length || 0) > 0,
+                isLiked: currentIsLiked,
                 isSaved: (post.savedBy?.length || 0) > 0,
                 isFollowing,
+                latestLiker: absoluteLatest,
+                latestOtherLiker: latestOtherLiker,
                 user: {
                     ...post.user,
                     followers: undefined // remove raw array
@@ -202,7 +243,7 @@ export const toggleLike = async (c) => {
 export const addComment = async (c) => {
     try {
         const postId = parseInt(c.req.param('id'));
-        const { content } = await c.req.json();
+        const { content, parentId } = await c.req.json();
         const user = c.get('user');
         const prisma = getPrisma(c.env.DATABASE_URL);
 
@@ -212,18 +253,64 @@ export const addComment = async (c) => {
             data: {
                 content,
                 userId: user.userId,
-                postId
+                postId,
+                parentId: parentId ? parseInt(parentId) : null
             },
             include: {
                 user: {
-                    select: { username: true, profileImage: true }
+                    select: { id: true, username: true, profileImage: true, name: true }
+                },
+                _count: {
+                    select: { likes: true }
                 }
             }
         });
 
-        return c.json({ success: true, data: comment });
+        // Add default fields for frontend consistency
+        const formattedComment = {
+            ...comment,
+            isLiked: false
+        };
+
+        return c.json({ success: true, data: formattedComment });
     } catch (error) {
+        console.error("Comment Sync Error:", error);
         return c.json({ success: false, error: "Comment synchronization failed" }, 500);
+    }
+};
+
+export const toggleCommentLike = async (c) => {
+    try {
+        const commentId = parseInt(c.req.param('id'));
+        const user = c.get('user');
+        const prisma = getPrisma(c.env.DATABASE_URL);
+
+        if (!user) return c.json({ success: false, error: "Authentication required" }, 401);
+
+        const existingLike = await prisma.commentLike.findUnique({
+            where: {
+                userId_commentId: {
+                    userId: user.userId,
+                    commentId
+                }
+            }
+        });
+
+        if (existingLike) {
+            await prisma.commentLike.delete({ where: { id: existingLike.id } });
+            return c.json({ success: true, action: 'unliked' });
+        } else {
+            await prisma.commentLike.create({
+                data: {
+                    userId: user.userId,
+                    commentId
+                }
+            });
+            return c.json({ success: true, action: 'liked' });
+        }
+    } catch (error) {
+        console.error("Comment Like Toggle Error:", error);
+        return c.json({ success: false, error: "Interaction failed" }, 500);
     }
 };
 
@@ -264,18 +351,45 @@ export const getComments = async (c) => {
         const postId = parseInt(c.req.param('id'));
         const prisma = getPrisma(c.env.DATABASE_URL);
 
+        // Manual extraction for optional auth
+        let user = c.get('user');
+        if (!user) {
+            const token = getCookie(c, 'synapse_token') || (c.req.header('authorization') && c.req.header('authorization').split(' ')[1]);
+            if (token) {
+                try {
+                    user = jwt.verify(token, c.env.JWT_SECRET || 'fallback_secret');
+                } catch (e) {
+                    // silent fail for guests
+                }
+            }
+        }
+
         const comments = await prisma.comment.findMany({
             where: { postId },
             orderBy: { createdAt: 'asc' },
             include: {
                 user: {
-                    select: { username: true, profileImage: true }
-                }
+                    select: { id: true, username: true, profileImage: true, name: true }
+                },
+                _count: {
+                    select: { likes: true }
+                },
+                likes: user ? {
+                    where: { userId: user.userId },
+                    select: { id: true }
+                } : false
             }
         });
 
-        return c.json(comments);
+        const formattedComments = comments.map(comment => ({
+            ...comment,
+            isLiked: (comment.likes?.length || 0) > 0,
+            likes: undefined // remove raw array
+        }));
+
+        return c.json(formattedComments);
     } catch (error) {
+        console.error("Comment Retrieval Error:", error);
         return c.json({ success: false, error: "Comment retrieval failed" }, 500);
     }
 };
@@ -480,5 +594,83 @@ export const getStoryDetails = async (c) => {
     } catch (error) {
         console.error("Story Details Error:", error);
         return c.json({ success: false, error: "Failed to fetch details" }, 500);
+    }
+};
+
+export const getExploreFeed = async (c) => {
+    try {
+        const prisma = getPrisma(c.env.DATABASE_URL);
+
+        // Fetch a batch of recent posts to shuffle
+        // Efficient random sampling in SQL can be complex, for now fetching recent 100 and shuffling in app is acceptable for this scale
+        const posts = await prisma.post.findMany({
+            take: 60,
+            orderBy: { createdAt: 'desc' },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        username: true,
+                        profileImage: true
+                    }
+                },
+                _count: {
+                    select: { likes: true, comments: true }
+                }
+            }
+        });
+
+        // Fisher-Yates Shuffle
+        for (let i = posts.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [posts[i], posts[j]] = [posts[j], posts[i]];
+        }
+
+        return c.json({ success: true, data: posts });
+    } catch (error) {
+        console.error("Explore Feed Error:", error);
+        return c.json({ success: false, error: "Failed to load explore matrix" }, 500);
+    }
+};
+
+export const getPostLikers = async (c) => {
+    const postId = parseInt(c.req.param('id'));
+    if (isNaN(postId)) return c.json({ success: false, error: "Invalid post ID" }, 400);
+
+    try {
+        const user = c.get('user');
+        const prisma = getPrisma(c.env.DATABASE_URL);
+
+        const likes = await prisma.like.findMany({
+            where: { postId },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        username: true,
+                        name: true,
+                        profileImage: true,
+                        followers: user ? {
+                            where: { followerId: user.userId },
+                            select: { id: true }
+                        } : false
+                    }
+                }
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        const formattedLikers = likes.map(like => ({
+            id: like.user.id,
+            username: like.user.username,
+            name: like.user.name,
+            profileImage: like.user.profileImage,
+            isFollowing: (like.user.followers?.length || 0) > 0
+        }));
+
+        return c.json({ success: true, data: formattedLikers });
+    } catch (error) {
+        console.error("Get Likers Error:", error);
+        return c.json({ success: false, error: "Failed to load likers" }, 500);
     }
 };

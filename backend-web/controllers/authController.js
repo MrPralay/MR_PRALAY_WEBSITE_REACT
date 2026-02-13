@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { setCookie, deleteCookie } from 'hono/cookie';
+import { setCookie, deleteCookie, getCookie } from 'hono/cookie';
 import getPrisma from '../prisma/db.js';
 import { sendOTP, sendResetOTP } from '../utils/email.js';
 
@@ -141,7 +141,7 @@ export const login = async (c) => {
 
         const token = jwt.sign(
             { userId: user.id, username: user.username, role: user.role },
-            c.env.JWT_SECRET || 'fallback_secret',
+            c.env.JWT_SECRET || 'synapse_x_quantum_secure_2026',
             { expiresIn: '2h' }
         );
 
@@ -257,9 +257,12 @@ export const resetPassword = async (c) => {
 
 export const logout = async (c) => {
     try {
-        // Explicitly clear the legacy SameSite: None cookies from the backend domain
-        deleteCookie(c, 'session_id', { path: '/', secure: true, sameSite: 'None' });
-        deleteCookie(c, 'synapse_token', { path: '/', secure: true, sameSite: 'None' });
+        const isSecure = c.req.url.startsWith('https') || c.req.header('x-forwarded-proto') === 'https';
+        const options = { path: '/', secure: isSecure, sameSite: isSecure ? 'None' : 'Lax' };
+
+        // Explicitly clear the legacy cookies with the correct protocol options
+        deleteCookie(c, 'session_id', options);
+        deleteCookie(c, 'synapse_token', options);
 
         return c.json({
             success: true,
@@ -274,20 +277,40 @@ export const logout = async (c) => {
 export const getMe = async (c) => {
     try {
         const prisma = getPrisma(c.env.DATABASE_URL);
-        c.header('X-Synapse-Debug', 'v5-sync-active');
+        c.header('X-Synapse-Debug', 'v6-session-persistence');
 
-        // Aggressively clear any conflicting domain cookies
-        deleteCookie(c, 'session_id', { path: '/', secure: true, sameSite: 'None' });
-        deleteCookie(c, 'synapse_token', { path: '/', secure: true, sameSite: 'None' });
+        // Note: isSecure check is used for diagnostic headers if needed, 
+        // but we no longer proactively clear cookies here to prevent session nuking.
 
-        const cookieToken = c.req.cookie('synapse_token');
+        const cookieToken = getCookie(c, 'synapse_token');
         const authHeader = c.req.header('authorization');
-        const token = cookieToken || (authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null);
 
-        if (!token) return c.json({ success: false, error: "No neural link found" }, 401);
+        // DEEP DIAGNOSTIC: Reveal the ghost
+        const headerToken = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
 
-        // 2. Verify Token
-        const decoded = jwt.verify(token, c.env.JWT_SECRET || 'fallback_secret');
+        // Filter out toxic strings from faulty storage
+        const toxicStrings = ['undefined', 'null', '', 'NaN'];
+        const isValid = (t) => t && typeof t === 'string' && !toxicStrings.includes(t);
+
+        const token = isValid(headerToken) ? headerToken : (isValid(cookieToken) ? cookieToken : null);
+
+        if (!token) {
+            console.warn(`[Neural Sync Failure] 401: No valid token. Header: ${headerToken}, Cookie: ${cookieToken}`);
+            return c.json({
+                success: false,
+                error: "No neural link found",
+                debug: "TOKEN_MISSING_OR_TOXIC",
+                received: { header: !!headerToken, cookie: !!cookieToken }
+            }, 401);
+        }
+
+        // 2. Verify Token (Diagnostic Secret Check)
+        const secret = c.env.JWT_SECRET || 'synapse_x_quantum_secure_2026';
+        if (!c.env.JWT_SECRET) {
+            console.warn("[Neural Security] JWT_SECRET is missing from environment. Using hardcoded dev fallback.");
+        }
+
+        const decoded = jwt.verify(token, secret);
 
         // 3. Get User
         const user = await prisma.user.findUnique({
@@ -312,6 +335,11 @@ export const getMe = async (c) => {
         });
     } catch (error) {
         console.error(`[getMe Auth Failure]: ${error.message}`);
-        return c.json({ success: false, error: "Session expired", debug: error.message }, 401);
+        return c.json({
+            success: false,
+            error: "Session expired",
+            debug: error.message,
+            secret_status: !!c.env.JWT_SECRET ? 'present' : 'missing'
+        }, 401);
     }
 };

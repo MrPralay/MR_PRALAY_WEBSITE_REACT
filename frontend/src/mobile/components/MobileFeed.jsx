@@ -142,6 +142,7 @@ const MobileFeed = ({ posts, stories = [], suggestedUsers = [], myStories = [], 
                             key={post.id || index}
                             post={post}
                             index={index}
+                            currentUser={currentUser}
                             onFollowChange={onFollowChange}
                             onProfileClick={onUserProfileClick}
                             onOptionsClick={onOptionsClick}

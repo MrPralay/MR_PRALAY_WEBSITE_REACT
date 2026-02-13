@@ -233,3 +233,33 @@ export const toggleFollow = async (c) => {
         return c.json({ success: false, error: "Neural link modification failed" }, 500);
     }
 };
+
+export const searchUsers = async (c) => {
+    try {
+        const query = c.req.query('q');
+        if (!query || query.length < 1) return c.json({ success: true, data: [] });
+
+        const prisma = getPrisma(c.env.DATABASE_URL);
+        const users = await prisma.user.findMany({
+            where: {
+                OR: [
+                    { username: { contains: query, mode: 'insensitive' } },
+                    { name: { contains: query, mode: 'insensitive' } }
+                ]
+            },
+            take: 20,
+            select: {
+                id: true,
+                username: true,
+                name: true,
+                profileImage: true,
+                isVerified: true
+            }
+        });
+
+        return c.json({ success: true, data: users });
+    } catch (error) {
+        console.error("User Search Error:", error);
+        return c.json({ success: false, error: "Search protocol failed" }, 500);
+    }
+};

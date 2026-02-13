@@ -10,13 +10,21 @@ const isVideo = (url) => {
 };
 
 const MobileProfile = ({ user, currentUser, posts, onUpdateUser, onOpenCreatePost, onNavigate, onFollowChange }) => {
-    const isMe = user?.id === currentUser?.id || user?.userId === currentUser?.id;
+    const currentUserIdFromStorage = Cookies.get('synapse_userId') || (localStorage.getItem('synapse_user_data') ? JSON.parse(localStorage.getItem('synapse_user_data')).id : null);
+    const profileId = user?.id || user?.userId;
+    const isMe = currentUserIdFromStorage?.toString() === profileId?.toString();
     const abortControllerRef = React.useRef(null);
     const [activeTab, setActiveTab] = useState('posts');
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isFollowing, setIsFollowing] = useState(user.isFollowing || false);
     const [isFollowLoading, setIsFollowLoading] = useState(false);
     const [followersCount, setFollowersCount] = useState(user.followers?.length || user._count?.followers || 0);
+
+    // Sync state with props when user changes (e.g. from parent update)
+    React.useEffect(() => {
+        setIsFollowing(user.isFollowing || false);
+        setFollowersCount(user.followers?.length || user._count?.followers || 0);
+    }, [user]);
 
     if (!user) return <div className="text-white text-center mt-20">Loading profile...</div>;
 

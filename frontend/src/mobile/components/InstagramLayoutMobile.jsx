@@ -29,6 +29,46 @@ const InstagramLayoutMobile = ({ currentUser, onLogout }) => {
     const [loading, setLoading] = useState(true);
     const [isPostModalOpen, setIsPostModalOpen] = useState(false);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+    // Intelligent Navbar Logic
+    const [isNavVisible, setIsNavVisible] = useState(true);
+    const lastScrollY = useRef(0);
+    const scrollTimeout = useRef(null);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            const currentScrollY = window.scrollY;
+
+            // Determine Direction
+            if (currentScrollY > lastScrollY.current && currentScrollY > 50) {
+                // Scrolling Down -> Hide
+                setIsNavVisible(false);
+            } else if (currentScrollY < lastScrollY.current) {
+                // Scrolling Up -> Show
+                setIsNavVisible(true);
+            }
+
+            lastScrollY.current = currentScrollY;
+
+            // "Auto hide when stop" logic (Immersive Mode)
+            // Clear existing timeout
+            if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
+
+            // Set new timeout to hide after 2.5s of inactivity
+            scrollTimeout.current = setTimeout(() => {
+                // Only auto-hide if we are not at the very top (to avoid hiding valid nav)
+                if (window.scrollY > 100) {
+                    setIsNavVisible(false);
+                }
+            }, 2500);
+        };
+
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => {
+            window.removeEventListener('scroll', handleScroll);
+            if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
+        };
+    }, []);
     const [cinemaPost, setCinemaPost] = useState(null);
     const backdropVideoRef = useRef(null);
 
@@ -51,7 +91,7 @@ const InstagramLayoutMobile = ({ currentUser, onLogout }) => {
         const fetchData = async () => {
             if (!active) return;
             setLoading(true);
-            const CACHE_REVEAL_DELAY = 600;
+            const CACHE_REVEAL_DELAY = 150; // Drastically reduced for snappy "Neural" feel
             const startTime = Date.now();
 
             let cachedFeed = [];
@@ -98,45 +138,58 @@ const InstagramLayoutMobile = ({ currentUser, onLogout }) => {
 
             try {
                 const apiUrl = import.meta.env.VITE_API_URL || "https://synapse-backend.pralayd140.workers.dev";
-                const token = Cookies.get('synapse_token');
+                const token = Cookies.get('synapse_token') || localStorage.getItem('synapse_token');
+
                 const fetchOptions = {
-                    method: 'GET',
-                    headers: { ...(token && { 'Authorization': `Bearer ${token}` }) }
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(token && { 'Authorization': `Bearer ${token}` })
+                    }
                 };
 
-                const storyRes = await fetch(`${apiUrl}/api/social/stories`, fetchOptions);
-                const storyData = await storyRes.json();
-                if (active && storyData.success) {
-                    setAllStories(storyData.data);
-                    saveToCache('synapse_stories', storyData.data);
-                    const mine = storyData.data.filter(s => s.userId === currentUserState.id || s.userId === currentUserState.userId);
-                    setMyStories(mine);
-                }
-
-                const userRes = await fetch(`${apiUrl}/api/user/suggested?limit=10`, fetchOptions);
-                const userData = await userRes.json();
-                if (active && userData.success) {
-                    setSuggestedUsers(userData.data);
-                    saveToCache('synapse_suggested', userData.data);
-                }
+                // Parallelize all primary requests for speed
+                const fetchPromises = [
+                    fetch(`${apiUrl}/api/social/stories`, fetchOptions).then(r => r.json()),
+                    fetch(`${apiUrl}/api/user/suggested?limit=10`, fetchOptions).then(r => r.json())
+                ];
 
                 if (view === 'feed' || view === 'igtv') {
-                    const res = await fetch(`${apiUrl}/api/social/feed`, fetchOptions);
-                    const data = await res.json();
-                    if (active) {
-                        const newPosts = Array.isArray(data) ? data : [];
-                        setPosts(newPosts);
-                        saveToCache('synapse_feed_posts', newPosts);
-                    }
+                    fetchPromises.push(fetch(`${apiUrl}/api/social/feed`, fetchOptions).then(r => r.json()));
                 } else if (view === 'profile') {
                     const profileToFetch = userProfile?.username || currentUser.username;
-                    const res = await fetch(`${apiUrl}/api/user/profile/${encodeURIComponent(profileToFetch)}`, fetchOptions);
-                    const data = await res.json();
-                    const profileData = data.data || data;
-                    if (active) {
-                        setUserProfile(profileData);
-                        setPosts(profileData.posts || []);
-                        saveToCache(`synapse_profile_${profileToFetch}`, profileData);
+                    fetchPromises.push(fetch(`${apiUrl}/api/user/profile/${encodeURIComponent(profileToFetch)}`, fetchOptions).then(r => r.json()));
+                }
+
+                const results = await Promise.all(fetchPromises);
+                const storyData = results[0];
+                const userData = results[1];
+                const mainData = results[2];
+
+                if (active) {
+                    if (storyData?.success) {
+                        setAllStories(storyData.data);
+                        saveToCache('synapse_stories', storyData.data);
+                        const mine = storyData.data.filter(s => s.userId === currentUserState.id || s.userId === currentUserState.userId);
+                        setMyStories(mine);
+                    }
+
+                    if (userData?.success) {
+                        setSuggestedUsers(userData.data);
+                        saveToCache('synapse_suggested', userData.data);
+                    }
+
+                    if (mainData) {
+                        if (view === 'feed' || view === 'igtv') {
+                            const newPosts = Array.isArray(mainData) ? mainData : (mainData.data || []);
+                            setPosts(newPosts);
+                            saveToCache('synapse_feed_posts', newPosts);
+                        } else if (view === 'profile') {
+                            const profileData = mainData.data || mainData;
+                            setUserProfile(profileData);
+                            setPosts(profileData.posts || []);
+                            const profileToFetch = userProfile?.username || currentUser.username;
+                            saveToCache(`synapse_profile_${profileToFetch}`, profileData);
+                        }
                     }
                 }
             } catch (err) {
@@ -184,6 +237,7 @@ const InstagramLayoutMobile = ({ currentUser, onLogout }) => {
     };
 
     const handleFollowChange = (postId, userId, newFollowState) => {
+        console.log(`[Layout] handleFollowChange called for User ${userId}, Post ${postId} -> New State: ${newFollowState}`);
         // Update the posts array to reflect the new follow state
         setPosts(prevPosts =>
             prevPosts.map(post => {
@@ -266,7 +320,7 @@ const InstagramLayoutMobile = ({ currentUser, onLogout }) => {
     const handleDeletePost = async (postId) => {
         try {
             const apiUrl = import.meta.env.VITE_API_URL || "https://synapse-backend.pralayd140.workers.dev";
-            const token = Cookies.get('synapse_token');
+            const token = Cookies.get('synapse_token') || localStorage.getItem('synapse_token');
 
             const response = await fetch(`${apiUrl}/api/social/posts/${postId}`, {
                 method: 'DELETE',
@@ -400,7 +454,13 @@ const InstagramLayoutMobile = ({ currentUser, onLogout }) => {
 
                     {view === 'explore' && (
                         <motion.div key="explore" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                            <MobileSearch />
+                            <MobileSearch
+                                onNavigate={handleNavigation}
+                                onUserProfileClick={(user) => {
+                                    setUserProfile(user);
+                                    handleNavigation('profile');
+                                }}
+                            />
                         </motion.div>
                     )}
 
@@ -450,7 +510,15 @@ const InstagramLayoutMobile = ({ currentUser, onLogout }) => {
                 </AnimatePresence>
             </main>
 
-            <MobileNav />
+            {/* Intelligent Auto-Hide Navbar */}
+            <motion.div
+                initial={{ y: 0 }}
+                animate={{ y: isNavVisible ? 0 : 100 }} // Hide by moving down
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                className="fixed bottom-0 left-0 right-0 z-40 bg-black border-t border-white/10"
+            >
+                <MobileNav />
+            </motion.div>
 
             {/* Modals */}
             <AnimatePresence>

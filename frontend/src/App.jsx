@@ -171,6 +171,15 @@ function App() {
             });
             console.log('🍪 Session ID cookie set');
         }
+        if (userData.id) {
+            const isSecure = window.location.protocol === 'https:';
+            Cookies.set('synapse_userId', userData.id.toString(), {
+                expires: 7,
+                secure: isSecure,
+                sameSite: isSecure ? 'None' : 'Lax'
+            });
+            console.log('🍪 User ID cookie set');
+        }
         // Set user data in localStorage (The "Nametag")
         localStorage.setItem('synapse_user_data', JSON.stringify(userData));
         console.log('📦 User data stored in localStorage');
@@ -184,10 +193,19 @@ function App() {
         // Clear ALL possible session cookies to be safe
         Cookies.remove('synapse_token');
         Cookies.remove('session_id');
+        Cookies.remove('synapse_userId');
         localStorage.removeItem('synapse_user_data');
 
         localStorage.removeItem('synapse_last_view');
         localStorage.removeItem('synapse_social_tab');
+
+        // Clear explore cache on logout to refresh for next user
+        try {
+            const { clearCacheKey } = await import('./utils/synapseCache');
+            clearCacheKey('synapse_explore_posts');
+        } catch (e) {
+            console.warn("Failed to clear explore cache on logout", e);
+        }
 
         console.log('Sweep complete, returning to landing');
         setView('landing');

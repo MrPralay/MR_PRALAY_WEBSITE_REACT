@@ -9,18 +9,19 @@ const authenticateToken = async (c, next) => {
     // 2. Fallback to Cookie (Professional way)
     const cookieToken = getCookie(c, 'synapse_token');
 
-    const token = headerToken || cookieToken;
+    // Prioritize header and ensure no empty strings clash with logic
+    const token = (headerToken && headerToken !== "") ? headerToken : (cookieToken && cookieToken !== "" ? cookieToken : null);
 
     if (!token) {
         return c.json({ success: false, error: "Neural authorization missing" }, 401);
     }
 
     try {
-        const secret = c.env.JWT_SECRET || 'fallback_secret';
+        const secret = c.env.JWT_SECRET || 'synapse_x_quantum_secure_2026';
 
         // Diagnostic log: Only in development
         if (c.env.NODE_ENV === 'development') {
-            console.log(`[Auth Diagnostic]: Verifying token. Secret Length: ${secret.length}, Token Source: ${headerToken ? 'Header' : 'Cookie'}`);
+            console.log(`[Auth Diagnostic]: Verifying token. Token Source: ${headerToken ? 'Header' : 'Cookie'}`);
         }
 
         const user = jwt.verify(token, secret);

@@ -12,7 +12,10 @@ import {
     deleteStory,
     viewStory,
     replyToStory,
-    getStoryDetails
+    getStoryDetails,
+    getExploreFeed,
+    toggleCommentLike,
+    getPostLikers
 } from '../controllers/socialController.js';
 import { toggleFollow } from '../controllers/userController.js';
 import authenticateToken from '../middleware/authMiddleware.js';
@@ -21,13 +24,16 @@ const social = new Hono();
 
 // Public/Semi-public Feed
 social.get('/feed', getFeed);
+social.get('/explore', getExploreFeed);
 social.post('/upload-url', authenticateToken, getUploadUrl);
 
 // Protected Interaction Routes
 social.post('/posts', authenticateToken, createPost);
 social.post('/posts/:id/like', authenticateToken, toggleLike);
 social.post('/posts/:id/comment', authenticateToken, addComment);
+social.post('/comments/:id/like', authenticateToken, toggleCommentLike);
 social.get('/posts/:id/comments', getComments);
+social.get('/posts/:id/likers', authenticateToken, getPostLikers);
 social.post('/posts/:id/save', authenticateToken, toggleSave);
 social.post('/users/:id/follow', authenticateToken, toggleFollow);
 

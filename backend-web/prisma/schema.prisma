@@ -30,6 +30,7 @@ model User {
   comments      Comment[]
   stories       Story[]
   savedPosts    SavedPost[]
+  commentLikes  CommentLike[]
   followers     Follow[]      @relation("Following")
   following     Follow[]      @relation("Follower")
   sessions      Session[]
@@ -87,13 +88,28 @@ model Like {
 }
 
 model Comment {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   content   String
   userId    Int
   postId    Int
+  parentId  Int?      // Support for threaded replies
+  user      User      @relation(fields: [userId], references: [id])
+  post      Post      @relation(fields: [postId], references: [id])
+  parent    Comment?  @relation("Replies", fields: [parentId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  replies   Comment[] @relation("Replies")
+  likes     CommentLike[]
+  createdAt DateTime  @default(now())
+}
+
+model CommentLike {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  commentId Int
   user      User     @relation(fields: [userId], references: [id])
-  post      Post     @relation(fields: [postId], references: [id])
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+
+  @@unique([userId, commentId])
 }
 
 model Story {

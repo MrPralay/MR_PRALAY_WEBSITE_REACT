@@ -7,6 +7,7 @@ import OTPBox from '../components/Login/OTPBox';
 import ForgotPasswordBox from '../components/Login/ForgotPasswordBox';
 import LandingPageMobile from './components/LandingPageMobile';
 import InstagramLayoutMobile from './components/InstagramLayoutMobile';
+import { initializeConsoleShield } from './utils/neuralConsoleShield';
 
 // Synapse Core Logo (Reused)
 const SynapseLogo = ({ size = 60 }) => (
@@ -35,24 +36,36 @@ function MobileApp() {
     const LIVE_API = import.meta.env.VITE_API_URL || "https://synapse-backend.pralayd140.workers.dev";
 
     useEffect(() => {
+        initializeConsoleShield();
         const performNeuralSync = async () => {
-            const token = Cookies.get('synapse_token');
+            const cookieToken = Cookies.get('synapse_token');
+            const localToken = localStorage.getItem('synapse_token');
+
+            // Rejection of toxic/corrupted storage strings
+            const toxic = ['undefined', 'null', '', 'NaN'];
+            const token = !toxic.includes(cookieToken) ? cookieToken : (!toxic.includes(localToken) ? localToken : null);
+
             const savedUser = localStorage.getItem('synapse_user_data');
 
+            console.log(`[Neural Link Diagnostic]: Token found: ${!!token}, User in cache: ${!!savedUser}`);
+
             if (!token) {
+                console.warn("[Neural Link] No valid identity found in storage channels.");
                 if (view === 'profile') setView('landing');
                 setTimeout(() => setIsLoading(false), 800);
                 return;
             }
 
+            console.log(`[Neural Sync Attempt]: Sending ${token.substring(0, 10)}... via Header`);
+
             if (savedUser) {
                 try {
                     const userData = JSON.parse(savedUser);
-                    setUser(userData);
-                    setView('profile');
-                    // OPTIMISTIC LOAD: Trust local data first to prevent resize logouts
-                    setTimeout(() => setIsLoading(false), 1200);
-                    return;
+                    if (userData) {
+                        setUser(userData);
+                        setView('profile');
+                        setIsLoading(false);
+                    }
                 } catch (e) {
                     localStorage.removeItem('synapse_user_data');
                 }
@@ -104,6 +117,13 @@ function MobileApp() {
                 sameSite: isSecure ? 'None' : 'Lax'
             });
         }
+        if (userData.id) {
+            Cookies.set('synapse_userId', userData.id.toString(), {
+                expires: 7,
+                secure: isSecure,
+                sameSite: isSecure ? 'None' : 'Lax'
+            });
+        }
 
         localStorage.setItem('synapse_user_data', JSON.stringify(userData));
         setView('profile');
@@ -113,23 +133,33 @@ function MobileApp() {
         try { await fetch(`${LIVE_API}/api/auth/logout`, { method: 'POST' }); } catch (e) { }
         setUser(null);
 
-        // Nuclear Logout: Clear everything
+        // Nuclear Logout: Clear everything with protocol awareness to keep DevTools clean
+        const isSecure = window.location.protocol === 'https:';
         const cookieOptions = [
-            {},
             { path: '/' },
             { path: '/', domain: window.location.hostname },
-            { path: '/', secure: true, sameSite: 'none' }
+            { path: '/', secure: isSecure, sameSite: isSecure ? 'None' : 'Lax' }
         ];
 
         cookieOptions.forEach(opt => {
             Cookies.remove('synapse_token', opt);
             Cookies.remove('session_id', opt);
+            Cookies.remove('synapse_userId', opt);
         });
 
         localStorage.removeItem('synapse_token');
         localStorage.removeItem('synapse_user_data');
         localStorage.removeItem('synapse_last_view');
         localStorage.removeItem('synapse_social_tab');
+
+        // Clear explore cache on logout to refresh for next user
+        try {
+            const { clearCacheKey } = await import('../utils/synapseCache');
+            clearCacheKey('synapse_explore_posts');
+        } catch (e) {
+            console.warn("Failed to clear explore cache on logout", e);
+        }
+
         localStorage.clear(); // Extreme measure
 
         setView('landing');

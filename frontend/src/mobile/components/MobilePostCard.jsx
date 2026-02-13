@@ -2,16 +2,49 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Cookies from 'js-cookie';
+import CommentOverlay from './CommentOverlay';
+import LikesOverlay from './LikesOverlay';
 
 const isVideo = (url) => {
     if (!url) return false;
     return url.match(/\.(mp4|webm|mov|m4v|m3u8|ogv)$|video/i);
 };
 
-const MobilePostCard = React.memo(({ post, onInteraction, onFollowChange, onProfileClick, onOptionsClick, index = 0 }) => {
+const PremiumIcon = ({ Icon, active, activeColor, glowColor, size = 24, count, onClick, className = "" }) => {
+    return (
+        <motion.button
+            whileTap={{ scale: 0.8 }}
+            onClick={onClick}
+            className={`group relative flex items-center gap-1.5 transition-all duration-300 ${className}`}
+        >
+            <div className="relative flex items-center justify-center">
+                <Icon
+                    size={size}
+                    strokeWidth={1.5}
+                    className={`transition-all duration-300 ${active ? activeColor : "text-white/90"}`}
+                    fill={active ? "currentColor" : "none"}
+                    style={{
+                        filter: active ? `drop-shadow(0 0 8px ${glowColor})` : 'none'
+                    }}
+                />
+            </div>
+            {count !== undefined && (
+                <span className={`text-[13px] font-bold tracking-tight transition-all duration-300 ${active ? activeColor : "text-white/80"}`}>
+                    {count.toLocaleString()}
+                </span>
+            )}
+        </motion.button>
+    );
+};
+
+const MobilePostCard = React.memo(({ post, currentUser, onInteraction, onFollowChange, onProfileClick, onOptionsClick, index = 0 }) => {
     const [isLiked, setIsLiked] = useState(post.isLiked || false);
     const [isSaved, setIsSaved] = useState(post.isSaved || false);
     const [likesCount, setLikesCount] = useState(post._count?.likes || 0);
+    const [commentsCount, setCommentsCount] = useState(post._count?.comments || 0);
+    const [isFollowed, setIsFollowed] = useState(post.isFollowing || false);
+    const [latestLiker, setLatestLiker] = useState(post.latestLiker || null);
+    const [latestOtherLiker, setLatestOtherLiker] = useState(post.latestOtherLiker || null);
 
     const handleProfileClick = (e) => {
         e.stopPropagation();
@@ -24,11 +57,31 @@ const MobilePostCard = React.memo(({ post, onInteraction, onFollowChange, onProf
     const [isMediaLoaded, setIsMediaLoaded] = useState(false);
     const [isInView, setIsInView] = useState(false);
     const [isFollowLoading, setIsFollowLoading] = useState(false);
+    const [isCommentOpen, setIsCommentOpen] = useState(false);
+    const [isLikesOpen, setIsLikesOpen] = useState(false);
+
+    useEffect(() => {
+        setLatestLiker(post.latestLiker || null);
+        setLatestOtherLiker(post.latestOtherLiker || null);
+        setIsLiked(post.isLiked || false);
+        setLikesCount(post._count?.likes || 0);
+        setIsSaved(post.isSaved || false);
+    }, [post]);
+
+    const handleCommentCountUpdate = (newCount) => {
+        setCommentsCount(newCount);
+        if (onInteraction) onInteraction(post.id, 'comment', newCount);
+    };
 
     // Derived state directly from props to ensure zero-latency sync across components
     // We default to false/0 if undefined to prevent crashes
     const isFollowing = post.isFollowing || post.user?.isFollowing || false;
     const followersCount = post.user?._count?.followers || 0;
+
+    // DEBUG LOGGING
+    useEffect(() => {
+        console.log(`[MobilePostCard] Post ${post.id} (User: ${post.user?.username}) - isFollowing prop:`, isFollowing);
+    }, [isFollowing, post.id, post.user?.username]);
 
     // Video handling
     const videoRef = useRef(null);
@@ -47,7 +100,7 @@ const MobilePostCard = React.memo(({ post, onInteraction, onFollowChange, onProf
         const now = Date.now();
         if (now - lastClickTime < 300) {
             // Double tap detected
-            if (!isLiked) handleLike();
+            if (!isLiked) handleLike(); // Only trigger like if not already liked
             setShowHeartOverlay(true);
             setTimeout(() => setShowHeartOverlay(false), 1000);
         }
@@ -55,16 +108,31 @@ const MobilePostCard = React.memo(({ post, onInteraction, onFollowChange, onProf
     };
 
     const handleLike = async () => {
-        setIsLiked(!isLiked);
-        setLikesCount(prev => isLiked ? prev - 1 : prev + 1);
+        const token = Cookies.get('synapse_token');
+        const apiUrl = import.meta.env.VITE_API_URL || "https://synapse-backend.pralayd140.workers.dev";
+
+        const newIsLiked = !isLiked;
+        const newLikesCount = newIsLiked ? likesCount + 1 : likesCount - 1;
+
+        // 1. Instant Local Sync
+        setIsLiked(newIsLiked);
+        setLikesCount(newLikesCount);
+
+        // 2. Instant Parent/Cache Sync (Fast-Sync)
+        if (onInteraction) onInteraction(post.id, 'like', newIsLiked);
+
         try {
-            const apiUrl = import.meta.env.VITE_API_URL || "https://synapse-backend.pralayd140.workers.dev";
-            const token = Cookies.get('synapse_token');
             await fetch(`${apiUrl}/api/social/posts/${post.id}/like`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            console.error(err);
+            // Revert all states on failure
+            setIsLiked(!newIsLiked);
+            setLikesCount(likesCount);
+            if (onInteraction) onInteraction(post.id, 'like', !newIsLiked);
+        }
     };
 
     const handleFollow = async (e) => {
@@ -92,7 +160,16 @@ const MobilePostCard = React.memo(({ post, onInteraction, onFollowChange, onProf
             if (!targetId) throw new Error("Target user identity not found");
 
             const apiUrl = import.meta.env.VITE_API_URL || "https://synapse-backend.pralayd140.workers.dev";
+
+            // Priority: Cookie > LocalStorage (to match backend expectation)
             const token = Cookies.get('synapse_token') || localStorage.getItem('synapse_token');
+
+            if (!token) {
+                console.error("Follow Error: No token found");
+                alert("Please log in again to follow users.");
+                throw new Error("No token found");
+            }
+
             const response = await fetch(`${apiUrl}/api/social/users/${targetId}/follow`, {
                 method: 'POST',
                 headers: {
@@ -143,7 +220,7 @@ const MobilePostCard = React.memo(({ post, onInteraction, onFollowChange, onProf
                     }
                 });
             },
-            { threshold: 0.85 }
+            { threshold: 0.5 } // Trigger when 50% visible (Intelligent Scroll)
         );
 
         if (containerRef.current) observer.observe(containerRef.current);
@@ -210,25 +287,28 @@ const MobilePostCard = React.memo(({ post, onInteraction, onFollowChange, onProf
                                 {post.location ? (
                                     <span className="text-[9px] text-white/70">{post.location}</span>
                                 ) : (
-                                    <span className="text-[9px] text-white/70 font-bold uppercase tracking-widest">{followersCount.toLocaleString()} Following</span>
+                                    <span className="text-[9px] text-white/70 font-bold uppercase tracking-widest">{followersCount.toLocaleString()} Followers</span>
                                 )}
                             </div>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
                         {/* Only show follow button if it's not the current user */}
-                        {post.user?.id !== Cookies.get('synapse_userId') && (
-                            <button
-                                onClick={handleFollow}
-                                // disabled={isFollowLoading} // Removed to allow rapid toggling
-                                className={`px-3 py-1 rounded-lg text-[11px] font-bold transition-all border ${isFollowing
-                                    ? 'bg-white/10 border-white/20 text-white'
-                                    : 'bg-emerald-500 border-emerald-400 text-white shadow-[0_0_10px_rgba(16,185,129,0.3)]'
-                                    }`}
-                            >
-                                {isFollowing ? 'Following' : 'Follow'}
-                            </button>
-                        )}
+                        {(() => {
+                            const curId = (currentUser?.id || currentUser?.userId)?.toString();
+                            const postUserId = (post.user?.id || post.user?.userId)?.toString();
+                            return curId !== postUserId && (
+                                <button
+                                    onClick={handleFollow}
+                                    className={`px-3 py-1 rounded-lg text-[11px] font-bold transition-all border ${isFollowing
+                                        ? 'bg-white/10 border-white/20 text-white'
+                                        : 'bg-emerald-500 border-emerald-400 text-white shadow-[0_0_10px_rgba(16,185,129,0.3)]'
+                                        }`}
+                                >
+                                    {isFollowing ? 'Following' : 'Follow'}
+                                </button>
+                            );
+                        })()}
                         <button
                             className="p-2 -mr-2 text-white/90 active:scale-95 transition-transform"
                             onClick={(e) => {
@@ -304,28 +384,57 @@ const MobilePostCard = React.memo(({ post, onInteraction, onFollowChange, onProf
             </div>
 
             {/* Actions */}
-            <div className="px-3 pt-3 pb-2">
-                <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-5">
-                        <button onClick={handleLike} className="active:scale-125 transition-transform duration-200">
-                            <Heart size={26} className={isLiked ? "text-red-500 fill-red-500" : "text-white"} />
-                        </button>
-                        <button className="active:scale-125 transition-transform duration-200">
-                            <MessageCircle size={26} className="text-white" />
-                        </button>
-                        <button className="active:scale-125 transition-transform duration-200">
-                            <Send size={26} className="text-white" />
-                        </button>
+            <div className="px-3 pt-4 pb-2">
+                <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-6">
+                        <PremiumIcon
+                            Icon={Heart}
+                            active={isLiked}
+                            activeColor="text-red-500"
+                            glowColor="rgba(239, 68, 68, 0.4)"
+                            size={24}
+                            count={likesCount}
+                            onClick={handleLike}
+                        />
+                        <PremiumIcon
+                            Icon={MessageCircle}
+                            size={24}
+                            count={commentsCount}
+                            glowColor="rgba(255, 255, 255, 0.2)"
+                            onClick={() => setIsCommentOpen(true)}
+                        />
+                        <PremiumIcon
+                            Icon={Send}
+                            size={24}
+                            count={post.shareCount || 0}
+                            glowColor="rgba(255, 255, 255, 0.2)"
+                            onClick={() => { }}
+                        />
                     </div>
-                    <button onClick={() => setIsSaved(!isSaved)} className="active:scale-125 transition-transform duration-200">
-                        <Bookmark size={26} className={isSaved ? "text-white fill-white" : "text-white"} />
-                    </button>
+                    <PremiumIcon
+                        Icon={Bookmark}
+                        active={isSaved}
+                        activeColor="text-white"
+                        glowColor="rgba(255, 255, 255, 0.3)"
+                        size={24}
+                        onClick={() => setIsSaved(!isSaved)}
+                    />
                 </div>
 
-                {/* Likes */}
-                <div className="text-[13px] font-bold mb-1 tracking-tight">
-                    {likesCount.toLocaleString()} Liked
-                </div>
+                {/* Liker Summary */}
+                {likesCount > 0 && (
+                    <div
+                        onClick={() => setIsLikesOpen(true)}
+                        className="text-[13px] font-medium mb-1.5 tracking-tight text-white/90 cursor-pointer active:opacity-60 transition-opacity"
+                    >
+                        Liked by <span className="font-bold">
+                            {isLiked ? "You" : (latestOtherLiker || "Someone")}
+                        </span>
+                        {likesCount > 1 && (
+                            <> and <span className="font-bold">{likesCount - 1} {likesCount - 1 === 1 ? 'other' : 'others'}</span></>
+                        )}
+                    </div>
+                )}
 
                 {/* Caption */}
                 <div className="text-[13px] leading-snug">
@@ -333,10 +442,23 @@ const MobilePostCard = React.memo(({ post, onInteraction, onFollowChange, onProf
                     <span className="text-gray-200">{post.caption}</span>
                 </div>
 
-                {/* Comments Link */}
-                <button className="text-gray-500 text-[12px] mt-1 font-medium">
-                    View all {post._count?.comments || 0} synapses...
-                </button>
+                <CommentOverlay
+                    isOpen={isCommentOpen}
+                    onClose={() => setIsCommentOpen(false)}
+                    postId={post.id}
+                    postUser={post.user}
+                    commentCount={commentsCount}
+                    onCommentCountChange={handleCommentCountUpdate}
+                />
+
+                <LikesOverlay
+                    isOpen={isLikesOpen}
+                    onClose={() => setIsLikesOpen(false)}
+                    postId={post.id}
+                    onProfileClick={onProfileClick}
+                    isLiked={isLiked}
+                    currentUser={currentUser}
+                />
 
                 {/* Date */}
                 <p className="text-[9px] text-gray-500 mt-1 uppercase font-bold tracking-widest">
