@@ -152,13 +152,13 @@
         @apply text-[9px] uppercase tracking-widest text-gray-500;
     }
 
-    .hide-scrollbar::-webkit-scrollbar {
-        display: none;
-    }
-
-    .hide-scrollbar {
+    .hide-scrollbar, .scrollbar-hide {
         -ms-overflow-style: none;
         scrollbar-width: none;
+    }
+
+    .hide-scrollbar::-webkit-scrollbar, .scrollbar-hide::-webkit-scrollbar {
+        display: none;
     }
 }
 

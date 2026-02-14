@@ -76,7 +76,7 @@ const StoriesRail = React.memo(({ combinedList, currentUser, onStoryClick, onUse
     </div>
 ));
 
-const MobileFeed = ({ posts, stories = [], suggestedUsers = [], myStories = [], currentUser, onStoryClick, onUserProfileClick, onCreateClick, onFollowChange, onOptionsClick }) => {
+const MobileFeed = ({ posts, stories = [], suggestedUsers = [], myStories = [], currentUser, onStoryClick, onUserProfileClick, onCreateClick, onFollowChange, onInteraction, onOptionsClick }) => {
 
     const combinedList = React.useMemo(() => {
         // 1. Filter out 'Me' from Stories
@@ -124,7 +124,7 @@ const MobileFeed = ({ posts, stories = [], suggestedUsers = [], myStories = [], 
     }, [stories, suggestedUsers, myStories, currentUser]);
 
     return (
-        <div className="flex flex-col min-h-screen bg-black pb-16">
+        <div className="flex flex-col min-h-screen bg-black pb-16 scrollbar-hide">
             {/* Stories */}
             <StoriesRail
                 combinedList={combinedList}
@@ -144,6 +144,7 @@ const MobileFeed = ({ posts, stories = [], suggestedUsers = [], myStories = [], 
                             index={index}
                             currentUser={currentUser}
                             onFollowChange={onFollowChange}
+                            onInteraction={onInteraction}
                             onProfileClick={onUserProfileClick}
                             onOptionsClick={onOptionsClick}
                         />

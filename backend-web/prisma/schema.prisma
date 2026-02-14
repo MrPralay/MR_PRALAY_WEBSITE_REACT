@@ -9,69 +9,104 @@ datasource db {
   relationMode = "prisma"
 }
 
-enum Role {
-  USER
-  ADMIN
-}
-
 model User {
-  id            Int           @id @default(autoincrement())
-  email         String        @unique
-  username      String        @unique
+  id            Int                  @id @default(autoincrement())
+  email         String               @unique
+  username      String               @unique
   password      String
   name          String?
-  bio           String?       @default("Quantum Explorer in the SynapseX Realm")
-  profileImage  String?       // No default value as requested
-  role          Role          @default(USER)
-  riskScore     Float?        @default(0.0)
+  bio           String?              @default("Quantum Explorer in the SynapseX Realm")
+  profileImage  String?
+  role          Role                 @default(USER)
+  riskScore     Float?               @default(0.0)
   lastLogin     DateTime?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  isVerified    Boolean              @default(false)
+  otp           String?
+  otpExpires    DateTime?
+  isPrivate     Boolean              @default(false)
   posts         Post[]
   likes         Like[]
   comments      Comment[]
   stories       Story[]
   savedPosts    SavedPost[]
   commentLikes  CommentLike[]
-  followers     Follow[]      @relation("Following")
-  following     Follow[]      @relation("Follower")
+  followers     Follow[]             @relation("Following")
+  following     Follow[]             @relation("Follower")
   sessions      Session[]
   storyViews    StoryView[]
   storyMessages StoryMessage[]
-  isVerified    Boolean       @default(false)
-  isPrivate     Boolean       @default(false)
-  otp           String?
-  otpExpires    DateTime?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  conversations ConversationMember[]
+  messages      Message[]
+  notes         UserNote[]
 }
 
-enum MediaType {
-  IMAGE
-  VIDEO
+model Conversation {
+  id        Int                  @id @default(autoincrement())
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+  members   ConversationMember[]
+  messages  Message[]
+}
+
+model ConversationMember {
+  id             Int          @id @default(autoincrement())
+  userId         Int
+  conversationId Int
+  user           User         @relation(fields: [userId], references: [id])
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, conversationId])
+}
+
+model Message {
+  id             Int          @id @default(autoincrement())
+  content        String
+  userId         Int
+  conversationId Int
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  user           User         @relation(fields: [userId], references: [id])
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+}
+
+model UserNote {
+  id         Int      @id @default(autoincrement())
+  content    String
+  hasMusic   Boolean  @default(false)
+  musicTitle String?
+  musicUrl        String?
+  musicStartTime  Float?   @default(0)
+  userId          Int
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id])
 }
 
 model Post {
-  id            Int         @id @default(autoincrement())
-  caption       String?
-  mediaUrl      String      // Generic URL for both image and video
-  thumbnailUrl  String?     // For video previews
-  type          MediaType   @default(IMAGE)
-  postPassword  String?     // Password protection for specific posts
-  userId        Int
-  user          User        @relation(fields: [userId], references: [id])
-  likes         Like[]
-  comments      Comment[]
-  savedBy       SavedPost[]
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  id           Int         @id @default(autoincrement())
+  caption      String?
+  userId       Int
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  mediaUrl     String
+  postPassword String?
+  thumbnailUrl String?
+  type         MediaType   @default(IMAGE)
+  user         User        @relation(fields: [userId], references: [id])
+  likes        Like[]
+  comments     Comment[]
+  savedBy      SavedPost[]
 }
 
 model Follow {
   id          Int      @id @default(autoincrement())
   followerId  Int
   followingId Int
+  createdAt   DateTime @default(now())
   follower    User     @relation("Follower", fields: [followerId], references: [id])
   following   User     @relation("Following", fields: [followingId], references: [id])
-  createdAt   DateTime @default(now())
 
   @@unique([followerId, followingId])
 }
@@ -80,57 +115,57 @@ model Like {
   id        Int      @id @default(autoincrement())
   userId    Int
   postId    Int
+  createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id])
   post      Post     @relation(fields: [postId], references: [id])
-  createdAt DateTime @default(now())
 
   @@unique([userId, postId])
 }
 
 model Comment {
-  id        Int       @id @default(autoincrement())
+  id        Int           @id @default(autoincrement())
   content   String
   userId    Int
   postId    Int
-  parentId  Int?      // Support for threaded replies
-  user      User      @relation(fields: [userId], references: [id])
-  post      Post      @relation(fields: [postId], references: [id])
-  parent    Comment?  @relation("Replies", fields: [parentId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  replies   Comment[] @relation("Replies")
+  createdAt DateTime      @default(now())
+  parentId  Int?
+  user      User          @relation(fields: [userId], references: [id])
+  post      Post          @relation(fields: [postId], references: [id])
+  parent    Comment?      @relation("Replies", fields: [parentId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  replies   Comment[]     @relation("Replies")
   likes     CommentLike[]
-  createdAt DateTime  @default(now())
 }
 
 model CommentLike {
   id        Int      @id @default(autoincrement())
   userId    Int
   commentId Int
+  createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id])
   comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
 
   @@unique([userId, commentId])
 }
 
 model Story {
-  id        Int       @id @default(autoincrement())
-  mediaUrl  String
-  type      MediaType @default(IMAGE)
+  id        Int            @id @default(autoincrement())
   userId    Int
-  user      User      @relation(fields: [userId], references: [id])
   expiresAt DateTime
-  createdAt DateTime  @default(now())
+  createdAt DateTime       @default(now())
+  mediaUrl  String
+  type      MediaType      @default(IMAGE)
+  user      User           @relation(fields: [userId], references: [id])
   views     StoryView[]
   messages  StoryMessage[]
 }
 
 model StoryView {
-  id        Int      @id @default(autoincrement())
-  storyId   Int
-  userId    Int
-  story     Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  viewedAt  DateTime @default(now())
+  id       Int      @id @default(autoincrement())
+  storyId  Int
+  userId   Int
+  viewedAt DateTime @default(now())
+  story    Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([storyId, userId])
 }
@@ -139,30 +174,40 @@ model StoryMessage {
   id        Int      @id @default(autoincrement())
   content   String
   storyId   Int
+  createdAt DateTime @default(now())
   userId    Int
   story     Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
 }
 
 model SavedPost {
   id        Int      @id @default(autoincrement())
   userId    Int
   postId    Int
+  createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id])
   post      Post     @relation(fields: [postId], references: [id])
-  createdAt DateTime @default(now())
 
   @@unique([userId, postId])
 }
 
 model Session {
-  id           String   @id @default(uuid())
-  userId       Int
-  user         User     @relation(fields: [userId], references: [id])
-  userAgent    String?
-  ipAddress    String?
-  lastActive   DateTime @default(now())
-  createdAt    DateTime @default(now())
-  expiresAt    DateTime
+  id         String   @id @default(uuid())
+  userId     Int
+  userAgent  String?
+  ipAddress  String?
+  lastActive DateTime @default(now())
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
+  user       User     @relation(fields: [userId], references: [id])
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
 }

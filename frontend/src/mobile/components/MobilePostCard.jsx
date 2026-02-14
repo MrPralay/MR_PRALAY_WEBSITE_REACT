@@ -408,7 +408,7 @@ const MobilePostCard = React.memo(({ post, currentUser, onInteraction, onFollowC
                             size={24}
                             count={post.shareCount || 0}
                             glowColor="rgba(255, 255, 255, 0.2)"
-                            onClick={() => { }}
+                            onClick={() => onInteraction && onInteraction(post.id, 'share', post)}
                         />
                     </div>
                     <PremiumIcon

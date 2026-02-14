@@ -73,7 +73,7 @@ const MobileActivity = ({ onBack }) => {
     ];
 
     return (
-        <div className="bg-black min-h-screen text-white pb-20">
+        <div className="bg-black min-h-screen text-white pb-20 scrollbar-hide">
             {/* Header */}
             <div className="sticky top-0 bg-black z-30 px-4 py-3 flex items-center gap-4 border-b border-white/5">
                 <button onClick={onBack}>

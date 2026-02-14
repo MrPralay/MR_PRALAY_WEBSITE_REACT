@@ -15,7 +15,9 @@ import {
     getStoryDetails,
     getExploreFeed,
     toggleCommentLike,
-    getPostLikers
+    getPostLikers,
+    getPost,
+    getPostsBatch
 } from '../controllers/socialController.js';
 import { toggleFollow } from '../controllers/userController.js';
 import authenticateToken from '../middleware/authMiddleware.js';
@@ -29,6 +31,8 @@ social.post('/upload-url', authenticateToken, getUploadUrl);
 
 // Protected Interaction Routes
 social.post('/posts', authenticateToken, createPost);
+social.get('/posts/:id', authenticateToken, getPost);
+social.post('/posts/batch', authenticateToken, getPostsBatch);
 social.post('/posts/:id/like', authenticateToken, toggleLike);
 social.post('/posts/:id/comment', authenticateToken, addComment);
 social.post('/comments/:id/like', authenticateToken, toggleCommentLike);

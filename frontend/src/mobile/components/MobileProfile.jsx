@@ -85,7 +85,7 @@ const MobileProfile = ({ user, currentUser, posts, onUpdateUser, onOpenCreatePos
     };
 
     return (
-        <div className="bg-black min-h-screen text-white pb-20">
+        <div className="bg-black min-h-screen text-white pb-20 scrollbar-hide">
             {/* Header */}
             <div className="sticky top-0 bg-black z-30 flex items-center justify-between px-4 py-3 border-b border-white/10">
                 <div className="flex items-center gap-1">
@@ -229,7 +229,7 @@ const MobileProfile = ({ user, currentUser, posts, onUpdateUser, onOpenCreatePos
             </div>
 
             {/* Content Grid */}
-            <div className="grid grid-cols-3 gap-[1px]">
+            <div className="grid grid-cols-3 gap-[1px] scrollbar-hide">
                 {posts && posts.length > 0 ? (
                     posts.map((post) => (
                         <div key={post.id} className="relative aspect-square bg-gray-900">

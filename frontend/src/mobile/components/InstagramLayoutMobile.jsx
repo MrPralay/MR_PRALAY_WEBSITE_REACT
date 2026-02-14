@@ -11,6 +11,7 @@ import MobilePostOptionsModal from './MobilePostOptionsModal';
 import CreatePostModal from '../../components/Social/CreatePostModal';
 import CreateStoryModal from '../../components/Social/CreateStoryModal';
 import StoryViewer from '../../components/Social/StoryViewer';
+import SharePostModal from './SharePostModal';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Home, Search, PlusSquare, Heart, User, LogOut, X, MessageCircle, Clapperboard } from 'lucide-react';
 
@@ -29,6 +30,7 @@ const InstagramLayoutMobile = ({ currentUser, onLogout }) => {
     const [loading, setLoading] = useState(true);
     const [isPostModalOpen, setIsPostModalOpen] = useState(false);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
+    const [sharePost, setSharePost] = useState(null);
 
     // Intelligent Navbar Logic
     const [isNavVisible, setIsNavVisible] = useState(true);
@@ -204,6 +206,43 @@ const InstagramLayoutMobile = ({ currentUser, onLogout }) => {
 
     // --- END FETCH LOGIC ---
 
+    // --- INBOX PRE-FETCH (Neural Warm-up) ---
+    useEffect(() => {
+        const prefetchInbox = async () => {
+            const apiUrl = import.meta.env.VITE_API_URL || "https://synapse-backend.pralayd140.workers.dev";
+            const token = Cookies.get('synapse_token') || localStorage.getItem('synapse_token');
+            if (!token) return;
+
+            try {
+                const [notesRes, convRes] = await Promise.all([
+                    fetch(`${apiUrl}/api/messages/notes`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    }).then(r => r.json()),
+                    fetch(`${apiUrl}/api/messages/conversations`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    }).then(r => r.json())
+                ]);
+
+                if (notesRes.success && convRes.success) {
+                    const cachePacket = {
+                        notes: notesRes.notes,
+                        conversations: convRes.conversations,
+                        shuffledUsers: notesRes.shuffledUsers || [],
+                        lastFetched: Date.now()
+                    };
+                    saveToCache('inbox_main_data', cachePacket);
+                    console.log("Neural Warm-up: Inbox data pre-fetched successfully.");
+                }
+            } catch (err) {
+                console.warn("Neural Warm-up Failure:", err);
+            }
+        };
+
+        // Delay pre-fetch slightly to prioritize main feed loading
+        const timer = setTimeout(prefetchInbox, 2000);
+        return () => clearTimeout(timer);
+    }, [currentUserState.id]);
+
     // Handlers
     const handleViewMyProfile = () => {
         setUserProfile(currentUserState);
@@ -295,6 +334,15 @@ const InstagramLayoutMobile = ({ currentUser, onLogout }) => {
                 return post;
             });
             saveToCache('synapse_feed_posts', updatedCache);
+        }
+    };
+
+    const handleInteraction = (postId, type, value) => {
+        if (type === 'share') {
+            setSharePost(value);
+        } else if (type === 'like' || type === 'comment') {
+            // Existing logic for likes/comments already updates the posts state via subcomponents
+            // But we can add generic handling here if needed
         }
     };
 
@@ -393,7 +441,7 @@ const InstagramLayoutMobile = ({ currentUser, onLogout }) => {
     );
 
     return (
-        <div className="bg-[#050505] min-h-screen text-white pb-20"> {/* pb-20 for bottom nav */}
+        <div className="bg-[#050505] min-h-screen text-white pb-20 scrollbar-hide"> {/* pb-20 for bottom nav */}
             {/* Top Bar for Mobile */}
             {/* Top Bar for Mobile */}
             {view !== 'inbox' && view !== 'activity' && view !== 'reels' && view !== 'explore' && view !== 'setting' && ( // Hide top bar on specialized views
@@ -406,7 +454,10 @@ const InstagramLayoutMobile = ({ currentUser, onLogout }) => {
                         </div>
                         <div className="relative cursor-pointer" onClick={() => handleNavigation('inbox')}>
                             <MessageCircle className="w-6 h-6" />
-                            <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center text-[8px] font-bold">2</span>
+                            {/* In a real app, we'd fetch this. For now, let's keep it subtle or dynamic if we have convo data */}
+                            <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center text-[8px] font-bold">
+                                {loadFromCache('synapse_unread_count') || "!"}
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -424,6 +475,7 @@ const InstagramLayoutMobile = ({ currentUser, onLogout }) => {
                                 currentUser={currentUserState}
                                 onCreateClick={handleAddStoryClick}
                                 onFollowChange={handleFollowChange}
+                                onInteraction={handleInteraction}
                                 onOptionsClick={handleOptionsClick}
                                 onStoryClick={(item) => {
                                     const userStories = allStories.filter(s => s.userId === item.userId);
@@ -566,6 +618,17 @@ const InstagramLayoutMobile = ({ currentUser, onLogout }) => {
                             setUserProfile(user);
                             handleNavigation('profile');
                         }}
+                    />
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {sharePost && (
+                    <SharePostModal
+                        isOpen={!!sharePost}
+                        onClose={() => setSharePost(null)}
+                        post={sharePost}
+                        currentUser={currentUserState}
                     />
                 )}
             </AnimatePresence>

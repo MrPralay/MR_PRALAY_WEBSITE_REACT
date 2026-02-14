@@ -276,7 +276,7 @@ const MobileSearch = ({ onUserProfileClick }) => {
     };
 
     return (
-        <div className="bg-black min-h-screen text-white pb-20">
+        <div className="bg-black min-h-screen text-white pb-20 scrollbar-hide">
             {/* Search Bar */}
             <div className="sticky top-0 bg-black z-30 px-3 py-2 border-b border-white/10">
                 <div className="bg-[#262626] rounded-xl flex items-center px-4 py-2 gap-3">

@@ -674,3 +674,71 @@ export const getPostLikers = async (c) => {
         return c.json({ success: false, error: "Failed to load likers" }, 500);
     }
 };
+
+export const getPost = async (c) => {
+    try {
+        const postId = parseInt(c.req.param('id'));
+        if (isNaN(postId)) return c.json({ success: false, error: "Invalid post ID" }, 400);
+
+        const prisma = getPrisma(c.env.DATABASE_URL);
+        const post = await prisma.post.findUnique({
+            where: { id: postId },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        username: true,
+                        name: true,
+                        profileImage: true
+                    }
+                },
+                _count: {
+                    select: {
+                        likes: true,
+                        comments: true
+                    }
+                }
+            }
+        });
+
+        if (!post) return c.json({ success: false, error: "Post deleted or missing" }, 404);
+
+        return c.json({ success: true, data: post });
+    } catch (error) {
+        console.error("Get Single Post Error:", error);
+        return c.json({ success: false, error: "Failed to retrieve neural post" }, 500);
+    }
+};
+
+export const getPostsBatch = async (c) => {
+    try {
+        const { ids } = await c.req.json();
+        if (!ids || !Array.isArray(ids)) return c.json({ success: false, error: "Invalid IDs packet" }, 400);
+
+        const prisma = getPrisma(c.env.DATABASE_URL);
+        const posts = await prisma.post.findMany({
+            where: { id: { in: ids.map(id => parseInt(id)) } },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        username: true,
+                        name: true,
+                        profileImage: true
+                    }
+                },
+                _count: {
+                    select: {
+                        likes: true,
+                        comments: true
+                    }
+                }
+            }
+        });
+
+        return c.json({ success: true, data: posts });
+    } catch (error) {
+        console.error("Batch Post Retrieval Error:", error);
+        return c.json({ success: false, error: "Neural Batch fetch failed" }, 500);
+    }
+};

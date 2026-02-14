@@ -8,6 +8,7 @@ import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import socialRoutes from './routes/socialRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
+import messageRoutes from './routes/messageRoutes.js';
 import getPrisma from './prisma/db.js';
 
 const app = new Hono();
@@ -82,5 +83,6 @@ app.route('/api/auth', authRoutes);
 app.route('/api/user', userRoutes);
 app.route('/api/social', socialRoutes);
 app.route('/api/admin', adminRoutes);
+app.route('/api/messages', messageRoutes);
 
 export default app;
