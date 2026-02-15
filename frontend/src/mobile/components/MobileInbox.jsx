@@ -1264,20 +1264,25 @@ const ChatThread = ({ chat: initialChat, onBack, currentUser, onUserProfileClick
     const apiUrl = import.meta.env.VITE_API_URL || "https://synapse-backend.pralayd140.workers.dev";
     const token = Cookies.get('synapse_token') || localStorage.getItem('synapse_token');
 
-    // Update local chat if prop changes (e.g. from inbox polling)
-    useEffect(() => {
-        if (initialChat?.id !== chat?.id) {
-            setChat(initialChat);
-        }
-    }, [initialChat, chat?.id]);
+    // Neural Messaging Refs
+    const isTypingActive = useRef(false);
+    const lastTypingSent = useRef(0);
+    const localTypingTimeoutRef = useRef(null);
+
+    // --- NUCLEAR TYPING ENGINE: Isolated State & Forced Failsafe ---
+    const [remoteIsTyping, setRemoteIsTyping] = useState(false);
+    const [isStreamActive, setIsStreamActive] = useState(false);
+    const typingTimeoutRef = useRef(null);
 
 
-    const fetchMessages = useCallback(async () => {
-        if (!chat.id) return; // Skip if it's a new unsaved thread
+
+    const fetchMessages = useCallback(async (forcedId = null) => {
+        const activeId = forcedId || chat.id;
+        if (!activeId) return; // Skip if it's a new unsaved thread
         try {
             // CACHE-BUSTER PROTOCOL: Unique timestamp to bypass every possible intermediate cache
             const cacheBuster = `t=${Date.now()}`;
-            const res = await fetch(`${apiUrl}/api/messages/conversations/${chat.id}/messages?${cacheBuster}`, {
+            const res = await fetch(`${apiUrl}/api/messages/conversations/${activeId}/messages?${cacheBuster}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -1343,16 +1348,21 @@ const ChatThread = ({ chat: initialChat, onBack, currentUser, onUserProfileClick
                 if (sharedPostIds.length > 0) {
                     await fetchBatchPosts(sharedPostIds, apiUrl, token);
                 }
-
-                // NEURAL TYPING CHECK: Sync typing status with the 300ms pulse
-                if (data.isTyping !== undefined) {
-                    setChat(prev => ({ ...prev, isTyping: data.isTyping }));
-                }
             }
         } catch (err) {
             console.error("Fetch Messages Error:", err);
         }
     }, [apiUrl, token, chat.id]);
+
+    // Update local chat if prop changes (e.g. from inbox polling)
+    useEffect(() => {
+        // Only accept ID synchronization if the parent provides a VALID new ID
+        if (initialChat?.id && initialChat.id !== chat?.id) {
+            setChat(initialChat);
+            // Re-fetch messages if the ID changed to stay in sync with server
+            fetchMessages();
+        }
+    }, [initialChat?.id, chat?.id, fetchMessages]);
 
     // NEURAL STATUS REFRESH: Keep the recipient's status live in the header
     useEffect(() => {
@@ -1373,8 +1383,7 @@ const ChatThread = ({ chat: initialChat, onBack, currentUser, onUserProfileClick
                     if (currentConv && currentConv.user) {
                         setChat(prev => ({
                             ...prev,
-                            user: { ...prev.user, lastSeen: currentConv.user.lastSeen },
-                            isTyping: currentConv.isTyping
+                            user: { ...prev.user, lastSeen: currentConv.user.lastSeen }
                         }));
                     }
                 }
@@ -1393,34 +1402,114 @@ const ChatThread = ({ chat: initialChat, onBack, currentUser, onUserProfileClick
         const pulse = async () => {
             if (!isActive) return;
             await fetchMessages();
-            // RECURSIVE ULTRA-PULSE: 300ms delay between completions
-            if (isActive) setTimeout(pulse, 300);
+            // INSTAGRAM-STYLE DYNAMIC POLL: 1.5s if offline, 4s if SSE is active (to save battery)
+            const nextPulse = isStreamActive ? 4000 : 1500;
+            if (isActive) setTimeout(pulse, nextPulse);
         };
 
         pulse();
         return () => { isActive = false; };
-    }, [fetchMessages]);
+    }, [fetchMessages, isStreamActive]);
 
-    // NEURAL TYPING ENGINE: Emit signal every 2s while typing
-    const lastTypingSent = useRef(0);
+
     useEffect(() => {
-        if (!input.trim() || !chat.id) return;
-        const now = Date.now();
-        if (now - lastTypingSent.current > 2000) {
-            lastTypingSent.current = now;
-            fetch(`${apiUrl}/api/messages/typing`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ conversationId: chat.id, isTyping: true })
-            }).catch(() => { });
-        }
-    }, [input, chat.id, apiUrl, token]);
+        if (!chat.id) return;
 
-    // flex-col-reverse ensures we stay at the bottom naturally
+        let eventSource;
 
+        const connectSSE = (retryCount = 0) => {
+            if (!chat.id) return;
+            if (eventSource && eventSource.readyState !== EventSource.CLOSED) return;
+
+            console.log(`🔌 [Neural Engine] SSE Attempting Connection (Retry: ${retryCount})...`);
+            const sseUrl = `${apiUrl}/api/messages/typing/stream/${chat.id}?token=${token}`;
+            eventSource = new EventSource(sseUrl, { withCredentials: true });
+
+            eventSource.onopen = () => {
+                console.log("⚡ [Neural Engine] SSE Stream Active.");
+                setIsStreamActive(true);
+            };
+
+            eventSource.addEventListener('typing', (e) => {
+                try {
+                    const data = JSON.parse(e.data);
+                    if (data.userId != (currentUser.id || currentUser.userId)) {
+                        setRemoteIsTyping(data.isTyping);
+                        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+                        if (data.isTyping) {
+                            typingTimeoutRef.current = setTimeout(() => {
+                                setRemoteIsTyping(false);
+                            }, 3000);
+                        }
+                    }
+                } catch (err) { }
+            });
+
+            eventSource.addEventListener('new_message', (e) => {
+                try {
+                    const data = JSON.parse(e.data);
+                    if (data.message && data.message.userId != (currentUser.id || currentUser.userId)) {
+                        setMessages(prev => {
+                            if (prev.some(m => m.id === data.message.id)) return prev;
+                            return [...prev, data.message].sort((a, b) =>
+                                new Date(a.createdAt) - new Date(b.createdAt)
+                            );
+                        });
+                    }
+                } catch (err) { }
+            });
+
+            eventSource.onerror = (err) => {
+                console.warn("🛑 [Neural Engine] SSE Dropped. Retrying...");
+                setIsStreamActive(false);
+                if (eventSource) {
+                    eventSource.close();
+                    eventSource = null;
+                }
+                // INSTAGRAM-STYLE: Exponential backoff (max 10s)
+                const nextRetry = Math.min(Math.pow(2, retryCount) * 1000, 10000);
+                setTimeout(() => connectSSE(retryCount + 1), nextRetry);
+            };
+        };
+
+        // NUCLEAR FALLBACK & RECOVERY
+        const forcedPoll = async () => {
+            if (!chat.id) return;
+            try {
+                const res = await fetch(`${apiUrl}/api/messages/typing/${chat.id}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (data.success) setRemoteIsTyping(data.isTyping);
+            } catch (e) { }
+        };
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                console.log("🌟 [Neural Engine] App focused, triggering fast sync...");
+                fetchMessages();
+                if (eventSource?.readyState !== EventSource.OPEN) connectSSE();
+            }
+        };
+
+        const handleOnline = () => {
+            console.log("🌐 [Neural Engine] Network restored, re-linking...");
+            connectSSE();
+            fetchMessages();
+        };
+
+        window.addEventListener('online', handleOnline);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        connectSSE();
+        const pollInterval = setInterval(forcedPoll, 2000); // Stable 2s fallback
+
+        return () => {
+            if (eventSource) eventSource.close();
+            clearInterval(pollInterval);
+            window.removeEventListener('online', handleOnline);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, [chat.id, apiUrl, token]);
 
     const handleSend = async () => {
         if (!input.trim()) return;
@@ -1435,6 +1524,15 @@ const ChatThread = ({ chat: initialChat, onBack, currentUser, onUserProfileClick
         const tempInput = input;
         setInput('');
 
+        // INSTANT STOP: Send false signal immediately on send
+        if (isTypingActive.current) {
+            isTypingActive.current = false;
+            if (localTypingTimeoutRef.current) clearTimeout(localTypingTimeoutRef.current);
+            fetch(`${apiUrl}/api/messages/typing/${chat.id}?pulse=true&isTyping=false&t=${Date.now()}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            }).catch(() => { });
+        }
+
         try {
             const res = await fetch(`${apiUrl}/api/messages/send`, {
                 method: 'POST',
@@ -1443,7 +1541,7 @@ const ChatThread = ({ chat: initialChat, onBack, currentUser, onUserProfileClick
                     'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
-                    conversationId: chat.id, // might be null
+                    conversationId: chat.id,
                     content: tempInput,
                     receiverId: chat.user.id || chat.user.userId
                 })
@@ -1453,16 +1551,15 @@ const ChatThread = ({ chat: initialChat, onBack, currentUser, onUserProfileClick
                 setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id));
                 setInput(tempInput);
             } else {
-                // NEURAL PERSISTENCE: Replace optimistic message with actual data immediately
                 setMessages(prev => prev.map(m => m.id === optimisticMsg.id ? data.message : m));
 
-                // If this was a new thread, it now has an ID!
+                // NEURAL BURST: Instant sync after successful send
+                fetchMessages();
+
                 if (!chat.id && data.message.conversationId) {
                     setChat(prev => ({ ...prev, id: data.message.conversationId }));
+                    fetchMessages(data.message.conversationId);
                 }
-
-                // We call fetchMessages for total state sync, but the merge logic will prevent flickering
-                fetchMessages();
             }
         } catch (err) {
             console.error("Send Error:", err);
@@ -1502,7 +1599,7 @@ const ChatThread = ({ chat: initialChat, onBack, currentUser, onUserProfileClick
                         />
                         <div className="flex flex-col cursor-pointer" onClick={() => onUserProfileClick && onUserProfileClick(chat.user)}>
                             <span className="text-sm font-bold truncate leading-none">{chat.user.username}</span>
-                            {chat.isTyping ? (
+                            {remoteIsTyping ? (
                                 <div className="flex items-center space-x-1 h-3 mt-1">
                                     <div className="w-1 h-1 bg-[#0095f6] rounded-full animate-bounce [animation-delay:-0.3s]"></div>
                                     <div className="w-1 h-1 bg-[#0095f6] rounded-full animate-bounce [animation-delay:-0.15s]"></div>
@@ -1617,7 +1714,43 @@ const ChatThread = ({ chat: initialChat, onBack, currentUser, onUserProfileClick
                     <input
                         type="text"
                         value={input}
-                        onChange={(e) => setInput(e.target.value)}
+                        onChange={(e) => {
+                            const val = e.target.value;
+                            setInput(val);
+
+                            // DIRECT TRIGGER ENGINE
+                            if (chat.id) {
+                                const now = Date.now();
+                                if (val.trim().length > 0) {
+                                    // 1. Reset Inactivity Timer
+                                    if (localTypingTimeoutRef.current) clearTimeout(localTypingTimeoutRef.current);
+                                    localTypingTimeoutRef.current = setTimeout(() => {
+                                        if (isTypingActive.current) {
+                                            isTypingActive.current = false;
+                                            fetch(`${apiUrl}/api/messages/typing/${chat.id}?pulse=true&isTyping=false&t=${Date.now()}`, {
+                                                headers: { 'Authorization': `Bearer ${token}` }
+                                            }).catch(() => { });
+                                        }
+                                    }, 800); // ULTRA-SHARPEN: 800ms of silence = stop
+
+                                    // 2. Dispatch Start Pulse (Throttled)
+                                    if (!isTypingActive.current || now - lastTypingSent.current > 1000) {
+                                        lastTypingSent.current = now;
+                                        isTypingActive.current = true;
+                                        fetch(`${apiUrl}/api/messages/typing/${chat.id}?pulse=true&isTyping=true&t=${now}`, {
+                                            headers: { 'Authorization': `Bearer ${token}` }
+                                        }).catch(() => { });
+                                    }
+                                } else if (isTypingActive.current) {
+                                    // 3. Instant Stop on Clear
+                                    if (localTypingTimeoutRef.current) clearTimeout(localTypingTimeoutRef.current);
+                                    isTypingActive.current = false;
+                                    fetch(`${apiUrl}/api/messages/typing/${chat.id}?pulse=true&isTyping=false&t=${now}`, {
+                                        headers: { 'Authorization': `Bearer ${token}` }
+                                    }).catch(() => { });
+                                }
+                            }
+                        }}
                         onKeyPress={(e) => e.key === 'Enter' && handleSend()}
                         placeholder="Message..."
                         className="bg-transparent text-white placeholder-gray-500 text-[15px] w-full focus:outline-none py-2.5"

@@ -9,10 +9,19 @@ const authenticateToken = async (c, next) => {
     // 2. Fallback to Cookie (Professional way)
     const cookieToken = getCookie(c, 'synapse_token');
 
-    // Prioritize header and ensure no empty strings clash with logic
-    const token = (headerToken && headerToken !== "") ? headerToken : (cookieToken && cookieToken !== "" ? cookieToken : null);
+    // 3. Fallback to Query Param (Essential for SSE/EventSource which can't set headers)
+    const queryToken = c.req.query('token');
+
+    // Prioritize header -> cookie -> query
+    const toxicStrings = ['undefined', 'null', '', 'NaN'];
+    const isValid = (t) => t && typeof t === 'string' && !toxicStrings.includes(t);
+
+    const token = isValid(headerToken) ? headerToken :
+        (isValid(cookieToken) ? cookieToken :
+            (isValid(queryToken) ? queryToken : null));
 
     if (!token) {
+        console.warn(`[Neural Sync Failure] 401: Authorization missing or toxic. Header: ${headerToken}, Cookie: ${cookieToken}, Query: ${queryToken}`);
         return c.json({ success: false, error: "Neural authorization missing" }, 401);
     }
 
@@ -21,7 +30,7 @@ const authenticateToken = async (c, next) => {
 
         // Diagnostic log: Only in development
         if (c.env.NODE_ENV === 'development') {
-            console.log(`[Auth Diagnostic]: Verifying token. Token Source: ${headerToken ? 'Header' : 'Cookie'}`);
+            console.log(`[Auth Diagnostic]: Verifying token. Source: ${headerToken ? 'Header' : (cookieToken ? 'Cookie' : (queryToken ? 'Query' : 'None'))}`);
         }
 
         const user = jwt.verify(token, secret);
@@ -29,8 +38,8 @@ const authenticateToken = async (c, next) => {
         await next();
     } catch (err) {
         console.error(`[Auth Failure]: ${err.message}`, {
-            tokenType: headerToken ? 'Header' : 'Cookie',
-            secretLength: (c.env.JWT_SECRET || 'fallback_secret').length
+            tokenStart: token.substring(0, 10),
+            error: err.message
         });
         return c.json({
             success: false,

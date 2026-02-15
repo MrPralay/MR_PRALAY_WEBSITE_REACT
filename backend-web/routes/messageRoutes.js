@@ -7,7 +7,9 @@ import {
     getNotes,
     createNote,
     deleteNote,
-    updateTypingStatus
+    updateTypingStatus,
+    getTypingStatus,
+    streamTyping
 } from '../controllers/messageController.js';
 import authenticateToken from '../middleware/authMiddleware.js';
 
@@ -23,6 +25,9 @@ messages.get('/conversations', authenticateToken, getConversations);
 messages.get('/conversations/:id/messages', authenticateToken, getMessages);
 messages.post('/send', authenticateToken, sendMessage);
 messages.post('/typing', authenticateToken, updateTypingStatus);
+messages.get('/typing/pulse', authenticateToken, updateTypingStatus); // GET Pulse (Specific route must come first)
+messages.get('/typing/:conversationId', authenticateToken, getTypingStatus); // Restored Generic Fallback
+messages.get('/typing/stream/:conversationId', authenticateToken, streamTyping); // SSE Stream
 messages.delete('/:id', authenticateToken, deleteMessage);
 
 export default messages;

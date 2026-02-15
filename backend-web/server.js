@@ -13,16 +13,17 @@ import getPrisma from './prisma/db.js';
 
 const app = new Hono();
 
+// Force rebuild tracer: 1
+
 // 1. UNIVERSAL CORS (Hono Official Middleware)
 // This is the most reliable way to handle CORS in Hono/Workers
 app.use('*', cors({
     origin: (origin) => {
-        // Echo back the origin to support credentials: true
-        // If no origin (direct access), use allow-all
-        return origin || '*';
+        // Echo origin exactly. Never return '*' when credentials: true
+        return origin;
     },
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Cache-Control', 'Pragma', 'Expires'],
+    allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Cache-Control', 'Pragma', 'Expires', 'token'],
     exposeHeaders: ['Content-Length', 'X-Synapse-Debug'],
     maxAge: 86400,
     credentials: true,
@@ -30,6 +31,12 @@ app.use('*', cors({
 
 app.use('*', logger());
 app.use('*', prettyJSON());
+
+// Debug Middleware
+app.use('*', async (c, next) => {
+    console.log(`[Incoming Request] ${c.req.method} ${c.req.url}`);
+    await next();
+});
 
 // 2. DIAGNOSTIC ROUTES
 app.get('/api/debug-env', (c) => {

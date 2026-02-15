@@ -166,6 +166,24 @@ export const sendMessage = async (c) => {
             data: { updatedAt: new Date() }
         });
 
+        // NEURAL BROADCAST: Push new message to all SSE subscribers
+        const convIdStr = String(finalConvId);
+        if (typingSubscribers.has(convIdStr)) {
+            const subscribers = typingSubscribers.get(convIdStr);
+            subscribers.forEach(async (stream) => {
+                try {
+                    await stream.writeSSE({
+                        data: JSON.stringify({
+                            conversationId: convIdStr,
+                            message
+                        }),
+                        event: 'new_message',
+                        id: String(Date.now())
+                    });
+                } catch (e) { }
+            });
+        }
+
         return c.json({ success: true, message });
     } catch (err) {
         return c.json({ success: false, error: err.message }, 500);
@@ -275,25 +293,191 @@ export const deleteNote = async (c) => {
     }
 };
 
+import { streamSSE } from 'hono/streaming';
+
+// --- Global SSE Connection Tracking (In-Memory for Single Instance) ---
+// Map<conversationId, Set<Controller>>
+// --- Global SSE Connection Tracking ---
+const typingSubscribers = new Map();
+
+// Map<conversationId, Map<userId, { isTyping: boolean, expires: number }>>
+const typingCache = new Map();
+
 export const updateTypingStatus = async (c) => {
     const prisma = getPrisma(c.env.DATABASE_URL);
     const userId = c.get('user').userId;
-    const { conversationId, isTyping } = await c.req.json();
+
+    let conversationId, isTyping;
+    if (c.req.method === 'GET') {
+        conversationId = c.req.query('conversationId');
+        isTyping = c.req.query('isTyping') === 'true';
+    } else {
+        const body = await c.req.json();
+        conversationId = body.conversationId;
+        isTyping = body.isTyping;
+    }
+
+    const convIdStr = String(conversationId);
 
     try {
-        await prisma.conversationMember.update({
-            where: {
-                userId_conversationId: {
-                    userId,
-                    conversationId: parseInt(conversationId)
-                }
-            },
-            data: {
-                typingUntil: isTyping ? new Date(Date.now() + 3000) : null
-            }
+        // 1. Update Relay Cache (User-Aware Instant)
+        if (!typingCache.has(convIdStr)) {
+            typingCache.set(convIdStr, new Map());
+        }
+        typingCache.get(convIdStr).set(userId, {
+            isTyping,
+            expires: Date.now() + 2500
         });
+
+        // 2. NEURAL OPTIMIZATION: Broadcast IMMEDIATELY (Fire & Forget)
+        if (typingSubscribers.has(convIdStr)) {
+            const subscribers = typingSubscribers.get(convIdStr);
+            subscribers.forEach(async (stream) => {
+                try {
+                    await stream.writeSSE({
+                        data: JSON.stringify({
+                            conversationId: convIdStr,
+                            userId,
+                            isTyping
+                        }),
+                        event: 'typing',
+                        id: String(Date.now())
+                    });
+                } catch (e) { }
+            });
+        }
+
+        // 3. Update DB (Persistence) - NON-BLOCKING
+        c.executionCtx.waitUntil(
+            prisma.conversationMember.update({
+                where: {
+                    userId_conversationId: {
+                        userId,
+                        conversationId: parseInt(conversationId)
+                    }
+                },
+                data: {
+                    typingUntil: isTyping ? new Date(Date.now() + 2000) : null
+                }
+            }).catch(err => console.error("[Neural Flow] Background DB Error:", err))
+        );
+
         return c.json({ success: true });
     } catch (err) {
         return c.json({ success: false, error: err.message }, 500);
     }
+};
+
+export const getTypingStatus = async (c) => {
+    const prisma = getPrisma(c.env.DATABASE_URL);
+    const conversationId = c.req.param('conversationId');
+    const convIdStr = String(conversationId);
+
+    // NEURAL PULSE ENGINE: Check if this is a broadcast request
+    const isPulse = c.req.query('pulse') === 'true';
+    if (isPulse) {
+        const isTyping = c.req.query('isTyping') === 'true';
+        const userId = c.get('user').userId;
+
+        // 1. Update Relay Cache (User-Aware Instant)
+        if (!typingCache.has(convIdStr)) {
+            typingCache.set(convIdStr, new Map());
+        }
+        typingCache.get(convIdStr).set(userId, {
+            isTyping,
+            expires: Date.now() + 2500
+        });
+
+        // 2. Broadcast to SSE
+        if (typingSubscribers.has(convIdStr)) {
+            const subscribers = typingSubscribers.get(convIdStr);
+            subscribers.forEach(async (stream) => {
+                try {
+                    await stream.writeSSE({
+                        data: JSON.stringify({ conversationId: convIdStr, userId, isTyping }),
+                        event: 'typing',
+                        id: String(Date.now())
+                    });
+                } catch (e) { }
+            });
+        }
+
+        // 3. Background DB Sync
+        c.executionCtx.waitUntil(
+            prisma.conversationMember.update({
+                where: { userId_conversationId: { userId, conversationId: parseInt(conversationId) } },
+                data: { typingUntil: isTyping ? new Date(Date.now() + 2000) : null }
+            }).catch(e => console.error("[Neural Flow] Pulse DB Error:", e))
+        );
+
+        return c.json({ success: true });
+    }
+
+    // NORMAL POLLING LOGIC
+    const convCache = typingCache.get(convIdStr);
+    const userId = c.get('user').userId;
+
+    if (convCache) {
+        // Find if ANY user other than the requester is currently typing
+        let otherTyping = false;
+        const now = Date.now();
+        for (const [uId, status] of convCache.entries()) {
+            if (uId != userId && status.isTyping && status.expires > now) {
+                otherTyping = true;
+                break;
+            }
+        }
+        if (otherTyping) {
+            return c.json({ success: true, isTyping: true });
+        }
+    }
+
+    try {
+        const otherMember = await prisma.conversationMember.findFirst({
+            where: {
+                conversationId: parseInt(conversationId),
+                userId: { not: c.get('user').userId }
+            },
+            select: { typingUntil: true }
+        });
+        const isTyping = otherMember?.typingUntil ? new Date(otherMember.typingUntil) > new Date() : false;
+        return c.json({ success: true, isTyping });
+    } catch (err) {
+        return c.json({ success: false, error: err.message }, 500);
+    }
+};
+
+export const streamTyping = async (c) => {
+    const conversationId = c.req.param('conversationId');
+    const convIdStr = String(conversationId);
+
+    return streamSSE(c, async (stream) => {
+        // 1. Maintain Connection State
+        if (!typingSubscribers.has(convIdStr)) {
+            typingSubscribers.set(convIdStr, new Set());
+        }
+        const subscribers = typingSubscribers.get(convIdStr);
+        subscribers.add(stream);
+
+        // 2. Heartbeat Engine (Prevent Mobile Sleep)
+        const heartbeat = setInterval(async () => {
+            try {
+                await stream.writeSSE({ data: "heartbeat", event: "ping" });
+            } catch (e) {
+                clearInterval(heartbeat);
+                subscribers.delete(stream);
+            }
+        }, 15000);
+
+        // 3. Keep connection alive
+        stream.onAbort(() => {
+            clearInterval(heartbeat);
+            subscribers.delete(stream);
+        });
+
+        // 4. Infinite sleep to keep the stream open
+        while (true) {
+            await new Promise((r) => setTimeout(r, 60000));
+        }
+    });
 };
