@@ -9,7 +9,7 @@ const isVideo = (url) => {
     return url.match(/\.(mp4|webm|mov|m4v|m3u8|ogv)$|video/i);
 };
 
-const MobileProfile = ({ user, currentUser, posts, onUpdateUser, onOpenCreatePost, onNavigate, onFollowChange }) => {
+const MobileProfile = ({ user, currentUser, posts, onUpdateUser, onOpenCreatePost, onNavigate, onFollowChange, onMessageClick }) => {
     const currentUserIdFromStorage = Cookies.get('synapse_userId') || (localStorage.getItem('synapse_user_data') ? JSON.parse(localStorage.getItem('synapse_user_data')).id : null);
     const profileId = user?.id || user?.userId;
     const isMe = currentUserIdFromStorage?.toString() === profileId?.toString();
@@ -179,7 +179,7 @@ const MobileProfile = ({ user, currentUser, posts, onUpdateUser, onOpenCreatePos
                             >
                                 {isFollowing ? 'Following' : 'Follow'}
                             </button>
-                            <button className="flex-1 bg-white/10 py-2 rounded-lg active:bg-white/20 font-bold">Message</button>
+                            <button onClick={() => onMessageClick && onMessageClick(user)} className="flex-1 bg-white/10 py-2 rounded-lg active:bg-white/20 font-bold">Message</button>
                         </>
                     )}
                 </div>

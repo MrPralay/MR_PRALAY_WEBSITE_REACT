@@ -31,6 +31,7 @@ const InstagramLayoutMobile = ({ currentUser, onLogout }) => {
     const [isPostModalOpen, setIsPostModalOpen] = useState(false);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const [sharePost, setSharePost] = useState(null);
+    const [chatIntent, setChatIntent] = useState(null);
 
     // Intelligent Navbar Logic
     const [isNavVisible, setIsNavVisible] = useState(true);
@@ -530,7 +531,16 @@ const InstagramLayoutMobile = ({ currentUser, onLogout }) => {
 
                     {view === 'inbox' && (
                         <motion.div key="inbox" initial={{ opacity: 1, x: '100%' }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 1, x: '100%' }} transition={{ type: 'spring', damping: 25, stiffness: 200 }} className="fixed inset-0 z-[60] bg-black">
-                            <MobileInbox onBack={() => handleNavigation('feed')} currentUser={currentUserState} />
+                            <MobileInbox
+                                onBack={() => handleNavigation('feed')}
+                                currentUser={currentUserState}
+                                onUserProfileClick={(user) => {
+                                    setUserProfile(user);
+                                    handleNavigation('profile');
+                                }}
+                                chatIntent={chatIntent}
+                                onConsumeIntent={() => setChatIntent(null)}
+                            />
                         </motion.div>
                     )}
 
@@ -556,6 +566,10 @@ const InstagramLayoutMobile = ({ currentUser, onLogout }) => {
                                 onNavigate={setView}
                                 onFollowChange={handleFollowChange}
                                 onOptionsClick={handleOptionsClick}
+                                onMessageClick={(user) => {
+                                    setChatIntent(user);
+                                    handleNavigation('inbox');
+                                }}
                             />
                         </motion.div>
                     )}

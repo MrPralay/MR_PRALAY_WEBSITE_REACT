@@ -33,7 +33,43 @@ const isVideo = (url) => {
     return url.match(/\.(mp4|webm|mov|m4v|m3u8|ogv)$|video/i);
 };
 
-const ProfileImage = ({ src, username, size = "md", className = "" }) => {
+const formatLastActive = (lastSeen) => {
+    if (!lastSeen) return { text: "Offline", isActive: false };
+    const now = new Date();
+    const seen = new Date(lastSeen);
+    const diffInSeconds = Math.floor((now - seen) / 1000);
+
+    if (diffInSeconds < 60) return { text: "Active now", isActive: true };
+    if (diffInSeconds < 3600) {
+        const mins = Math.max(1, Math.floor(diffInSeconds / 60));
+        return { text: `Active ${mins}m ago`, isActive: false };
+    }
+    if (diffInSeconds < 86400) {
+        const hours = Math.max(1, Math.floor(diffInSeconds / 3600));
+        return { text: `Active ${hours}h ago`, isActive: false };
+    }
+    return { text: `Active ${Math.floor(diffInSeconds / 86400)}d ago`, isActive: false };
+};
+
+const formatSeenAt = (seenAt) => {
+    if (!seenAt) return "seen";
+    const now = new Date();
+    const seen = new Date(seenAt);
+    const diffInSeconds = Math.floor((now - seen) / 1000);
+
+    if (diffInSeconds < 60) return "seen now";
+    if (diffInSeconds < 3600) {
+        const mins = Math.max(1, Math.floor(diffInSeconds / 60));
+        return `seen ${mins}m ago`;
+    }
+    if (diffInSeconds < 86400) {
+        const hours = Math.max(1, Math.floor(diffInSeconds / 3600));
+        return `seen ${hours}h ago`;
+    }
+    return `seen ${Math.floor(diffInSeconds / 86400)}d ago`;
+};
+
+const ProfileImage = ({ src, username, size = "md", className = "", isActive = false }) => {
     const sizeClasses = {
         xs: "w-8 h-8",
         sm: "w-10 h-10",
@@ -54,17 +90,25 @@ const ProfileImage = ({ src, username, size = "md", className = "" }) => {
     };
 
     return (
-        <div className={`${containerSize} aspect-square rounded-full overflow-hidden bg-gray-800 flex-shrink-0 relative flex items-center justify-center ${className}`}>
-            {src ? (
-                isVideo(src) ? (
-                    <video src={src} className="w-full h-full object-cover" autoPlay muted loop playsInline />
+        <div className={`${containerSize} aspect-square rounded-full flex-shrink-0 relative flex items-center justify-center`}>
+            {/* The actual image container */}
+            <div className={`w-full h-full rounded-full overflow-hidden bg-gray-800 relative flex items-center justify-center ${className}`}>
+                {src ? (
+                    isVideo(src) ? (
+                        <video src={src} className="w-full h-full object-cover" autoPlay muted loop playsInline />
+                    ) : (
+                        <img src={src} alt={username} className="w-full h-full object-cover" />
+                    )
                 ) : (
-                    <img src={src} alt={username} className="w-full h-full object-cover" />
-                )
-            ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-700 to-gray-900 group-hover:from-gray-600 group-hover:to-gray-800 transition-colors">
-                    <User size={getIconSize()} className="text-white/20" />
-                </div>
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-700 to-gray-900 group-hover:from-gray-600 group-hover:to-gray-800 transition-colors">
+                        <User size={getIconSize()} className="text-white/20" />
+                    </div>
+                )}
+            </div>
+
+            {/* Active Status Dot */}
+            {isActive && (
+                <div className="absolute bottom-0 right-0 w-[30%] h-[30%] min-w-[8px] min-h-[8px] bg-emerald-500 rounded-full border-2 border-black animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)] z-20"></div>
             )}
         </div>
     );
@@ -313,7 +357,7 @@ let INBOX_CACHE = loadFromCache(INBOX_CACHE_KEY) || {
     lastFetched: 0
 };
 
-const MobileInbox = ({ onBack, currentUser }) => {
+const MobileInbox = ({ onBack, currentUser, onUserProfileClick, chatIntent, onConsumeIntent }) => {
     const [selectedChat, setSelectedChat] = useState(null);
     const [notes, setNotes] = useState(INBOX_CACHE.notes);
     const [conversations, setConversations] = useState(INBOX_CACHE.conversations);
@@ -333,10 +377,18 @@ const MobileInbox = ({ onBack, currentUser }) => {
         try {
             const [notesRes, convRes] = await Promise.all([
                 fetch(`${apiUrl}/api/messages/notes`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    }
                 }).then(r => r.json()),
                 fetch(`${apiUrl}/api/messages/conversations`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    }
                 }).then(r => r.json())
             ]);
 
@@ -347,8 +399,24 @@ const MobileInbox = ({ onBack, currentUser }) => {
                 INBOX_CACHE.shuffledUsers = notesRes.shuffledUsers || [];
             }
             if (convRes.success) {
-                setConversations(convRes.conversations);
-                INBOX_CACHE.conversations = convRes.conversations;
+                // PRESENCE ACCELERATION: Manifest active only if NOT explicitly offline
+                const accelerated = convRes.conversations.map(conv => {
+                    if (!conv.user || conv.user.lastSeen === null) return conv;
+
+                    const lastMsg = conv.lastMessage;
+                    if (lastMsg && lastMsg.userId === conv.user.id) {
+                        const msgTime = new Date(lastMsg.createdAt).getTime();
+                        const seenTime = new Date(conv.user.lastSeen).getTime();
+
+                        // Only accelerate if message is newer than known last seen and within 60s
+                        if (msgTime > seenTime && (Date.now() - msgTime) < 60000) {
+                            return { ...conv, user: { ...conv.user, lastSeen: new Date(msgTime).toISOString() } };
+                        }
+                    }
+                    return conv;
+                });
+                setConversations(accelerated);
+                INBOX_CACHE.conversations = accelerated;
             }
             INBOX_CACHE.lastFetched = Date.now();
             saveToCache(INBOX_CACHE_KEY, INBOX_CACHE);
@@ -360,10 +428,43 @@ const MobileInbox = ({ onBack, currentUser }) => {
     }, [apiUrl, token]);
 
     useEffect(() => {
-        // If we have cached data, fetch silently in the background
         const isSilent = INBOX_CACHE.lastFetched !== 0;
         fetchData(isSilent);
-    }, [fetchData]);
+
+        // LIVE INBOX POLLING: Neural Burst - 1s updates
+        // Suppression: Skip inbox list polling if a chat thread is active to save bandwidth/CPU
+        const interval = setInterval(() => {
+            if (!selectedChat) {
+                fetchData(true);
+            }
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [fetchData, selectedChat]);
+
+    // NEURAL INTENT HANDLER: Auto-open chat from profile
+    useEffect(() => {
+        if (chatIntent && conversations.length > 0) {
+            console.log("🎯 [Neural Inbox] Processing Message Intent for:", chatIntent.username);
+            const targetId = chatIntent.id || chatIntent.userId;
+            const existing = conversations.find(c => c.user.id === targetId || c.user.userId === targetId);
+
+            if (existing) {
+                setSelectedChat(existing);
+            } else {
+                // New thread initialization
+                setSelectedChat({
+                    id: null,
+                    user: chatIntent,
+                    lastMessage: null
+                });
+            }
+            onConsumeIntent();
+        }
+    }, [chatIntent, conversations, onConsumeIntent]);
+
+    // Inbox polling handled here; Global activity moved to App.jsx
+
+    // Activity logic removed (moved to App.jsx)
 
     const handleCreateNote = async (noteData) => {
         // Instant feedback
@@ -436,6 +537,7 @@ const MobileInbox = ({ onBack, currentUser }) => {
             <ChatThread
                 chat={selectedChat}
                 currentUser={currentUser}
+                onUserProfileClick={onUserProfileClick}
                 onBack={() => {
                     setSelectedChat(null);
                     fetchData(); // Refresh list on back
@@ -546,6 +648,7 @@ const MobileInbox = ({ onBack, currentUser }) => {
                                         username={conv.user.username}
                                         size="md"
                                         className="border border-white/5"
+                                        isActive={formatLastActive(conv.user.lastSeen).isActive}
                                     />
                                     <div className="flex flex-col overflow-hidden">
                                         <span className="text-sm font-semibold text-white truncate">
@@ -553,7 +656,10 @@ const MobileInbox = ({ onBack, currentUser }) => {
                                         </span>
                                         <span className="text-sm text-gray-400 truncate flex items-center gap-1">
                                             {conv.lastMessage?.userId === currentUser?.id && "You: "}{conv.lastMessage?.content || "Tap to chat"}
-                                            <span className="text-xs text-gray-600">• {new Date(conv.updatedAt).toLocaleDateString()}</span>
+                                            {conv.lastMessage?.userId === currentUser?.id && conv.lastMessage?.isSeen && (
+                                                <span className="text-[10px] text-blue-500 font-bold ml-1">{formatSeenAt(conv.lastMessage?.seenAt)}</span>
+                                            )}
+                                            <span className="text-xs text-gray-600">• {formatLastActive(conv.user.lastSeen).text}</span>
                                         </span>
                                     </div>
                                 </div>
@@ -1150,23 +1256,79 @@ const SharedPostPreview = ({ postId, apiUrl, token }) => {
     );
 };
 
-const ChatThread = ({ chat, onBack, currentUser }) => {
-    const CACHE_KEY = `chat_messages_${chat.id}`;
+const ChatThread = ({ chat: initialChat, onBack, currentUser, onUserProfileClick }) => {
+    const [chat, setChat] = useState(initialChat);
+    const CACHE_KEY = chat.id ? `chat_messages_${chat.id}` : null;
     const [messages, setMessages] = useState(() => loadFromCache(CACHE_KEY) || []);
     const [input, setInput] = useState('');
     const apiUrl = import.meta.env.VITE_API_URL || "https://synapse-backend.pralayd140.workers.dev";
     const token = Cookies.get('synapse_token') || localStorage.getItem('synapse_token');
-    // No manual scroll logic needed with flex-col-reverse
+
+    // Update local chat if prop changes (e.g. from inbox polling)
+    useEffect(() => {
+        if (initialChat?.id !== chat?.id) {
+            setChat(initialChat);
+        }
+    }, [initialChat, chat?.id]);
 
 
     const fetchMessages = useCallback(async () => {
+        if (!chat.id) return; // Skip if it's a new unsaved thread
         try {
-            const res = await fetch(`${apiUrl}/api/messages/conversations/${chat.id}/messages`, {
-                headers: { 'Authorization': `Bearer ${token}` }
+            // CACHE-BUSTER PROTOCOL: Unique timestamp to bypass every possible intermediate cache
+            const cacheBuster = `t=${Date.now()}`;
+            const res = await fetch(`${apiUrl}/api/messages/conversations/${chat.id}/messages?${cacheBuster}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0'
+                },
+                cache: 'no-store'
             });
             const data = await res.json();
             if (data.success) {
-                setMessages(data.messages);
+                // PRESENCE ACCELERATION: Manifest active only if NOT explicitly offline
+                if (chat.user.lastSeen !== null) {
+                    const partnerMsgs = data.messages.filter(m => m.userId === chat.user.id);
+                    if (partnerMsgs.length > 0) {
+                        const latestMsgTime = Math.max(...partnerMsgs.map(m => new Date(m.createdAt).getTime()));
+                        const currentSeenTime = new Date(chat.user.lastSeen).getTime();
+
+                        if (latestMsgTime > currentSeenTime && (Date.now() - latestMsgTime) < 60000) {
+                            setChat(prev => ({
+                                ...prev,
+                                user: { ...prev.user, lastSeen: new Date(latestMsgTime).toISOString() }
+                            }));
+                        }
+                    }
+                }
+
+                // NEURAL MERGE: Don't let polling overwrite messages we just sent but aren't in the list yet
+                setMessages(prev => {
+                    const incomingIds = new Set(data.messages.map(m => m.id));
+
+                    const optimisticToKeep = prev.filter(m => {
+                        const isSyncing = !incomingIds.has(m.id);
+                        const currentUserId = currentUser.id || currentUser.userId;
+                        const msgUserId = m.userId || m.user?.id;
+                        const isMine = msgUserId == currentUserId;
+                        const isRecent = (Date.now() - new Date(m.createdAt).getTime()) < 30000;
+                        const isTempId = typeof m.id === 'number' && m.id > 1000000000000;
+
+                        return isSyncing && isMine && (isRecent || isTempId);
+                    });
+
+                    const finalMessages = [...data.messages, ...optimisticToKeep].sort((a, b) =>
+                        new Date(a.createdAt) - new Date(b.createdAt)
+                    );
+
+                    // SMART-RENDER GUARD: Only update state if something actually changed
+                    // This prevents lag from high-frequency re-renders when no new content exists
+                    const isDifferent = JSON.stringify(finalMessages) !== JSON.stringify(prev);
+                    return isDifferent ? finalMessages : prev;
+                });
+
                 saveToCache(CACHE_KEY, data.messages);
 
                 // Neural Batch Optimization: Scan for shared posts and fetch them all at once
@@ -1181,17 +1343,81 @@ const ChatThread = ({ chat, onBack, currentUser }) => {
                 if (sharedPostIds.length > 0) {
                     await fetchBatchPosts(sharedPostIds, apiUrl, token);
                 }
+
+                // NEURAL TYPING CHECK: Sync typing status with the 300ms pulse
+                if (data.isTyping !== undefined) {
+                    setChat(prev => ({ ...prev, isTyping: data.isTyping }));
+                }
             }
         } catch (err) {
             console.error("Fetch Messages Error:", err);
         }
     }, [apiUrl, token, chat.id]);
 
+    // NEURAL STATUS REFRESH: Keep the recipient's status live in the header
     useEffect(() => {
-        fetchMessages();
-        const interval = setInterval(fetchMessages, 3000);
+        const refreshStatus = async () => {
+            if (!chat.id) return; // Skip if it's a new unsaved thread
+            try {
+                const res = await fetch(`${apiUrl}/api/messages/conversations`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    },
+                    cache: 'no-store'
+                });
+                const data = await res.json();
+                if (data.success) {
+                    const currentConv = data.conversations.find(c => c.id === chat.id);
+                    if (currentConv && currentConv.user) {
+                        setChat(prev => ({
+                            ...prev,
+                            user: { ...prev.user, lastSeen: currentConv.user.lastSeen },
+                            isTyping: currentConv.isTyping
+                        }));
+                    }
+                }
+            } catch (err) {
+                console.error("Status Refresh Error:", err);
+            }
+        };
+
+        refreshStatus(); // HYDRATE IMMEDIATELY: No more 5-second stale period
+        const interval = setInterval(refreshStatus, 5000);
         return () => clearInterval(interval);
+    }, [apiUrl, token, chat.id]);
+
+    useEffect(() => {
+        let isActive = true;
+        const pulse = async () => {
+            if (!isActive) return;
+            await fetchMessages();
+            // RECURSIVE ULTRA-PULSE: 300ms delay between completions
+            if (isActive) setTimeout(pulse, 300);
+        };
+
+        pulse();
+        return () => { isActive = false; };
     }, [fetchMessages]);
+
+    // NEURAL TYPING ENGINE: Emit signal every 2s while typing
+    const lastTypingSent = useRef(0);
+    useEffect(() => {
+        if (!input.trim() || !chat.id) return;
+        const now = Date.now();
+        if (now - lastTypingSent.current > 2000) {
+            lastTypingSent.current = now;
+            fetch(`${apiUrl}/api/messages/typing`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ conversationId: chat.id, isTyping: true })
+            }).catch(() => { });
+        }
+    }, [input, chat.id, apiUrl, token]);
 
     // flex-col-reverse ensures we stay at the bottom naturally
 
@@ -1201,7 +1427,7 @@ const ChatThread = ({ chat, onBack, currentUser }) => {
         const optimisticMsg = {
             id: Date.now(),
             content: input,
-            userId: currentUser.id,
+            userId: currentUser.id || currentUser.userId,
             user: currentUser,
             createdAt: new Date()
         };
@@ -1217,9 +1443,9 @@ const ChatThread = ({ chat, onBack, currentUser }) => {
                     'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
-                    conversationId: chat.id,
+                    conversationId: chat.id, // might be null
                     content: tempInput,
-                    receiverId: chat.user.id
+                    receiverId: chat.user.id || chat.user.userId
                 })
             });
             const data = await res.json();
@@ -1227,6 +1453,15 @@ const ChatThread = ({ chat, onBack, currentUser }) => {
                 setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id));
                 setInput(tempInput);
             } else {
+                // NEURAL PERSISTENCE: Replace optimistic message with actual data immediately
+                setMessages(prev => prev.map(m => m.id === optimisticMsg.id ? data.message : m));
+
+                // If this was a new thread, it now has an ID!
+                if (!chat.id && data.message.conversationId) {
+                    setChat(prev => ({ ...prev, id: data.message.conversationId }));
+                }
+
+                // We call fetchMessages for total state sync, but the merge logic will prevent flickering
                 fetchMessages();
             }
         } catch (err) {
@@ -1257,17 +1492,27 @@ const ChatThread = ({ chat, onBack, currentUser }) => {
                 <div className="flex items-center gap-4">
                     <button onClick={onBack}><ChevronLeft size={28} /></button>
                     <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-800 border border-white/5 relative">
-                            {isVideo(chat.user.profileImage) ? (
-                                <video src={chat.user.profileImage} className="w-full h-full object-cover" autoPlay muted loop playsInline />
-                            ) : (
-                                <img src={chat.user.profileImage || "https://i.pravatar.cc/150?u=" + chat.id} alt={chat.user.username} className="w-full h-full object-cover" />
-                            )}
-                            <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-black"></div>
-                        </div>
-                        <div className="flex flex-col">
+                        <ProfileImage
+                            src={chat.user.profileImage}
+                            username={chat.user.username}
+                            size="sm"
+                            className="border border-white/5 cursor-pointer"
+                            isActive={formatLastActive(chat.user.lastSeen).isActive}
+                            onClick={() => onUserProfileClick && onUserProfileClick(chat.user)}
+                        />
+                        <div className="flex flex-col cursor-pointer" onClick={() => onUserProfileClick && onUserProfileClick(chat.user)}>
                             <span className="text-sm font-bold truncate leading-none">{chat.user.username}</span>
-                            <span className="text-[10px] text-emerald-500 font-medium">Active now</span>
+                            {chat.isTyping ? (
+                                <div className="flex items-center space-x-1 h-3 mt-1">
+                                    <div className="w-1 h-1 bg-[#0095f6] rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                                    <div className="w-1 h-1 bg-[#0095f6] rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                                    <div className="w-1 h-1 bg-[#0095f6] rounded-full animate-bounce"></div>
+                                </div>
+                            ) : (
+                                <span className={`text-[10px] font-medium ${formatLastActive(chat.user.lastSeen).isActive ? "text-emerald-500" : "text-gray-400"}`}>
+                                    {formatLastActive(chat.user.lastSeen).text}
+                                </span>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -1352,8 +1597,11 @@ const ChatThread = ({ chat, onBack, currentUser }) => {
                                         )}
                                     </div>
                                 </div>
-                                <span className="text-[9px] text-gray-600 mt-1 px-1 font-medium select-none">
+                                <span className="text-[9px] text-gray-600 mt-1 px-1 font-medium select-none flex items-center gap-1">
                                     {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    {msg.userId === currentUser.id && msg.isSeen && (
+                                        <span className="text-blue-500 font-bold ml-1">{formatSeenAt(msg.seenAt)}</span>
+                                    )}
                                 </span>
                             </div>
                         ))}

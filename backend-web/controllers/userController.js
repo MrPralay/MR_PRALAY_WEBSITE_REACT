@@ -32,6 +32,7 @@ export const getProfile = async (c) => {
                 riskScore: true,
                 isPrivate: true,
                 createdAt: true,
+                lastSeen: true,
                 role: true,
                 posts: {
                     orderBy: { createdAt: 'desc' },
@@ -173,7 +174,8 @@ export const getSuggestedUsers = async (c) => {
             select: {
                 id: true,
                 username: true,
-                profileImage: true
+                profileImage: true,
+                lastSeen: true
             },
             orderBy: { createdAt: 'desc' }
         });
@@ -253,7 +255,8 @@ export const searchUsers = async (c) => {
                 username: true,
                 name: true,
                 profileImage: true,
-                isVerified: true
+                isVerified: true,
+                lastSeen: true
             }
         });
 
@@ -261,5 +264,39 @@ export const searchUsers = async (c) => {
     } catch (error) {
         console.error("User Search Error:", error);
         return c.json({ success: false, error: "Search protocol failed" }, 500);
+    }
+};
+export const updateActivity = async (c) => {
+    try {
+        const user = c.get('user');
+        const prisma = getPrisma(c.env.DATABASE_URL);
+        const { status, sentAt } = await c.req.json().catch(() => ({}));
+
+        const clientSentAt = sentAt ? new Date(sentAt) : new Date();
+
+        // Neural Order Correction: Only update if request is newer than last processed
+        const dbUser = await prisma.user.findUnique({
+            where: { id: user.userId },
+            select: { lastActivityAt: true }
+        });
+
+        if (dbUser?.lastActivityAt && clientSentAt <= dbUser.lastActivityAt) {
+            return c.json({ success: true, message: "Out-of-order signal ignored" });
+        }
+
+        const isOffline = status === 'offline' || status === 'leaving';
+        const lastSeenTime = isOffline ? new Date(clientSentAt.getTime() - 61000) : clientSentAt;
+
+        await prisma.user.update({
+            where: { id: user.userId },
+            data: {
+                lastSeen: lastSeenTime,
+                lastActivityAt: clientSentAt
+            }
+        });
+
+        return c.json({ success: true });
+    } catch (error) {
+        return c.json({ success: false, error: error.message }, 500);
     }
 };

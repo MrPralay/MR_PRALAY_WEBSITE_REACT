@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Cookies from 'js-cookie';
 import LoginBox from './components/Login/LoginBox';
@@ -144,6 +144,70 @@ function App() {
         performNeuralSync();
     }, []);
 
+    // GLOBAL ACTIVITY INTELLIGENCE (v7)
+    const isLeaving = useRef(false);
+    useEffect(() => {
+        if (!user) return;
+
+        const updateActivity = async (status = 'online') => {
+            const token = Cookies.get('synapse_token');
+            if (!token) {
+                console.log('⏳ [Global Activity] Missing token, skipping pulse...');
+                return;
+            }
+
+            if (isLeaving.current && status === 'online') return;
+            if (status === 'offline') isLeaving.current = true;
+            if (status === 'online') isLeaving.current = false;
+
+            if (status === 'online' && document.visibilityState !== 'visible') return;
+
+            try {
+                const response = await fetch(`${LIVE_API}/api/user/activity`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ status, sentAt: new Date().toISOString() }),
+                    keepalive: true
+                });
+
+                if (response.ok) {
+                    console.log(`📡 [Global Activity] ${status.toUpperCase()} Pulse sent successfully`);
+                }
+            } catch (err) {
+                console.log("Global Activity Update Error:", err);
+            }
+        };
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                isLeaving.current = false;
+                updateActivity('online');
+            } else {
+                updateActivity('offline');
+            }
+        };
+
+        const handleBeforeUnload = () => {
+            updateActivity('offline');
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        const interval = setInterval(() => updateActivity('online'), 5000);
+
+        // Immediate Trigger
+        updateActivity('online');
+
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            clearInterval(interval);
+        };
+    }, [user, LIVE_API]);
+
     const handleLoginSuccess = (loginData) => {
         const { user: userData, token } = loginData;
         console.log('🔑 Login Success - Token Debug:', {
@@ -187,8 +251,22 @@ function App() {
     };
 
     const handleLogout = async () => {
-        console.log('🚪 LOGOUT TRIGGERED - Stack trace:', new Error().stack);
-        try { await fetch(`${LIVE_API}/api/auth/logout`, { method: 'POST' }); } catch (e) { }
+        console.log('🚪 LOGOUT TRIGGERED');
+        try {
+            const token = Cookies.get('synapse_token');
+            if (token) {
+                await fetch(`${LIVE_API}/api/user/activity`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ status: 'offline', sentAt: new Date().toISOString() }),
+                    keepalive: true
+                });
+            }
+            await fetch(`${LIVE_API}/api/auth/logout`, { method: 'POST' });
+        } catch (e) { }
         setUser(null);
         // Clear ALL possible session cookies to be safe
         Cookies.remove('synapse_token');

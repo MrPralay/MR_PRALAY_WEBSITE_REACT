@@ -22,7 +22,7 @@ app.use('*', cors({
         return origin || '*';
     },
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+    allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Cache-Control', 'Pragma', 'Expires'],
     exposeHeaders: ['Content-Length', 'X-Synapse-Debug'],
     maxAge: 86400,
     credentials: true,

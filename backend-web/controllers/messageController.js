@@ -23,7 +23,8 @@ export const getConversations = async (c) => {
                                 id: true,
                                 username: true,
                                 profileImage: true,
-                                name: true
+                                name: true,
+                                lastSeen: true
                             }
                         }
                     }
@@ -39,11 +40,14 @@ export const getConversations = async (c) => {
         // Format for frontend
         const formatted = conversations.map(conv => {
             const otherMember = conv.members.find(m => m.userId !== userId);
+            const isTyping = otherMember?.typingUntil ? new Date(otherMember.typingUntil) > new Date() : false;
+
             return {
                 id: conv.id,
                 user: otherMember?.user,
                 lastMessage: conv.messages[0],
-                updatedAt: conv.updatedAt
+                updatedAt: conv.updatedAt,
+                isTyping
             };
         });
 
@@ -71,7 +75,36 @@ export const getMessages = async (c) => {
             },
             orderBy: { createdAt: 'asc' }
         });
-        return c.json({ success: true, messages });
+
+        // Mark messages as seen if they are not from the current user
+        const userId = c.get('user').userId;
+        const unseenMessages = messages.filter(m => m.userId !== userId && !m.isSeen);
+
+        if (unseenMessages.length > 0) {
+            // NEURAL BACKGROUND SYNC: Update seen status without blocking the response
+            prisma.message.updateMany({
+                where: {
+                    id: { in: unseenMessages.map(m => m.id) }
+                },
+                data: {
+                    isSeen: true,
+                    seenAt: new Date()
+                }
+            }).catch(err => console.error("[Non-Blocking Seen Error]:", err));
+        }
+
+        // Check typing status of the other user
+        const otherMember = await prisma.conversationMember.findFirst({
+            where: {
+                conversationId,
+                userId: { not: userId }
+            },
+            select: { typingUntil: true }
+        });
+
+        const isTyping = otherMember?.typingUntil ? new Date(otherMember.typingUntil) > new Date() : false;
+
+        return c.json({ success: true, messages, isTyping });
     } catch (err) {
         return c.json({ success: false, error: err.message }, 500);
     }
@@ -117,7 +150,8 @@ export const sendMessage = async (c) => {
             data: {
                 content,
                 userId: senderId,
-                conversationId: finalConvId
+                conversationId: finalConvId,
+                isSeen: false
             },
             include: {
                 user: {
@@ -236,6 +270,29 @@ export const deleteNote = async (c) => {
     try {
         await prisma.userNote.deleteMany({ where: { userId } });
         return c.json({ success: true, message: "Note neutralized" });
+    } catch (err) {
+        return c.json({ success: false, error: err.message }, 500);
+    }
+};
+
+export const updateTypingStatus = async (c) => {
+    const prisma = getPrisma(c.env.DATABASE_URL);
+    const userId = c.get('user').userId;
+    const { conversationId, isTyping } = await c.req.json();
+
+    try {
+        await prisma.conversationMember.update({
+            where: {
+                userId_conversationId: {
+                    userId,
+                    conversationId: parseInt(conversationId)
+                }
+            },
+            data: {
+                typingUntil: isTyping ? new Date(Date.now() + 3000) : null
+            }
+        });
+        return c.json({ success: true });
     } catch (err) {
         return c.json({ success: false, error: err.message }, 500);
     }
