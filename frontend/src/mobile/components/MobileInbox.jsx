@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Search, Edit, Camera, ChevronLeft, Music, Send, Trash2, X, Plus, MessageCircle, Play, Pause, MoreHorizontal, Volume2, VolumeX, Upload, User, ChevronDown } from 'lucide-react';
+import { Search, Edit, Camera, ChevronLeft, Music, Send, Trash2, X, Plus, MessageCircle, Play, Pause, MoreHorizontal, Volume2, VolumeX, Upload, User, ChevronDown, Bell, Clock, Lock, Type, Users, Phone, Video } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Cookies from 'js-cookie';
 import { saveToCache, loadFromCache } from '../../utils/synapseCache';
@@ -1272,6 +1272,7 @@ const ChatThread = ({ chat: initialChat, onBack, currentUser, onUserProfileClick
     // --- NUCLEAR TYPING ENGINE: Isolated State & Forced Failsafe ---
     const [remoteIsTyping, setRemoteIsTyping] = useState(false);
     const [isStreamActive, setIsStreamActive] = useState(false);
+    const [showChatInfo, setShowChatInfo] = useState(false);
     const typingTimeoutRef = useRef(null);
 
 
@@ -1597,7 +1598,7 @@ const ChatThread = ({ chat: initialChat, onBack, currentUser, onUserProfileClick
                             isActive={formatLastActive(chat.user.lastSeen).isActive}
                             onClick={() => onUserProfileClick && onUserProfileClick(chat.user)}
                         />
-                        <div className="flex flex-col cursor-pointer" onClick={() => onUserProfileClick && onUserProfileClick(chat.user)}>
+                        <div className="flex flex-col cursor-pointer" onClick={() => setShowChatInfo(true)}>
                             <span className="text-sm font-bold truncate leading-none">{chat.user.username}</span>
                             {remoteIsTyping ? (
                                 <div className="flex items-center space-x-1 h-3 mt-1">
@@ -1614,21 +1615,25 @@ const ChatThread = ({ chat: initialChat, onBack, currentUser, onUserProfileClick
                     </div>
                 </div>
                 <div className="flex items-center gap-6">
-                    <button className="text-white opacity-60 hover:opacity-100 transition-opacity"><Music size={22} /></button>
-                    <button className="text-white opacity-60 hover:opacity-100 transition-opacity"><Edit size={22} /></button>
+                    <button className="text-white opacity-60 hover:opacity-100 transition-opacity"><Phone size={22} /></button>
+                    <button className="text-white opacity-60 hover:opacity-100 transition-opacity"><Video size={22} /></button>
                 </div>
             </div>
+
 
             <div className="flex-1 overflow-y-auto p-4 flex flex-col-reverse gap-4 bg-gradient-to-b from-black to-[#0a0a0a] scrollbar-hide">
                 {/* flex-col-reverse naturally starts at the bottom */}
                 {messages.length === 0 ? (
-                    <div className="flex flex-col items-center py-20 opacity-30 text-center mt-20 flex-1 justify-center rotate-180">
-                        <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-emerald-500/20 to-blue-500/20 flex items-center justify-center mb-6 animate-pulse">
-                            <MessageCircle size={48} className="text-white/50" />
+                    <>
+                        <div className="flex flex-col items-center py-20 opacity-30 text-center mt-20 flex-1 justify-center">
+                            <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-emerald-500/20 to-blue-500/20 flex items-center justify-center mb-6 animate-pulse">
+                                <MessageCircle size={48} className="text-white/50" />
+                            </div>
+                            <h2 className="font-bold text-lg mb-1">Encrypted Channel</h2>
+                            <p className="text-xs px-10 text-gray-400">Messages are end-to-end encrypted within the Neural Hive.</p>
                         </div>
-                        <h2 className="font-bold text-lg mb-1">Encrypted Channel</h2>
-                        <p className="text-xs px-10 text-gray-400">Messages are end-to-end encrypted within the Neural Hive.</p>
-                    </div>
+                        <EnhancedHeader chat={chat} onUserProfileClick={onUserProfileClick} />
+                    </>
                 ) : (
                     <>
                         <div className="h-0 flex-shrink-0" /> {/* Bottom spacer for reverse layout */}
@@ -1702,6 +1707,7 @@ const ChatThread = ({ chat: initialChat, onBack, currentUser, onUserProfileClick
                                 </span>
                             </div>
                         ))}
+                        <EnhancedHeader chat={chat} onUserProfileClick={onUserProfileClick} />
                     </>
                 )}
             </div>
@@ -1770,8 +1776,146 @@ const ChatThread = ({ chat: initialChat, onBack, currentUser, onUserProfileClick
                     )}
                 </div>
             </div>
-        </div>
+
+            {/* CHAT INFO OVERLAY (Turbo v7) */}
+            <AnimatePresence>
+                {showChatInfo && (
+                    <ChatInfo
+                        chat={chat}
+                        onClose={() => setShowChatInfo(false)}
+                        onViewProfile={() => {
+                            setShowChatInfo(false);
+                            onUserProfileClick && onUserProfileClick(chat.user);
+                        }}
+                    />
+                )}
+            </AnimatePresence>
+        </div >
     );
 };
+
+const ChatInfo = ({ chat, onClose, onViewProfile }) => {
+    return (
+        <motion.div
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="fixed inset-0 z-[100] bg-black flex flex-col pt-safe"
+        >
+            {/* Header */}
+            <div className="flex items-center px-4 py-3 border-b border-white/5">
+                <button onClick={onClose} className="p-2 -ml-2 hover:bg-white/5 rounded-full transition-colors">
+                    <ChevronLeft size={28} />
+                </button>
+                <h2 className="ml-2 text-lg font-bold">Details</h2>
+            </div>
+
+            <div className="flex-1 overflow-y-auto scrollbar-hide">
+                {/* Profile Large Info */}
+                <div className="flex flex-col items-center py-10">
+                    <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-white/10 mb-5 bg-[#1a1a1a]">
+                        <ProfileImage src={chat.user.profileImage} username={chat.user.username} size="full" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-white mb-8">{chat.user.username}</h2>
+
+                    {/* Action Grid */}
+                    <div className="grid grid-cols-4 gap-8 mb-10">
+                        <ActionButton icon={<User size={24} />} label="Profile" onClick={onViewProfile} />
+                        <ActionButton icon={<Search size={24} />} label="Search" />
+                        <ActionButton icon={<Bell size={24} />} label="Mute" />
+                        <ActionButton icon={<MoreHorizontal size={24} />} label="Options" />
+                    </div>
+                </div>
+
+                {/* Settings Section */}
+                <div className="px-4 space-y-1 mb-10">
+                    <SettingsItem
+                        icon={<div className="w-6 h-6 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500" />}
+                        label="Theme"
+                        value="Default"
+                    />
+                    <SettingsItem icon={<Clock size={22} />} label="Disappearing messages" value="Off" />
+                    <SettingsItem icon={<Lock size={22} />} label="Privacy & safety" />
+                    <SettingsItem icon={<Type size={22} />} label="Nicknames" />
+                    <SettingsItem icon={<Users size={22} />} label="Create a group chat" />
+                </div>
+
+                {/* Shared Media */}
+                <div className="px-4 mb-20">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="font-bold text-white">Shared media</h3>
+                        <button className="text-xs font-bold text-blue-500">View all</button>
+                    </div>
+                    <div className="grid grid-cols-3 gap-1 rounded-2xl overflow-hidden border border-white/5 bg-[#121212]">
+                        {[1, 2, 3, 4, 5, 6].map(i => (
+                            <div key={i} className="aspect-square bg-gray-900 overflow-hidden relative group">
+                                <img
+                                    src={`https://picsum.photos/300/300?sig=${chat.id + i}`}
+                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                    alt="Shared media"
+                                />
+                                <div className="absolute top-1.5 right-1.5 opacity-60">
+                                    <Video size={14} className="text-white drop-shadow-md" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        </motion.div>
+    );
+};
+
+const ActionButton = ({ icon, label, onClick }) => (
+    <button onClick={onClick} className="flex flex-col items-center gap-2 group">
+        <div className="w-12 h-12 rounded-full bg-[#262626] flex items-center justify-center transition-all group-active:scale-95 group-active:bg-[#333]">
+            {icon}
+        </div>
+        <span className="text-[11px] font-medium text-gray-400">{label}</span>
+    </button>
+);
+
+const SettingsItem = ({ icon, label, value }) => (
+    <div className="flex items-center justify-between py-3.5 px-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer group">
+        <div className="flex items-center gap-4">
+            <span className="text-gray-300 group-active:text-white transition-colors">{icon}</span>
+            <span className="font-medium text-[15px]">{label}</span>
+        </div>
+        {value && <span className="text-sm text-gray-500 font-semibold mr-2">{value}</span>}
+    </div>
+);
+
+const EnhancedHeader = ({ chat, onUserProfileClick }) => (
+    <div className="flex flex-col items-center py-12 border-b border-white/5 mb-8">
+        <div className="relative mb-4">
+            <div className="w-24 h-24 rounded-full p-[3px] bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-600">
+                <div className="w-full h-full rounded-full border-2 border-black overflow-hidden bg-[#1a1a1a]">
+                    <ProfileImage
+                        src={chat.user.profileImage}
+                        username={chat.user.username}
+                        size="full"
+                    />
+                </div>
+            </div>
+        </div>
+        <h2 className="text-xl font-bold text-white mb-1">{chat.user.username}</h2>
+        <div className="flex items-center gap-2 text-sm text-gray-400 mb-6 font-medium">
+            <span className="font-semibold text-white">0 followers</span>
+            <span>•</span>
+            <span className="font-semibold text-white">0 posts</span>
+        </div>
+        <p className="text-gray-400 text-sm mb-6 text-center px-8 leading-relaxed">
+            You don't follow each other on Instagram<br />
+            <span className="text-xs opacity-60">New Instagram account</span>
+        </p>
+        <button
+            onClick={() => onUserProfileClick && onUserProfileClick(chat.user)}
+            className="px-5 py-2 bg-[#363636] hover:bg-[#404040] transition-colors rounded-lg text-sm font-bold text-white shadow-lg border border-white/5 active:scale-95"
+        >
+            View Profile
+        </button>
+    </div>
+);
 
 export default MobileInbox;
